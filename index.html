@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="vi" data-theme="corporate">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ID-Land – Bộ lọc mặt bằng (Supabase)</title>
+  <!-- Tailwind + DaisyUI -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" />
+  <!-- Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .line-clamp-1{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  </style>
+</head>
+<body class="bg-base-200 text-base-content">
+  <!-- NAV -->
+  <header class="sticky top-0 z-10 bg-base-100/95 backdrop-blur border-b">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="navbar p-0">
+        <div class="flex-1 gap-3">
+          <img src="logo.png" onerror="this.style.display='none'" class="w-9 h-9" alt="ID-Land">
+          <span class="text-2xl font-bold">ID-Land Premises</span>
+          <div id="badgeEnv" class="badge badge-outline">Supabase</div>
+        </div>
+        <div class="flex-none gap-2 items-center">
+          <div class="text-xs opacity-60 hidden sm:block" id="countGlobal">—</div>
+          <button class="btn btn-primary btn-sm" onclick="openAdd()">+ Thêm mặt bằng</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- BODY -->
+  <main class="max-w-7xl mx-auto px-4 py-5 grid grid-cols-1 lg:grid-cols-5 gap-5">
+    <!-- FILTERS -->
+    <aside class="lg:col-span-1 bg-base-100 rounded-2xl p-5 shadow-sm border space-y-3 sticky top-[88px] h-fit">
+      <div class="text-lg font-semibold flex items-center gap-2">
+        Bộ lọc <div class="badge badge-info badge-outline">Supabase</div>
+      </div>
+
+      <label class="text-sm font-medium">Từ khóa</label>
+      <input id="kw" class="input input-bordered w-full" placeholder="VD: Trần Hưng Đạo, Q5..." />
+
+      <label class="text-sm font-medium mt-2">Quận</label>
+      <select id="district" class="select select-bordered w-full">
+        <option value="">Tất cả</option>
+      </select>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-sm font-medium">Giá tối thiểu</label>
+          <input id="minPrice" type="number" class="input input-bordered w-full" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Giá tối đa</label>
+          <input id="maxPrice" type="number" class="input input-bordered w-full" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-sm font-medium">DT tối thiểu (m²)</label>
+          <input id="minArea" type="number" class="input input-bordered w-full" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">DT tối đa (m²)</label>
+          <input id="maxArea" type="number" class="input input-bordered w-full" />
+        </div>
+      </div>
+
+      <label class="text-sm font-medium">Mặt tiền</label>
+      <select id="frontage" class="select select-bordered w-full">
+        <option value="">Tất cả</option>
+        <option value="yes">Có</option>
+        <option value="no">Không</option>
+      </select>
+
+      <label class="text-sm font-medium">Tình trạng</label>
+      <select id="status" class="select select-bordered w-full">
+        <option value="">Tất cả</option>
+        <option value="available">Còn trống</option>
+        <option value="deposited">Giữ cọc</option>
+        <option value="rented">Đã thuê</option>
+      </select>
+
+      <label class="text-sm font-medium">Ngành phù hợp</label>
+      <input id="suitable" class="input input-bordered w-full" placeholder="VD: cafe, phở..." />
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-sm font-medium">Sắp xếp</label>
+          <select id="sort" class="select select-bordered w-full">
+            <option value="newest">Mới nhất</option>
+            <option value="price_asc">Giá tăng dần</option>
+            <option value="price_desc">Giá giảm dần</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium">Mỗi trang</label>
+          <select id="perPage" class="select select-bordered w-full">
+            <option>24</option><option>48</option><option>96</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-1">
+        <button id="btnApply" class="btn btn-primary flex-1">Lọc</button>
+        <button class="btn flex-1" onclick="resetFilters()">Xóa lọc</button>
+      </div>
+    </aside>
+
+    <!-- LIST -->
+    <section class="lg:col-span-4">
+      <div class="flex items-center justify-between mb-3">
+        <div id="countPage" class="text-sm opacity-70">—</div>
+        <div class="flex items-center gap-2">
+          <button class="btn btn-ghost btn-sm" onclick="downloadCSV()">Tải CSV</button>
+        </div>
+      </div>
+      <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      <div class="flex justify-center mt-6">
+        <button id="btnMore" class="btn" disabled>—</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- ADD MODAL -->
+  <dialog id="dlg" class="modal">
+    <div class="modal-box max-w-2xl">
+      <h3 class="font-bold text-lg mb-3">Thêm mặt bằng</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input id="f_address" class="input input-bordered" placeholder="Địa chỉ">
+        <input id="f_street" class="input input-bordered" placeholder="Đường">
+        <input id="f_district" class="input input-bordered" placeholder="Quận (VD: Quận 10)">
+        <input id="f_ward" class="input input-bordered" placeholder="Phường">
+        <input id="f_width" type="number" class="input input-bordered" placeholder="Ngang (m)">
+        <input id="f_length" type="number" class="input input-bordered" placeholder="Dài (m)">
+        <input id="f_area" type="number" class="input input-bordered" placeholder="Diện tích (m²)">
+        <input id="f_floors" type="number" class="input input-bordered" placeholder="Số tầng">
+        <input id="f_price" type="number" class="input input-bordered" placeholder="Giá thuê (VND)">
+        <input id="f_commission" class="input input-bordered" placeholder="Hoa hồng (vd: hh1/2)">
+        <input id="f_suitable" class="input input-bordered" placeholder="Ngành phù hợp (cách nhau dấu phẩy)">
+        <select id="f_status" class="select select-bordered">
+          <option value="available">Còn trống</option>
+          <option value="deposited">Giữ cọc</option>
+          <option value="rented">Đã thuê</option>
+        </select>
+        <input id="f_contact_name" class="input input-bordered" placeholder="Tên liên hệ">
+        <input id="f_contact_phone" class="input input-bordered" placeholder="SĐT liên hệ">
+        <label class="label cursor-pointer gap-2">
+          <span class="label-text">Mặt tiền</span>
+          <input id="f_frontage" type="checkbox" class="toggle">
+        </label>
+      </div>
+      <div class="divider my-2">Ảnh mặt bằng</div>
+      <input id="f_images" type="file" class="file-input file-input-bordered w-full" multiple accept="image/*" />
+      <progress id="upProgress" class="progress progress-primary w-full hidden mt-2" value="0" max="100"></progress>
+      <p id="upHint" class="text-xs opacity-60">Chọn 1–10 ảnh. Ảnh sẽ được upload lên Storage.</p>
+      <div class="modal-action">
+        <form method="dialog" class="flex gap-2">
+          <button class="btn">Đóng</button>
+          <button class="btn btn-primary" onclick="addItem()">Lưu</button>
+        </form>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- DETAIL MODAL -->
+  <dialog id="detailDlg" class="modal">
+    <div class="modal-box max-w-4xl">
+      <form method="dialog"><button class="btn btn-sm btn-circle absolute right-2 top-2">✕</button></form>
+      <div id="detailBody" class="space-y-4"></div>
+    </div>
+  </dialog>
+
+  <footer class="text-center text-xs text-base-content/60 py-8">
+    © <span id="yr"></span> ID-Land • Bộ lọc mặt bằng (Supabase)
+  </footer>
+
+  <script>
+    // ====== 1) CONFIG SUPABASE ======
+    const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co"; // TODO: thay nếu cần
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjbG5jb3drb2Vkd3F6Y2VtaGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzcwOTUsImV4cCI6MjA3Nzg1MzA5NX0.jfNM46UgXIq9LrwSXcERJJULeKB7bl_c9R9LaVhRy1A";
+    const STORAGE_BUCKET = "premise-images";                  // tên bucket ảnh (Public)
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ====== 2) STATE ======
+    document.getElementById('yr').textContent = new Date().getFullYear();
+    const districts = ["Quận 1","Quận 3","Quận 5","Quận 10","Quận Phú Nhuận","Quận Bình Thạnh","TP. Thủ Đức","Quận Tân Bình","Quận 7","Quận 8","Quận 11","Quận 4","Quận 6"];
+    const disSel = document.getElementById("district");
+    districts.forEach(d => { const o = document.createElement("option"); o.value=o.textContent=d; disSel.appendChild(o); });
+
+    let PAGE = 1;
+    let TOTAL = 0;
+
+    function getFilters(){
+      return {
+        kw: document.getElementById("kw").value.trim(),
+        district: document.getElementById("district").value,
+        minPrice: Number(document.getElementById("minPrice").value||0),
+        maxPrice: Number(document.getElementById("maxPrice").value||0),
+        minArea: Number(document.getElementById("minArea").value||0),
+        maxArea: Number(document.getElementById("maxArea").value||0),
+        frontage: document.getElementById("frontage").value,
+        status: document.getElementById("status").value,
+        suitable: document.getElementById("suitable").value.trim(),
+        sort: document.getElementById("sort").value,
+        perPage: Number(document.getElementById("perPage").value||24),
+      };
+    }
+
+    function money(v){ return Number(v||0).toLocaleString("vi-VN",{style:"currency",currency:"VND",maximumFractionDigits:0}); }
+
+    // ====== 3) QUERY BUILDER ======
+    async function fetchPremises({kw='', district='', status='', frontage='', minPrice=0, maxPrice=0, minArea=0, maxArea=0, suitable='', sort='newest', page=1, perPage=24}) {
+      let q = supabase.from('premises').select('*', { count: 'exact' });
+
+      if (district) q = q.eq('district', district);
+      if (status)   q = q.eq('status', status);
+      if (frontage) q = q.eq('frontage', frontage === 'yes');
+      if (minPrice) q = q.gte('price', minPrice);
+      if (maxPrice) q = q.lte('price', maxPrice);
+      if (minArea)  q = q.gte('area', minArea);
+      if (maxArea)  q = q.lte('area', maxArea);
+      if (suitable) q = q.contains('suitable', [suitable]);
+
+      // 🔎 KHÔNG dùng fts để tránh lỗi thiếu cột: fallback ILIKE
+      if (kw) {
+        const safe = kw.replaceAll(",", " "); // tránh phá cú pháp .or
+        q = q.or(
+          `address.ilike.%${safe}%,street.ilike.%${safe}%,district.ilike.%${safe}%`
+        );
+      }
+
+      if (sort === 'price_asc')      q = q.order('price', { ascending: true });
+      else if (sort === 'price_desc') q = q.order('price', { ascending: false });
+      else                            q = q.order('created_at', { ascending: false });
+
+      const from = (page-1)*perPage;
+      const to   = from + perPage - 1;
+      q = q.range(from, to);
+
+      const { data, count, error } = await q;
+      if (error) { console.error("Query error:", error); toast('Lỗi tải dữ liệu'); return { data: [], count: 0 }; }
+      return { data, count: count||0 };
+    }
+
+    // ====== 4) RENDER ======
+    function renderCards(rows){
+      const grid = document.getElementById("grid");
+      const html = rows.map(it => `
+        <article class="card bg-base-100 border shadow-sm hover:shadow-lg transition-all cursor-pointer premise-card" data-id="${encodeURIComponent(it.id)}">
+          <figure class="h-44 bg-base-200 flex items-center justify-center text-base-content/50">
+            ${it.images?.length ? `<img src="${it.images[0]}" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML='(Không có ảnh)'" />` : `(Không có ảnh)`}
+          </figure>
+          <div class="card-body p-4">
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="card-title text-base line-clamp-1">${it.address || `${it.street||""} ${it.district||""}`}</h3>
+              <div class="badge badge-outline ${it.status==='available'?'badge-success':it.status==='deposited'?'badge-warning':''}">
+                ${it.status==='available'?'Còn trống':it.status==='deposited'?'Giữ cọc':'Đã thuê'}
+              </div>
+            </div>
+            <div class="text-sm opacity-70 flex flex-wrap gap-x-3 gap-y-1">
+              <span>${it.district||""}</span>
+              ${it.frontage?'• Mặt tiền':''}
+              ${it.area?`<span>• ${it.area} m²</span>`:''}
+              ${(it.width&&it.length)?`<span>• ${it.width}×${it.length} m</span>`:''}
+              ${it.floors?`<span>• ${it.floors} tầng</span>`:''}
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-2xl font-extrabold">${money(it.price)}</div>
+              ${it.commission_note?`<div class="badge badge-outline badge-secondary">HH: ${it.commission_note}</div>`:''}
+            </div>
+          </div>
+        </article>`).join("");
+      if (PAGE===1) grid.innerHTML = html; else grid.insertAdjacentHTML('beforeend', html);
+
+      grid.querySelectorAll('.premise-card').forEach(card=>{
+        card.addEventListener('click', ()=>{
+          const id = decodeURIComponent(card.dataset.id||'');
+          openDetail(id);
+        });
+      });
+    }
+
+    async function applyFilters(resetPage=true){
+      if (resetPage) PAGE = 1;
+      const f = getFilters();
+      const btnMore = document.getElementById('btnMore');
+      btnMore.disabled = true; btnMore.textContent = 'Đang tải...';
+
+      const { data, count } = await fetchPremises({ ...f, page: PAGE, perPage: f.perPage });
+      TOTAL = count;
+      document.getElementById('countGlobal').textContent = `${count.toLocaleString('vi-VN')} mặt bằng`;
+      document.getElementById('countPage').textContent = `Hiển thị ${(Math.min(PAGE*f.perPage, count)).toLocaleString('vi-VN')} / ${count.toLocaleString('vi-VN')}`;
+
+      renderCards(data||[]);
+
+      const more = PAGE * f.perPage < count;
+      btnMore.disabled = !more;
+      btnMore.textContent = more ? 'Tải thêm' : 'Hết dữ liệu';
+    }
+
+    // ====== 5) DETAIL POPUP ======
+    async function openDetail(id){
+      const { data, error } = await supabase.from('premises').select('*').eq('id', id).single();
+      if (error) { console.error(error); return; }
+      const item = data;
+      const imgs = item.images || [];
+
+      const gallery = imgs.length
+        ? `
+          <div class="carousel w-full rounded-xl border">
+            ${imgs.map((src, i)=>`
+              <div id="slide${i}" class="carousel-item w-full h-80 bg-base-200">
+                <img src="${src}" class="w-full h-full object-contain" />
+              </div>
+            `).join('')}
+          </div>
+          <div class="flex gap-2 justify-center mt-2">
+            ${imgs.map((_, i)=>`<a href="#slide${i}" class="btn btn-xs">${i+1}</a>`).join('')}
+          </div>`
+        : `<div class="h-80 bg-base-200 rounded-xl flex items-center justify-center text-base-content/50">(Không có ảnh)</div>`;
+
+      const maps = encodeURIComponent(item.address || `${item.street||""} ${item.district||""}`);
+      const gmapEmbed = `<iframe class="w-full h-64 rounded-xl border" loading="lazy"
+        src="https://www.google.com/maps?q=${maps}&output=embed"></iframe>`;
+
+      const actions = `
+        <div class="join">
+          ${item.contact_phone?`<a class="btn btn-primary join-item" href="tel:${item.contact_phone}">Gọi</a>`:''}
+          ${item.contact_phone?`<a class="btn join-item" target="_blank" href="https://zalo.me/${(item.contact_phone||'').replace(/[^0-9]/g,'')}">Zalo</a>`:''}
+          <a class="btn join-item" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${maps}">Mở Google Maps</a>
+          <button class="btn join-item" onclick="navigator.clipboard.writeText(window.location.origin+'#'+encodeURIComponent('${id}'));toast('Đã copy link')">Copy link</button>
+        </div>`;
+
+      const html = `
+        <div class="grid md:grid-cols-2 gap-5">
+          <div>${gallery}<div class="mt-3">${gmapEmbed}</div></div>
+          <div class="space-y-3">
+            <h2 class="text-xl font-bold">${item.address || `${item.street||""} ${item.district||""}`}</h2>
+            <div class="text-sm opacity-70">${item.ward||""} ${item.district||""} • ${item.city||""}</div>
+            <div class="flex flex-wrap gap-2 text-sm">
+              ${item.frontage?`<span class="badge badge-outline">Mặt tiền</span>`:''}
+              ${item.area?`<span class="badge badge-outline">${item.area} m²</span>`:''}
+              ${(item.width&&item.length)?`<span class="badge badge-outline">${item.width}×${item.length} m</span>`:''}
+              ${item.floors?`<span class="badge badge-outline">${item.floors} tầng</span>`:''}
+              ${item.status?`<span class="badge ${item.status==='available'?'badge-success':'badge-warning'}">${item.status==='available'?'Còn trống':item.status==='deposited'?'Giữ cọc':'Đã thuê'}</span>`:''}
+            </div>
+            <div class="text-3xl font-extrabold">${money(item.price)}</div>
+            ${item.commission_note?`<div class="text-sm">Hoa hồng: <b>${item.commission_note}</b></div>`:''}
+            ${item.suitable?.length?`<div class="flex flex-wrap gap-2">${item.suitable.map(s=>`<div class="badge badge-ghost">${s}</div>`).join('')}</div>`:''}
+            ${(item.contact_phone||item.contact_name)?`
+              <div class="space-x-2">
+                <span class="opacity-70 text-sm">Liên hệ:</span>
+                <b>${item.contact_name||""}</b>
+                <a class="link" href="tel:${item.contact_phone||''}">${item.contact_phone||''}</a>
+              </div>`:''}
+            ${actions}
+          </div>
+        </div>`;
+
+      document.getElementById("detailBody").innerHTML = html;
+      document.getElementById("detailDlg").showModal();
+    }
+
+    // ====== 6) UPLOAD ẢNH LÊN STORAGE ======
+    async function uploadImages(files, prefix = '') {
+      const urls = [];
+      const total = files.length;
+      if (!total) return urls;
+      const bar = document.getElementById('upProgress');
+      const hint = document.getElementById('upHint');
+      bar.classList.remove('hidden');
+      bar.value = 0;
+      for (let i = 0; i < total; i++) {
+        const f = files[i];
+        const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
+        const path = `${prefix}${Date.now()}_${i}.${ext}`;
+        const { error: upErr } = await supabase
+          .storage.from(STORAGE_BUCKET)
+          .upload(path, f, { cacheControl: '3600', upsert: true });
+        if (upErr) { console.error("Upload error:", upErr); throw upErr; }
+        const { data: pub, error: urlErr } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        if (urlErr) { console.error("Public URL error:", urlErr); }
+        urls.push(pub.publicUrl);
+        bar.value = Math.round(((i + 1) / total) * 100);
+        hint.textContent = `Đang tải ${i + 1}/${total}…`;
+      }
+      setTimeout(() => { bar.classList.add('hidden'); bar.value = 0; hint.textContent = 'Tải ảnh xong.'; }, 500);
+      return urls;
+    }
+
+    // ====== 7) ADD ITEM ======
+    async function addItem(){
+      const g  = id => document.getElementById(id).value;
+      const chk= id => document.getElementById(id).checked;
+      const files = document.getElementById('f_images').files;
+      try {
+        const codePrefix = 'MB-' + Math.random().toString(36).slice(2,8);
+        const imageUrls = await uploadImages(files, `${codePrefix}/`);
+        const payload = {
+          city:"TP.HCM",
+          district:g("f_district")||"Quận 1",
+          ward:g("f_ward")||"",
+          street:g("f_street")||"",
+          address:g("f_address")||"",
+          width: g("f_width")?Number(g("f_width")):null,
+          length:g("f_length")?Number(g("f_length")):null,
+          area:  g("f_area")?Number(g("f_area")):null,
+          floors:g("f_floors")?Number(g("f_floors")):null,
+          frontage:chk("f_frontage"),
+          price:Number(g("f_price")||0),
+          commission_note:g("f_commission")||"",
+          suitable:(g("f_suitable")||"").split(',').map(s=>s.trim()).filter(Boolean),
+          status:g("f_status")||"available",
+          contact_name:g("f_contact_name")||"",
+          contact_phone:g("f_contact_phone")||"",
+          images:imageUrls,
+        };
+        const { error } = await supabase.from('premises').insert(payload);
+        if (error) throw error;
+        toast('Đã thêm mặt bằng');
+        document.getElementById('dlg').close();
+        ['f_address','f_street','f_district','f_ward','f_width','f_length','f_area','f_floors','f_price','f_commission','f_suitable','f_contact_name','f_contact_phone'].forEach(id=>{ const el=document.getElementById(id); if (el) el.value=''; });
+        document.getElementById('f_frontage').checked = false;
+        document.getElementById('f_images').value = '';
+        applyFilters(true);
+      } catch (e) {
+        console.error("Insert error:", e);
+        toast('Không thể thêm (kiểm tra policy INSERT của bảng và policy INSERT của Storage).');
+      }
+    }
+
+    function openAdd(){ document.getElementById('dlg').showModal(); }
+
+    // ====== 8) CSV EXPORT (gợi ý) ======
+    function downloadCSV(){
+      alert('Gợi ý: dùng Supabase Table Editor → Export CSV để xuất toàn bộ dữ liệu.');
+    }
+
+    // ====== 9) UI HELPERS ======
+    function toast(msg){
+      const el = document.createElement("div");
+      el.textContent = msg;
+      el.className = "fixed bottom-4 right-4 bg-base-100 border shadow rounded-xl px-4 py-2 text-sm z-50";
+      document.body.appendChild(el);
+      setTimeout(()=> el.remove(), 2400);
+    }
+
+    function resetFilters(){
+      ["kw","district","minPrice","maxPrice","minArea","maxArea","frontage","status","suitable","sort","perPage"].forEach(id=>{
+        const el = document.getElementById(id);
+        if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
+      });
+      document.getElementById('sort').value = 'newest';
+      document.getElementById('perPage').value = '24';
+      applyFilters(true);
+    }
+
+    function debounce(fn, delay){ let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), delay); }; }
+
+    // Events
+    document.getElementById('btnApply').addEventListener('click', ()=>applyFilters(true));
+    document.getElementById('btnMore').addEventListener('click', ()=>{ PAGE++; applyFilters(false); });
+    document.getElementById('kw').addEventListener('input', debounce(()=>applyFilters(true), 400));
+
+    // INIT
+    (async () => {
+      try{
+        const { error } = await supabase.from('premises').select('id', { count: 'exact', head: true }).limit(1);
+        if (error) throw error; document.getElementById('badgeEnv').classList.add('badge-success');
+      }catch(e){ document.getElementById('badgeEnv').classList.add('badge-error'); }
+      await applyFilters(true);
+
+      // 🔗 mở chi tiết từ đường link #id
+      const hashId = decodeURIComponent(location.hash.slice(1) || "");
+      if (hashId) openDetail(hashId);
+    })();
+  </script>
+</body>
+</html>
