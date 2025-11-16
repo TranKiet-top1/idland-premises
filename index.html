@@ -13,114 +13,198 @@
     .line-clamp-1{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
   </style>
 </head>
-<body class="bg-base-200 text-base-content">
+<body class="min-h-screen bg-gradient-to-b from-base-200 to-base-100 text-base-content">
   <!-- NAV -->
-  <header class="sticky top-0 z-10 bg-base-100/95 backdrop-blur border-b">
+  <header class="sticky top-0 z-20 bg-base-100/90 backdrop-blur border-b shadow-sm">
     <div class="max-w-7xl mx-auto px-4">
-      <div class="navbar p-0">
-        <div class="flex-1 gap-3">
-          <img src="logo.png" onerror="this.style.display='none'" class="w-9 h-9" alt="ID-Land">
-          <span class="text-2xl font-bold">ID-Land Premises</span>
-          <div id="badgeEnv" class="badge badge-outline">Supabase</div>
+      <div class="navbar p-0 min-h-14">
+        <div class="flex-1 gap-3 items-center">
+          <div class="flex items-center gap-2">
+            <div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+              <span class="font-black text-primary text-lg">ID</span>
+            </div>
+            <div class="flex flex-col leading-tight">
+              <span class="font-bold text-lg">ID-Land Premises</span>
+              <span class="text-xs opacity-70 hidden sm:block">Kho mặt bằng cho thuê • TP.HCM</span>
+            </div>
+          </div>
+          <div id="badgeEnv" class="badge badge-outline text-xs">Supabase</div>
         </div>
-        <div class="flex-none gap-2 items-center">
-          <div class="text-xs opacity-60 hidden sm:block" id="countGlobal">—</div>
-          <button class="btn btn-primary btn-sm" onclick="openAdd()">+ Thêm mặt bằng</button>
+        <div class="flex-none flex items-center gap-3">
+          <div class="hidden sm:flex flex-col items-end text-[11px] leading-tight">
+            <span id="countGlobal" class="opacity-70">—</span>
+            <span class="opacity-40">Đồng bộ Google Sheet</span>
+          </div>
+          <button class="btn btn-primary btn-sm rounded-full shadow-md" onclick="openAdd()">
+            + Thêm mặt bằng
+          </button>
         </div>
       </div>
     </div>
   </header>
 
+  <!-- HERO -->
+  <section class="bg-base-100/80 border-b">
+    <div class="max-w-7xl mx-auto px-4 py-4 sm:py-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="space-y-1">
+        <h1 class="text-xl sm:text-2xl font-bold">
+          Bộ lọc mặt bằng cho thuê <span class="text-primary">ID-Land</span>
+        </h1>
+        <p class="text-sm sm:text-[13px] opacity-70 max-w-2xl">
+          Nhân sự chỉ cần nhập yêu cầu của khách: <b>giá – diện tích – khu vực – mặt tiền</b>, bộ lọc sẽ trả về danh sách mặt bằng phù hợp kèm hình ảnh & Google Maps.
+        </p>
+        <div class="flex flex-wrap gap-2 pt-1">
+          <div class="badge badge-ghost badge-sm gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-success"></span> Realtime từ Supabase
+          </div>
+          <div class="badge badge-ghost badge-sm">Đồng bộ Google Sheet</div>
+          <div class="badge badge-ghost badge-sm">Upload ảnh mặt bằng</div>
+        </div>
+      </div>
+      <div class="flex gap-2 items-center text-xs mt-2 md:mt-0">
+        <span class="hidden sm:inline opacity-60">Lọc nhanh:</span>
+        <button class="btn btn-xs btn-outline rounded-full" onclick="quickFilter('available')">Còn trống</button>
+        <button class="btn btn-xs btn-outline rounded-full" onclick="quickFilter('deposited')">Giữ cọc</button>
+        <button class="btn btn-xs btn-outline rounded-full" onclick="quickFilterDistrict('Quận 1')">Quận 1</button>
+        <button class="btn btn-xs btn-outline rounded-full" onclick="quickFilterDistrict('Quận 10')">Quận 10</button>
+      </div>
+    </div>
+  </section>
+
   <!-- BODY -->
   <main class="max-w-7xl mx-auto px-4 py-5 grid grid-cols-1 lg:grid-cols-5 gap-5">
     <!-- FILTERS -->
-    <aside class="lg:col-span-1 bg-base-100 rounded-2xl p-5 shadow-sm border space-y-3 sticky top-[88px] h-fit">
-      <div class="text-lg font-semibold flex items-center gap-2">
-        Bộ lọc <div class="badge badge-info badge-outline">Supabase</div>
-      </div>
-
-      <label class="text-sm font-medium">Từ khóa</label>
-      <input id="kw" class="input input-bordered w-full" placeholder="VD: Trần Hưng Đạo, Q5..." />
-
-      <label class="text-sm font-medium mt-2">Quận</label>
-      <select id="district" class="select select-bordered w-full">
-        <option value="">Tất cả</option>
-      </select>
-
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="text-sm font-medium">Giá tối thiểu</label>
-          <input id="minPrice" type="number" class="input input-bordered w-full" />
-        </div>
-        <div>
-          <label class="text-sm font-medium">Giá tối đa</label>
-          <input id="maxPrice" type="number" class="input input-bordered w-full" />
+    <aside class="lg:col-span-1 bg-base-100 rounded-2xl p-4 sm:p-5 shadow-sm border space-y-3 sticky top-[108px] h-fit">
+      <div class="flex items-center justify-between gap-2">
+        <div class="text-base font-semibold flex items-center gap-2">
+          <span class="inline-flex w-6 h-6 rounded-full bg-primary/10 items-center justify-center">
+            <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+          </span>
+          Bộ lọc
         </div>
       </div>
 
+      <div class="form-control">
+        <label class="label py-1">
+          <span class="label-text text-xs font-semibold uppercase tracking-wide">Từ khóa</span>
+        </label>
+        <input id="kw" class="input input-bordered input-sm w-full rounded-xl" placeholder="VD: Trần Hưng Đạo, Q5..." />
+      </div>
+
+      <div class="form-control">
+        <label class="label py-1">
+          <span class="label-text text-xs font-semibold uppercase tracking-wide">Quận</span>
+        </label>
+        <select id="district" class="select select-bordered select-sm w-full rounded-xl">
+          <option value="">Tất cả</option>
+        </select>
+      </div>
+
       <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="text-sm font-medium">DT tối thiểu (m²)</label>
-          <input id="minArea" type="number" class="input input-bordered w-full" />
+        <div class="form-control">
+          <label class="label py-1">
+            <span class="label-text text-[11px] font-semibold uppercase tracking-wide">Giá tối thiểu</span>
+          </label>
+          <input id="minPrice" type="number" class="input input-bordered input-sm w-full rounded-xl" />
         </div>
-        <div>
-          <label class="text-sm font-medium">DT tối đa (m²)</label>
-          <input id="maxArea" type="number" class="input input-bordered w-full" />
+        <div class="form-control">
+          <label class="label py-1">
+            <span class="label-text text-[11px] font-semibold uppercase tracking-wide">Giá tối đa</span>
+          </label>
+          <input id="maxPrice" type="number" class="input input-bordered input-sm w-full rounded-xl" />
         </div>
       </div>
 
-      <label class="text-sm font-medium">Mặt tiền</label>
-      <select id="frontage" class="select select-bordered w-full">
-        <option value="">Tất cả</option>
-        <option value="yes">Có</option>
-        <option value="no">Không</option>
-      </select>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="form-control">
+          <label class="label py-1">
+            <span class="label-text text-[11px] font-semibold uppercase tracking-wide">DT tối thiểu (m²)</span>
+          </label>
+          <input id="minArea" type="number" class="input input-bordered input-sm w-full rounded-xl" />
+        </div>
+        <div class="form-control">
+          <label class="label py-1">
+            <span class="label-text text-[11px] font-semibold uppercase tracking-wide">DT tối đa (m²)</span>
+          </label>
+          <input id="maxArea" type="number" class="input input-bordered input-sm w-full rounded-xl" />
+        </div>
+      </div>
 
-      <label class="text-sm font-medium">Tình trạng</label>
-      <select id="status" class="select select-bordered w-full">
-        <option value="">Tất cả</option>
-        <option value="available">Còn trống</option>
-        <option value="deposited">Giữ cọc</option>
-        <option value="rented">Đã thuê</option>
-      </select>
+      <div class="form-control">
+        <label class="label py-1">
+          <span class="label-text text-xs font-semibold uppercase tracking-wide">Mặt tiền</span>
+        </label>
+        <select id="frontage" class="select select-bordered select-sm w-full rounded-xl">
+          <option value="">Tất cả</option>
+          <option value="yes">Có</option>
+          <option value="no">Không</option>
+        </select>
+      </div>
 
-      <label class="text-sm font-medium">Ngành phù hợp</label>
-      <input id="suitable" class="input input-bordered w-full" placeholder="VD: cafe, phở..." />
+      <div class="form-control">
+        <label class="label py-1">
+          <span class="label-text text-xs font-semibold uppercase tracking-wide">Tình trạng</span>
+        </label>
+        <select id="status" class="select select-bordered select-sm w-full rounded-xl">
+          <option value="">Tất cả</option>
+          <option value="available">Còn trống</option>
+          <option value="deposited">Giữ cọc</option>
+          <option value="rented">Đã thuê</option>
+        </select>
+      </div>
+
+      <div class="form-control">
+        <label class="label py-1">
+          <span class="label-text text-xs font-semibold uppercase tracking-wide">Ngành phù hợp</span>
+        </label>
+        <input id="suitable" class="input input-bordered input-sm w-full rounded-xl" placeholder="VD: cafe, phở..." />
+      </div>
 
       <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="text-sm font-medium">Sắp xếp</label>
-          <select id="sort" class="select select-bordered w-full">
+        <div class="form-control">
+          <label class="label py-1">
+            <span class="label-text text-xs font-semibold uppercase tracking-wide">Sắp xếp</span>
+          </label>
+          <select id="sort" class="select select-bordered select-sm w-full rounded-xl">
             <option value="newest">Mới nhất</option>
             <option value="price_asc">Giá tăng dần</option>
             <option value="price_desc">Giá giảm dần</option>
           </select>
         </div>
-        <div>
-          <label class="text-sm font-medium">Mỗi trang</label>
-          <select id="perPage" class="select select-bordered w-full">
+        <div class="form-control">
+          <label class="label py-1">
+            <span class="label-text text-xs font-semibold uppercase tracking-wide">Mỗi trang</span>
+          </label>
+          <select id="perPage" class="select select-bordered select-sm w-full rounded-xl">
             <option>24</option><option>48</option><option>96</option>
           </select>
         </div>
       </div>
 
       <div class="flex gap-2 pt-1">
-        <button id="btnApply" class="btn btn-primary flex-1">Lọc</button>
-        <button class="btn flex-1" onclick="resetFilters()">Xóa lọc</button>
+        <button id="btnApply" class="btn btn-primary btn-sm flex-1 rounded-full">Lọc</button>
+        <button class="btn btn-sm flex-1 rounded-full" onclick="resetFilters()">Xóa lọc</button>
       </div>
+      <p class="text-[11px] opacity-60 pt-1">
+        Gợi ý: nhập đúng <b>đường + quận</b> để lọc nhanh (VD: “Lê Đức Thọ Q. Gò Vấp”).
+      </p>
     </aside>
 
     <!-- LIST -->
-    <section class="lg:col-span-4">
-      <div class="flex items-center justify-between mb-3">
-        <div id="countPage" class="text-sm opacity-70">—</div>
-        <div class="flex items-center gap-2">
-          <button class="btn btn-ghost btn-sm" onclick="downloadCSV()">Tải CSV</button>
+    <section class="lg:col-span-4 space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div id="countPage" class="text-xs sm:text-sm opacity-70">—</div>
+        <div class="flex items-center gap-2 justify-between sm:justify-end">
+          <button class="btn btn-ghost btn-xs rounded-full" onclick="downloadCSV()">
+            Tải CSV trên Supabase
+          </button>
         </div>
       </div>
-      <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-      <div class="flex justify-center mt-6">
-        <button id="btnMore" class="btn" disabled>—</button>
+
+      <div id="grid" class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+
+      <div class="flex justify-center mt-4">
+        <button id="btnMore" class="btn btn-sm rounded-full px-6" disabled>—</button>
       </div>
     </section>
   </main>
@@ -128,39 +212,44 @@
   <!-- ADD MODAL -->
   <dialog id="dlg" class="modal">
     <div class="modal-box max-w-2xl">
-      <h3 class="font-bold text-lg mb-3">Thêm mặt bằng</h3>
+      <h3 class="font-bold text-lg mb-3">Thêm mặt bằng mới</h3>
+      <p class="text-xs opacity-60 mb-3">
+        Điền tối đa thông tin có thể. Ảnh mặt bằng sẽ được upload lên Supabase Storage (bucket <b>premise-images</b>).
+      </p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <input id="f_address" class="input input-bordered" placeholder="Địa chỉ">
-        <input id="f_street" class="input input-bordered" placeholder="Đường">
-        <input id="f_district" class="input input-bordered" placeholder="Quận (VD: Quận 10)">
-        <input id="f_ward" class="input input-bordered" placeholder="Phường">
-        <input id="f_width" type="number" class="input input-bordered" placeholder="Ngang (m)">
-        <input id="f_length" type="number" class="input input-bordered" placeholder="Dài (m)">
-        <input id="f_area" type="number" class="input input-bordered" placeholder="Diện tích (m²)">
-        <input id="f_floors" type="number" class="input input-bordered" placeholder="Số tầng">
-        <input id="f_price" type="number" class="input input-bordered" placeholder="Giá thuê (VND)">
-        <input id="f_commission" class="input input-bordered" placeholder="Hoa hồng (vd: hh1/2)">
-        <input id="f_suitable" class="input input-bordered" placeholder="Ngành phù hợp (cách nhau dấu phẩy)">
-        <select id="f_status" class="select select-bordered">
+        <input id="f_address" class="input input-bordered input-sm" placeholder="Địa chỉ (ghi rõ số, đường)">
+        <input id="f_street" class="input input-bordered input-sm" placeholder="Đường">
+        <input id="f_district" class="input input-bordered input-sm" placeholder="Quận (VD: Quận 10)">
+        <input id="f_ward" class="input input-bordered input-sm" placeholder="Phường">
+        <input id="f_width" type="number" class="input input-bordered input-sm" placeholder="Ngang (m)">
+        <input id="f_length" type="number" class="input input-bordered input-sm" placeholder="Dài (m)">
+        <input id="f_area" type="number" class="input input-bordered input-sm" placeholder="Diện tích (m²)">
+        <input id="f_floors" type="number" class="input input-bordered input-sm" placeholder="Số tầng">
+        <input id="f_price" type="number" class="input input-bordered input-sm" placeholder="Giá thuê (VND)">
+        <input id="f_commission" class="input input-bordered input-sm" placeholder="Hoa hồng (vd: hh1/2)">
+        <input id="f_suitable" class="input input-bordered input-sm" placeholder="Ngành phù hợp (cách nhau dấu phẩy)">
+        <select id="f_status" class="select select-bordered select-sm">
           <option value="available">Còn trống</option>
           <option value="deposited">Giữ cọc</option>
           <option value="rented">Đã thuê</option>
         </select>
-        <input id="f_contact_name" class="input input-bordered" placeholder="Tên liên hệ">
-        <input id="f_contact_phone" class="input input-bordered" placeholder="SĐT liên hệ">
+        <input id="f_contact_name" class="input input-bordered input-sm" placeholder="Tên liên hệ">
+        <input id="f_contact_phone" class="input input-bordered input-sm" placeholder="SĐT liên hệ">
         <label class="label cursor-pointer gap-2">
-          <span class="label-text">Mặt tiền</span>
-          <input id="f_frontage" type="checkbox" class="toggle">
+          <span class="label-text text-sm">Mặt tiền</span>
+          <input id="f_frontage" type="checkbox" class="toggle toggle-sm">
         </label>
       </div>
-      <div class="divider my-2">Ảnh mặt bằng</div>
-      <input id="f_images" type="file" class="file-input file-input-bordered w-full" multiple accept="image/*" />
+      <div class="divider my-3">Ảnh mặt bằng</div>
+      <input id="f_images" type="file" class="file-input file-input-bordered file-input-sm w-full" multiple accept="image/*" />
       <progress id="upProgress" class="progress progress-primary w-full hidden mt-2" value="0" max="100"></progress>
-      <p id="upHint" class="text-xs opacity-60">Chọn 1–10 ảnh. Ảnh sẽ được upload lên Storage.</p>
+      <p id="upHint" class="text-[11px] opacity-60 mt-1">
+        Chọn 1–10 ảnh. Ưu tiên ảnh mặt tiền, tổng thể, layout bên trong.
+      </p>
       <div class="modal-action">
         <form method="dialog" class="flex gap-2">
-          <button class="btn">Đóng</button>
-          <button class="btn btn-primary" onclick="addItem()">Lưu</button>
+          <button class="btn btn-sm">Đóng</button>
+          <button class="btn btn-primary btn-sm" onclick="addItem()">Lưu mặt bằng</button>
         </form>
       </div>
     </div>
@@ -169,20 +258,22 @@
   <!-- DETAIL MODAL -->
   <dialog id="detailDlg" class="modal">
     <div class="modal-box max-w-4xl">
-      <form method="dialog"><button class="btn btn-sm btn-circle absolute right-2 top-2">✕</button></form>
+      <form method="dialog">
+        <button class="btn btn-sm btn-circle absolute right-2 top-2">✕</button>
+      </form>
       <div id="detailBody" class="space-y-4"></div>
     </div>
   </dialog>
 
-  <footer class="text-center text-xs text-base-content/60 py-8">
-    © <span id="yr"></span> ID-Land • Bộ lọc mặt bằng (Supabase)
+  <footer class="text-center text-[11px] text-base-content/60 py-6 border-t mt-4">
+    © <span id="yr"></span> ID-Land • Bộ lọc mặt bằng (Supabase + Google Sheet)
   </footer>
 
   <script>
     // ====== 1) CONFIG SUPABASE ======
-    const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co"; // TODO: thay nếu cần
+    const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co"; // nếu anh đổi project thì sửa ở đây
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjbG5jb3drb2Vkd3F6Y2VtaGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzcwOTUsImV4cCI6MjA3Nzg1MzA5NX0.jfNM46UgXIq9LrwSXcERJJULeKB7bl_c9R9LaVhRy1A";
-    const STORAGE_BUCKET = "premise-images";                  // tên bucket ảnh (Public)
+    const STORAGE_BUCKET = "premise-images";
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // ====== 2) STATE ======
@@ -225,9 +316,8 @@
       if (maxArea)  q = q.lte('area', maxArea);
       if (suitable) q = q.contains('suitable', [suitable]);
 
-      // 🔎 KHÔNG dùng fts để tránh lỗi thiếu cột: fallback ILIKE
       if (kw) {
-        const safe = kw.replaceAll(",", " "); // tránh phá cú pháp .or
+        const safe = kw.replaceAll(",", " ");
         q = q.or(
           `address.ilike.%${safe}%,street.ilike.%${safe}%,district.ilike.%${safe}%`
         );
@@ -249,28 +339,39 @@
     // ====== 4) RENDER ======
     function renderCards(rows){
       const grid = document.getElementById("grid");
+
+      if (!rows.length && PAGE === 1) {
+        grid.innerHTML = `
+          <div class="col-span-full">
+            <div class="rounded-2xl border border-dashed bg-base-100/80 p-6 text-center text-sm opacity-80">
+              Chưa có mặt bằng nào khớp bộ lọc hiện tại. Thử nới lỏng điều kiện tìm kiếm.
+            </div>
+          </div>`;
+        return;
+      }
+
       const html = rows.map(it => `
-        <article class="card bg-base-100 border shadow-sm hover:shadow-lg transition-all cursor-pointer premise-card" data-id="${encodeURIComponent(it.id)}">
+        <article class="card bg-base-100/95 border border-base-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer premise-card rounded-2xl overflow-hidden" data-id="${encodeURIComponent(it.id)}">
           <figure class="h-44 bg-base-200 flex items-center justify-center text-base-content/50">
             ${it.images?.length ? `<img src="${it.images[0]}" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML='(Không có ảnh)'" />` : `(Không có ảnh)`}
           </figure>
-          <div class="card-body p-4">
-            <div class="flex items-center justify-between gap-3">
-              <h3 class="card-title text-base line-clamp-1">${it.address || `${it.street||""} ${it.district||""}`}</h3>
-              <div class="badge badge-outline ${it.status==='available'?'badge-success':it.status==='deposited'?'badge-warning':''}">
+          <div class="card-body p-4 space-y-2">
+            <div class="flex items-start justify-between gap-3">
+              <h3 class="card-title text-[15px] leading-snug line-clamp-1">${it.address || `${it.street||""} ${it.district||""}`}</h3>
+              <div class="badge badge-outline badge-sm ${it.status==='available'?'badge-success':it.status==='deposited'?'badge-warning':'badge-neutral'}">
                 ${it.status==='available'?'Còn trống':it.status==='deposited'?'Giữ cọc':'Đã thuê'}
               </div>
             </div>
-            <div class="text-sm opacity-70 flex flex-wrap gap-x-3 gap-y-1">
+            <div class="text-[12px] opacity-70 flex flex-wrap gap-x-3 gap-y-1">
               <span>${it.district||""}</span>
               ${it.frontage?'• Mặt tiền':''}
               ${it.area?`<span>• ${it.area} m²</span>`:''}
               ${(it.width&&it.length)?`<span>• ${it.width}×${it.length} m</span>`:''}
               ${it.floors?`<span>• ${it.floors} tầng</span>`:''}
             </div>
-            <div class="flex items-center justify-between">
-              <div class="text-2xl font-extrabold">${money(it.price)}</div>
-              ${it.commission_note?`<div class="badge badge-outline badge-secondary">HH: ${it.commission_note}</div>`:''}
+            <div class="flex items-center justify-between pt-1">
+              <div class="text-xl sm:text-2xl font-extrabold text-primary">${money(it.price)}</div>
+              ${it.commission_note?`<div class="badge badge-outline badge-secondary badge-sm">HH: ${it.commission_note}</div>`:''}
             </div>
           </div>
         </article>`).join("");
@@ -311,7 +412,7 @@
 
       const gallery = imgs.length
         ? `
-          <div class="carousel w-full rounded-xl border">
+          <div class="carousel w-full rounded-xl border bg-base-200">
             ${imgs.map((src, i)=>`
               <div id="slide${i}" class="carousel-item w-full h-80 bg-base-200">
                 <img src="${src}" class="w-full h-full object-contain" />
@@ -319,7 +420,7 @@
             `).join('')}
           </div>
           <div class="flex gap-2 justify-center mt-2">
-            ${imgs.map((_, i)=>`<a href="#slide${i}" class="btn btn-xs">${i+1}</a>`).join('')}
+            ${imgs.map((_, i)=>`<a href="#slide${i}" class="btn btn-xs rounded-full">${i+1}</a>`).join('')}
           </div>`
         : `<div class="h-80 bg-base-200 rounded-xl flex items-center justify-center text-base-content/50">(Không có ảnh)</div>`;
 
@@ -328,32 +429,35 @@
         src="https://www.google.com/maps?q=${maps}&output=embed"></iframe>`;
 
       const actions = `
-        <div class="join">
-          ${item.contact_phone?`<a class="btn btn-primary join-item" href="tel:${item.contact_phone}">Gọi</a>`:''}
-          ${item.contact_phone?`<a class="btn join-item" target="_blank" href="https://zalo.me/${(item.contact_phone||'').replace(/[^0-9]/g,'')}">Zalo</a>`:''}
-          <a class="btn join-item" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${maps}">Mở Google Maps</a>
-          <button class="btn join-item" onclick="navigator.clipboard.writeText(window.location.origin+'#'+encodeURIComponent('${id}'));toast('Đã copy link')">Copy link</button>
+        <div class="join join-horizontal">
+          ${item.contact_phone?`<a class="btn btn-primary btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>`:''}
+          ${item.contact_phone?`<a class="btn btn-sm join-item" target="_blank" href="https://zalo.me/${(item.contact_phone||'').replace(/[^0-9]/g,'')}">Zalo</a>`:''}
+          <a class="btn btn-sm join-item" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${maps}">Mở Google Maps</a>
+          <button class="btn btn-sm join-item" onclick="navigator.clipboard.writeText(window.location.origin+'#'+encodeURIComponent('${id}'));toast('Đã copy link mặt bằng')">Copy link</button>
         </div>`;
 
       const html = `
-        <div class="grid md:grid-cols-2 gap-5">
-          <div>${gallery}<div class="mt-3">${gmapEmbed}</div></div>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="space-y-3">
+            ${gallery}
+            <div class="mt-3">${gmapEmbed}</div>
+          </div>
           <div class="space-y-3">
             <h2 class="text-xl font-bold">${item.address || `${item.street||""} ${item.district||""}`}</h2>
             <div class="text-sm opacity-70">${item.ward||""} ${item.district||""} • ${item.city||""}</div>
-            <div class="flex flex-wrap gap-2 text-sm">
+            <div class="flex flex-wrap gap-2 text-xs">
               ${item.frontage?`<span class="badge badge-outline">Mặt tiền</span>`:''}
               ${item.area?`<span class="badge badge-outline">${item.area} m²</span>`:''}
               ${(item.width&&item.length)?`<span class="badge badge-outline">${item.width}×${item.length} m</span>`:''}
               ${item.floors?`<span class="badge badge-outline">${item.floors} tầng</span>`:''}
               ${item.status?`<span class="badge ${item.status==='available'?'badge-success':'badge-warning'}">${item.status==='available'?'Còn trống':item.status==='deposited'?'Giữ cọc':'Đã thuê'}</span>`:''}
             </div>
-            <div class="text-3xl font-extrabold">${money(item.price)}</div>
+            <div class="text-3xl font-extrabold text-primary">${money(item.price)}</div>
             ${item.commission_note?`<div class="text-sm">Hoa hồng: <b>${item.commission_note}</b></div>`:''}
-            ${item.suitable?.length?`<div class="flex flex-wrap gap-2">${item.suitable.map(s=>`<div class="badge badge-ghost">${s}</div>`).join('')}</div>`:''}
+            ${item.suitable?.length?`<div class="flex flex-wrap gap-2 text-xs">${item.suitable.map(s=>`<div class="badge badge-ghost">${s}</div>`).join('')}</div>`:''}
             ${(item.contact_phone||item.contact_name)?`
-              <div class="space-x-2">
-                <span class="opacity-70 text-sm">Liên hệ:</span>
+              <div class="space-x-2 text-sm">
+                <span class="opacity-70">Liên hệ:</span>
                 <b>${item.contact_name||""}</b>
                 <a class="link" href="tel:${item.contact_phone||''}">${item.contact_phone||''}</a>
               </div>`:''}
@@ -419,14 +523,16 @@
           contact_phone:g("f_contact_phone")||"",
           images:imageUrls,
         };
-        const { error } = await supabase.from('premises').insert(payload);
+        const { data: inserted, error } = await supabase.from('premises').insert(payload).select().single();
         if (error) throw error;
         toast('Đã thêm mặt bằng');
         document.getElementById('dlg').close();
         ['f_address','f_street','f_district','f_ward','f_width','f_length','f_area','f_floors','f_price','f_commission','f_suitable','f_contact_name','f_contact_phone'].forEach(id=>{ const el=document.getElementById(id); if (el) el.value=''; });
         document.getElementById('f_frontage').checked = false;
         document.getElementById('f_images').value = '';
-        applyFilters(true);
+        await openDetail(inserted.id);
+        PAGE = 1;
+        await applyFilters(true);
       } catch (e) {
         console.error("Insert error:", e);
         toast('Không thể thêm (kiểm tra policy INSERT của bảng và policy INSERT của Storage).');
@@ -437,14 +543,14 @@
 
     // ====== 8) CSV EXPORT (gợi ý) ======
     function downloadCSV(){
-      alert('Gợi ý: dùng Supabase Table Editor → Export CSV để xuất toàn bộ dữ liệu.');
+      alert('Gợi ý: vào Supabase Table Editor → premises → Export → CSV để tải toàn bộ dữ liệu.');
     }
 
     // ====== 9) UI HELPERS ======
     function toast(msg){
       const el = document.createElement("div");
       el.textContent = msg;
-      el.className = "fixed bottom-4 right-4 bg-base-100 border shadow rounded-xl px-4 py-2 text-sm z-50";
+      el.className = "fixed bottom-4 right-4 bg-base-100 border shadow-lg rounded-2xl px-4 py-2 text-sm z-50";
       document.body.appendChild(el);
       setTimeout(()=> el.remove(), 2400);
     }
@@ -461,6 +567,16 @@
 
     function debounce(fn, delay){ let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), delay); }; }
 
+    // Quick filters
+    function quickFilter(status) {
+      document.getElementById('status').value = status;
+      applyFilters(true);
+    }
+    function quickFilterDistrict(d) {
+      document.getElementById('district').value = d;
+      applyFilters(true);
+    }
+
     // Events
     document.getElementById('btnApply').addEventListener('click', ()=>applyFilters(true));
     document.getElementById('btnMore').addEventListener('click', ()=>{ PAGE++; applyFilters(false); });
@@ -474,7 +590,6 @@
       }catch(e){ document.getElementById('badgeEnv').classList.add('badge-error'); }
       await applyFilters(true);
 
-      // 🔗 mở chi tiết từ đường link #id
       const hashId = decodeURIComponent(location.hash.slice(1) || "");
       if (hashId) openDetail(hashId);
     })();
