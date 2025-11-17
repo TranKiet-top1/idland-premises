@@ -100,6 +100,16 @@
         </select>
       </div>
 
+      <!-- PHƯỜNG FILTER -->
+      <div class="form-control">
+        <label class="label py-1">
+          <span class="label-text text-xs font-semibold uppercase tracking-wide">Phường</span>
+        </label>
+        <select id="ward" class="select select-bordered select-sm w-full rounded-xl">
+          <option value="">Tất cả</option>
+        </select>
+      </div>
+
       <div class="grid grid-cols-2 gap-2">
         <div class="form-control">
           <label class="label py-1">
@@ -219,8 +229,29 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <input id="f_address" class="input input-bordered input-sm" placeholder="Địa chỉ (ghi rõ số, đường)">
         <input id="f_street" class="input input-bordered input-sm" placeholder="Đường">
-        <input id="f_district" class="input input-bordered input-sm" placeholder="Quận (VD: Quận 10)">
-        <input id="f_ward" class="input input-bordered input-sm" placeholder="Phường">
+
+        <!-- QUẬN -->
+        <div class="form-control">
+          <label class="label py-1">
+            <span class="label-text text-xs font-semibold uppercase tracking-wide">Quận</span>
+          </label>
+          <select id="add-district" class="select select-bordered select-sm w-full rounded-xl">
+            <option value="">Chọn quận</option>
+            <!-- JS sẽ tự đổ list quận -->
+          </select>
+        </div>
+
+        <!-- PHƯỜNG -->
+        <div class="form-control">
+          <label class="label py-1">
+            <span class="label-text text-xs font-semibold uppercase tracking-wide">Phường</span>
+          </label>
+          <select id="add-ward" class="select select-bordered select-sm w-full rounded-xl">
+            <option value="">Chọn phường</option>
+            <!-- JS sẽ tự đổ list phường theo quận -->
+          </select>
+        </div>
+
         <input id="f_width" type="number" class="input input-bordered input-sm" placeholder="Ngang (m)">
         <input id="f_length" type="number" class="input input-bordered input-sm" placeholder="Dài (m)">
         <input id="f_area" type="number" class="input input-bordered input-sm" placeholder="Diện tích (m²)">
@@ -278,9 +309,84 @@
 
     // ====== 2) STATE ======
     document.getElementById('yr').textContent = new Date().getFullYear();
-    const districts = ["Quận 1","Quận 3","Quận 5","Quận 10","Quận Phú Nhuận","Quận Bình Thạnh","TP. Thủ Đức","Quận Tân Bình","Quận 7","Quận 8","Quận 11","Quận 4","Quận 6"];
-    const disSel = document.getElementById("district");
-    districts.forEach(d => { const o = document.createElement("option"); o.value=o.textContent=d; disSel.appendChild(o); });
+
+    const DISTRICTS = [
+      "Quận 1","Quận 3","Quận 4","Quận 5","Quận 6","Quận 7","Quận 8",
+      "Quận 10","Quận 11","Quận Bình Thạnh","Quận Phú Nhuận",
+      "Quận Gò Vấp","Quận Tân Bình","Quận Tân Phú","Quận 12",
+      "Thành phố Thủ Đức","Huyện Bình Chánh","Huyện Hóc Môn",
+      "Huyện Nhà Bè","Huyện Củ Chi","Huyện Cần Giờ"
+    ];
+
+    const WARDS_BY_DISTRICT = {
+      "Quận 1": ["Bến Nghé","Bến Thành","Cô Giang","Cầu Ông Lãnh","Đa Kao","Nguyễn Cư Trinh","Nguyễn Thái Bình","Phạm Ngũ Lão","Tân Định"],
+      "Quận 3": ["Võ Thị Sáu","Phường 1","Phường 2","Phường 3","Phường 4","Phường 5","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14"],
+      "Quận 4": [],
+      "Quận 5": [],
+      "Quận 6": [],
+      "Quận 7": [],
+      "Quận 8": [],
+      "Quận 10": [],
+      "Quận 11": [],
+      "Quận Bình Thạnh": [],
+      "Quận Phú Nhuận": [],
+      "Quận Gò Vấp": [],
+      "Quận Tân Bình": [],
+      "Quận Tân Phú": [],
+      "Quận 12": [],
+      "Thành phố Thủ Đức": [],
+      "Huyện Bình Chánh": [],
+      "Huyện Hóc Môn": [],
+      "Huyện Nhà Bè": [],
+      "Huyện Củ Chi": [],
+      "Huyện Cần Giờ": []
+      // Anh có thể bổ sung thêm phường cho các quận khác nếu cần
+    };
+
+    function setupDistrictWardPair(districtId, wardId, allLabel = "Tất cả") {
+      const districtSelect = document.getElementById(districtId);
+      const wardSelect = document.getElementById(wardId);
+      if (!districtSelect || !wardSelect) return;
+
+      // Đổ danh sách quận
+      districtSelect.innerHTML = "";
+      const optAllDistrict = document.createElement("option");
+      optAllDistrict.value = "";
+      optAllDistrict.textContent = allLabel === "Tất cả" ? "Tất cả" : "Chọn quận";
+      districtSelect.appendChild(optAllDistrict);
+
+      DISTRICTS.forEach(d => {
+        const o = document.createElement("option");
+        o.value = d;
+        o.textContent = d;
+        districtSelect.appendChild(o);
+      });
+
+      function refreshWardOptions() {
+        wardSelect.innerHTML = "";
+        const optAllWard = document.createElement("option");
+        optAllWard.value = "";
+        optAllWard.textContent = allLabel === "Tất cả" ? "Tất cả" : "Chọn phường";
+        wardSelect.appendChild(optAllWard);
+
+        const wards = WARDS_BY_DISTRICT[districtSelect.value] || [];
+        wards.forEach(w => {
+          const o = document.createElement("option");
+          o.value = w;
+          o.textContent = w;
+          wardSelect.appendChild(o);
+        });
+      }
+
+      districtSelect.addEventListener("change", refreshWardOptions);
+      refreshWardOptions();
+    }
+
+    // 1) Bộ lọc bên trái: giữ label "Tất cả"
+    setupDistrictWardPair("district", "ward", "Tất cả");
+
+    // 2) Form thêm mặt bằng: label kiểu "Chọn quận/phường"
+    setupDistrictWardPair("add-district", "add-ward", "Chọn");
 
     let PAGE = 1;
     let TOTAL = 0;
@@ -289,6 +395,7 @@
       return {
         kw: document.getElementById("kw").value.trim(),
         district: document.getElementById("district").value,
+        ward: document.getElementById("ward").value,
         minPrice: Number(document.getElementById("minPrice").value||0),
         maxPrice: Number(document.getElementById("maxPrice").value||0),
         minArea: Number(document.getElementById("minArea").value||0),
@@ -304,10 +411,11 @@
     function money(v){ return Number(v||0).toLocaleString("vi-VN",{style:"currency",currency:"VND",maximumFractionDigits:0}); }
 
     // ====== 3) QUERY BUILDER ======
-    async function fetchPremises({kw='', district='', status='', frontage='', minPrice=0, maxPrice=0, minArea=0, maxArea=0, suitable='', sort='newest', page=1, perPage=24}) {
+    async function fetchPremises({kw='', district='', ward='', status='', frontage='', minPrice=0, maxPrice=0, minArea=0, maxArea=0, suitable='', sort='newest', page=1, perPage=24}) {
       let q = supabase.from('premises').select('*', { count: 'exact' });
 
       if (district) q = q.eq('district', district);
+      if (ward)     q = q.eq('ward', ward);
       if (status)   q = q.eq('status', status);
       if (frontage) q = q.eq('frontage', frontage === 'yes');
       if (minPrice) q = q.gte('price', minPrice);
@@ -419,7 +527,7 @@
       });
     }
 
-async function applyFilters(resetPage=true){
+    async function applyFilters(resetPage=true){
       if (resetPage) PAGE = 1;
       const f = getFilters();
       const btnMore = document.getElementById('btnMore');
@@ -525,7 +633,7 @@ async function applyFilters(resetPage=true){
       document.getElementById("detailDlg").showModal();
     }
 
-// ====== 6) UPLOAD ẢNH LÊN STORAGE ======
+    // ====== 6) UPLOAD ẢNH LÊN STORAGE ======
     async function uploadImages(files, prefix = '') {
       const urls = [];
       const total = files.length;
@@ -562,8 +670,8 @@ async function applyFilters(resetPage=true){
         const imageUrls = await uploadImages(files, `${codePrefix}/`);
         const payload = {
           city:"TP.HCM",
-          district:g("f_district")||"Quận 1",
-          ward:g("f_ward")||"",
+          district: g("add-district") || "Quận 1",
+          ward: g("add-ward") || "",
           street:g("f_street")||"",
           address:g("f_address")||"",
           width: g("f_width")?Number(g("f_width")):null,
@@ -583,7 +691,7 @@ async function applyFilters(resetPage=true){
         if (error) throw error;
         toast('Đã thêm mặt bằng');
         document.getElementById('dlg').close();
-        ['f_address','f_street','f_district','f_ward','f_width','f_length','f_area','f_floors','f_price','f_commission','f_suitable','f_contact_name','f_contact_phone'].forEach(id=>{ const el=document.getElementById(id); if (el) el.value=''; });
+        ['f_address','f_street','add-district','add-ward','f_width','f_length','f_area','f_floors','f_price','f_commission','f_suitable','f_contact_name','f_contact_phone'].forEach(id=>{ const el=document.getElementById(id); if (el) el.value=''; });
         document.getElementById('f_frontage').checked = false;
         document.getElementById('f_images').value = '';
         await openDetail(inserted.id);
@@ -630,8 +738,9 @@ async function applyFilters(resetPage=true){
     }
 
     function resetFilters(){
-      ["kw","district","minPrice","maxPrice","minArea","maxArea","frontage","status","suitable","sort","perPage"].forEach(id=>{
+      ["kw","district","ward","minPrice","maxPrice","minArea","maxArea","frontage","status","suitable","sort","perPage"].forEach(id=>{
         const el = document.getElementById(id);
+        if (!el) return;
         if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
       });
       document.getElementById('sort').value = 'newest';
@@ -648,6 +757,7 @@ async function applyFilters(resetPage=true){
     }
     function quickFilterDistrict(d) {
       document.getElementById('district').value = d;
+      document.getElementById('ward').value = "";
       applyFilters(true);
     }
 
