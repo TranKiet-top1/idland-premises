@@ -445,7 +445,6 @@
     }
 
     // ====== 4) RENDER ======
-    
     function renderCards(rows){
       const grid = document.getElementById("grid");
 
@@ -476,7 +475,26 @@
           it.status === 'rented' ? 'badge-neutral' :
           '';
 
-        const addr = (it.address || `${it.street || ""} ${it.district || ""}`).trim();
+        // TIÊU ĐỀ: Đường + Phường (nếu có)
+        const titleAddr =
+          (it.address && it.address.trim()) ||
+          [it.street, it.ward].filter(Boolean).join(", ");
+
+        // DÒNG CHỮ NHỎ: Quận • DT • Kích thước • PN • Ngày update (+ Mặt tiền nếu có)
+        const metaParts = [];
+        if (it.district) metaParts.push(it.district);
+        if (it.area) metaParts.push(`${it.area} m²`);
+        if (it.width && it.length) metaParts.push(`${it.width}×${it.length} m`);
+
+        const bedrooms = it.bedrooms || it.rooms || it.pn;
+        if (bedrooms) metaParts.push(`${bedrooms} PN`);
+
+        const updated = it.updated_at || it.created_at;
+        if (updated) metaParts.push(`Cập nhật ${formatDate(updated)}`);
+
+        if (it.frontage) metaParts.push('Mặt tiền');
+
+        const metaLine = metaParts.join(" • ");
 
         return `
           <article class="card bg-base-100/95 border border-base-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer premise-card rounded-2xl overflow-hidden" data-id="${encodeURIComponent(it.id)}">
@@ -489,19 +507,15 @@
             </figure>
             <div class="card-body p-4 space-y-2">
               <div class="flex items-start justify-between gap-3">
-                <h3 class="card-title text-[15px] leading-snug line-clamp-1">${addr}</h3>
+                <h3 class="card-title text-[15px] leading-snug line-clamp-1">${titleAddr}</h3>
                 ${
                   statusLabel
                     ? `<div class="badge badge-outline badge-sm ${statusClass}">${statusLabel}</div>`
                     : ''
                 }
               </div>
-              <div class="text-[12px] opacity-70 flex flex-wrap gap-x-3 gap-y-1">
-                ${it.district ? `<span>${it.district}</span>` : ''}
-                ${it.frontage ? '<span>• Mặt tiền</span>' : ''}
-                ${it.area ? `<span>• ${it.area} m²</span>` : ''}
-                ${it.width && it.length ? `<span>• ${it.width}×${it.length} m</span>` : ''}
-                ${it.floors ? `<span>• ${it.floors} tầng</span>` : ''}
+              <div class="text-[12px] opacity-70">
+                ${metaLine}
               </div>
               <div class="flex items-center justify-between pt-1">
                 <div class="text-xl sm:text-2xl font-extrabold text-primary">${money(it.price)}</div>
@@ -546,7 +560,6 @@
     }
 
     // ====== 5) DETAIL POPUP ======
-    
     async function openDetail(id){
       const { data, error } = await supabase
         .from('premises')
@@ -614,18 +627,47 @@
               ${item.area?`<span class="badge badge-outline">${item.area} m²</span>`:''}
               ${(item.width&&item.length)?`<span class="badge badge-outline">${item.width}×${item.length} m</span>`:''}
               ${item.floors?`<span class="badge badge-outline">${item.floors} tầng</span>`:''}
-              ${item.status?`<span class="badge ${item.status==='available'?'badge-success':item.status==='deposited'?'badge-warning':'badge-neutral'}">${item.status==='available'?'Còn trống':item.status==='deposited'?'Giữ cọc':'Đã thuê'}</span>`:''}
+              ${item.status?`<span class="badge ${item.status==='available'?'badge-success':item.status==='deposited'?'badge-warning':'badge-neutral'}">
+                ${item.status==='available'?'Còn trống':item.status==='deposited'?'Giữ cọc':'Đã thuê'}
+              </span>`:''}
             </div>
-            <div class="text-3xl font-extrabold text-primary">${money(item.price)}</div>
-            ${item.commission_note?`<div class="text-sm">Hoa hồng: <b>${item.commission_note}</b></div>`:''}
-            ${item.suitable?.length?`<div class="flex flex-wrap gap-1 text-xs mt-1">${item.suitable.map(s=>`<div class="badge badge-ghost">${s}</div>`).join('')}</div>`:''}
+
+            <div class="text-3xl font-extrabold text-primary mt-2">${money(item.price)}</div>
+            ${item.commission_note?`<div class="text-sm mt-1">Hoa hồng: <b>${item.commission_note}</b></div>`:''}
+
+            ${
+              (item.bedrooms || item.rooms || item.pn || item.bathrooms || item.wc || item.floors)
+              ? `<div class="mt-3 space-y-1 text-sm">
+                  ${item.bedrooms || item.rooms || item.pn ? `<div><b>Phòng ngủ:</b> ${item.bedrooms || item.rooms || item.pn}</div>` : ''}
+                  ${item.bathrooms || item.wc ? `<div><b>WC:</b> ${item.bathrooms || item.wc}</div>` : ''}
+                  ${item.floors ? `<div><b>Số tầng:</b> ${item.floors}</div>` : ''}
+                </div>`
+              : ''
+            }
+
+            ${
+              item.detail || item.description || item.info_detail
+              ? `<div class="mt-3 text-sm leading-relaxed">
+                  <div class="font-semibold mb-1">Thông tin chi tiết</div>
+                  <p>${(item.detail || item.description || item.info_detail).replace(/\n/g, '<br/>')}</p>
+                </div>`
+              : ''
+            }
+
+            ${item.suitable?.length?`<div class="flex flex-wrap gap-1 text-xs mt-3">
+              ${item.suitable.map(s=>`<div class="badge badge-ghost">${s}</div>`).join('')}
+            </div>`:''}
+
             ${(item.contact_phone||item.contact_name)?`
-              <div class="space-x-2 text-sm">
+              <div class="space-x-2 text-sm mt-3">
                 <span class="opacity-70">Liên hệ:</span>
                 <b>${item.contact_name||""}</b>
                 <a class="link" href="tel:${item.contact_phone||''}">${item.contact_phone||''}</a>
               </div>`:''}
-            ${actions}
+
+            <div class="mt-4">
+              ${actions}
+            </div>
           </div>
         </div>`;
 
@@ -728,6 +770,16 @@
       }
     }
 
+    // Định dạng ngày: 28/11/2025
+    function formatDate(d) {
+      if (!d) return "";
+      const dt = new Date(d);
+      if (isNaN(dt)) return "";
+      const day = String(dt.getDate()).padStart(2, "0");
+      const mon = String(dt.getMonth() + 1).padStart(2, "0");
+      const yr  = dt.getFullYear();
+      return `${day}/${mon}/${yr}`;
+    }
 
     function toast(msg){
       const el = document.createElement("div");
