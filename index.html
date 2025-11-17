@@ -228,8 +228,12 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <input id="f_address" class="input input-bordered input-sm" placeholder="Địa chỉ (ghi rõ số, đường)">
         <input id="f_street" class="input input-bordered input-sm" placeholder="Đường">
-        <input id="f_district" class="input input-bordered input-sm" placeholder="Quận (VD: Quận 10)">
-        <input id="f_ward" class="input input-bordered input-sm" placeholder="Phường">
+        <select id="f_district" class="select select-bordered select-sm">
+          <option value="">Chọn quận</option>
+        </select>
+        <select id="f_ward" class="select select-bordered select-sm">
+          <option value="">Chọn phường</option>
+        </select>
         <input id="f_width" type="number" class="input input-bordered input-sm" placeholder="Ngang (m)">
         <input id="f_length" type="number" class="input input-bordered input-sm" placeholder="Dài (m)">
         <input id="f_area" type="number" class="input input-bordered input-sm" placeholder="Diện tích (m²)">
@@ -288,7 +292,6 @@
     // ====== 2) STATE ======
     document.getElementById('yr').textContent = new Date().getFullYear();
 
-    // Danh sách quận TP.HCM
     const DISTRICTS = [
       "Quận 1","Quận 3","Quận 4","Quận 5","Quận 6","Quận 7","Quận 8",
       "Quận 10","Quận 11","Quận Bình Thạnh","Quận Phú Nhuận",
@@ -297,92 +300,65 @@
       "Huyện Nhà Bè","Huyện Củ Chi","Huyện Cần Giờ"
     ];
 
-    // Một số phường mẫu theo quận
     const WARDS_BY_DISTRICT = {
-      "Quận 1": [
-        "Bến Nghé","Bến Thành","Cô Giang","Cầu Ông Lãnh","Đa Kao",
-        "Nguyễn Cư Trinh","Nguyễn Thái Bình","Phạm Ngũ Lão","Tân Định"
-      ],
-      "Quận 3": [
-        "Võ Thị Sáu","Phường 1","Phường 2","Phường 3","Phường 4",
-        "Phường 5","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14"
-      ],
-      "Quận 5": [
-        "Phường 1","Phường 2","Phường 3","Phường 4","Phường 5",
-        "Phường 6","Phường 7","Phường 8","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15"
-      ],
-      "Quận 10": [
-        "Phường 1","Phường 2","Phường 3","Phường 4","Phường 5",
-        "Phường 6","Phường 7","Phường 8","Phường 9","Phường 10",
-        "Phường 11","Phường 12","Phường 13","Phường 14","Phường 15"
-      ],
-      "Quận 11": [
-        "Phường 1","Phường 2","Phường 3","Phường 4","Phường 5",
-        "Phường 6","Phường 7","Phường 8","Phường 9","Phường 10",
-        "Phường 11","Phường 12","Phường 13","Phường 14","Phường 15","Phường 16"
-      ],
-      "Quận Phú Nhuận": [
-        "Phường 1","Phường 2","Phường 3","Phường 4","Phường 5",
-        "Phường 7","Phường 8","Phường 9","Phường 10","Phường 11",
-        "Phường 12","Phường 13","Phường 14","Phường 15","Phường 17"
-      ],
-      "Quận Bình Thạnh": [
-        "Phường 1","Phường 2","Phường 3","Phường 5","Phường 6","Phường 7",
-        "Phường 11","Phường 12","Phường 13","Phường 14","Phường 15",
-        "Phường 17","Phường 19","Phường 21","Phường 22","Phường 24",
-        "Phường 25","Phường 26","Phường 27","Phường 28"
-      ],
-      "Quận Gò Vấp": [
-        "Phường 1","Phường 3","Phường 4","Phường 5","Phường 6","Phường 7",
-        "Phường 8","Phường 9","Phường 10","Phường 11","Phường 12",
-        "Phường 13","Phường 14","Phường 15","Phường 16","Phường 17"
-      ],
-      "Quận Tân Bình": [
-        "Phường 1","Phường 2","Phường 3","Phường 4","Phường 5",
-        "Phường 6","Phường 7","Phường 8","Phường 9","Phường 10",
-        "Phường 11","Phường 12","Phường 13","Phường 14","Phường 15"
-      ]
-      // có thể bổ sung thêm cho các quận khác
+      "Quận 1": ["Bến Nghé","Bến Thành","Cô Giang","Cầu Ông Lãnh","Đa Kao","Nguyễn Cư Trinh","Nguyễn Thái Bình","Phạm Ngũ Lão","Tân Định"],
+      "Quận 3": ["Võ Thị Sáu","Phường 1","Phường 2","Phường 3","Phường 4","Phường 5","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14"],
+      "Quận 5": ["Phường 1","Phường 2","Phường 3","Phường 4","Phường 5","Phường 6","Phường 7","Phường 8","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15"],
+      "Quận 10": ["Phường 1","Phường 2","Phường 3","Phường 4","Phường 5","Phường 6","Phường 7","Phường 8","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15"],
+      "Quận 11": ["Phường 1","Phường 2","Phường 3","Phường 4","Phường 5","Phường 6","Phường 7","Phường 8","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15","Phường 16"],
+      "Quận Phú Nhuận": ["Phường 1","Phường 2","Phường 3","Phường 4","Phường 5","Phường 7","Phường 8","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15","Phường 17"],
+      "Quận Bình Thạnh": ["Phường 1","Phường 2","Phường 3","Phường 5","Phường 6","Phường 7","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15","Phường 17","Phường 19","Phường 21","Phường 22","Phường 24","Phường 25","Phường 26","Phường 27","Phường 28"],
+      "Quận Gò Vấp": ["Phường 1","Phường 3","Phường 4","Phường 5","Phường 6","Phường 7","Phường 8","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15","Phường 16","Phường 17"],
+      "Quận Tân Bình": ["Phường 1","Phường 2","Phường 3","Phường 4","Phường 5","Phường 6","Phường 7","Phường 8","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15"]
     };
 
-    const districtSelect = document.getElementById("district");
-    const wardSelect = document.getElementById("ward");
+    function setupDistrictWardPair(districtId, wardId, mode) {
+      const districtSelect = document.getElementById(districtId);
+      const wardSelect = document.getElementById(wardId);
+      if (!districtSelect || !wardSelect) return;
 
-    // Đổ danh sách quận
-    DISTRICTS.forEach(d => {
-      const o = document.createElement("option");
-      o.value = d;
-      o.textContent = d;
-      districtSelect.appendChild(o);
-    });
+      districtSelect.innerHTML = '';
+      const optDistrict = document.createElement('option');
+      optDistrict.value = '';
+      optDistrict.textContent = mode === 'filter' ? 'Tất cả' : 'Chọn quận';
+      districtSelect.appendChild(optDistrict);
 
-    function refreshWardOptions() {
-      wardSelect.innerHTML = "";
-      const optAll = document.createElement("option");
-      optAll.value = "";
-      optAll.textContent = "Tất cả";
-      wardSelect.appendChild(optAll);
-
-      const d = districtSelect.value;
-      const wards = WARDS_BY_DISTRICT[d] || [];
-      wards.forEach(w => {
-        const o = document.createElement("option");
-        o.value = w;
-        o.textContent = w;
-        wardSelect.appendChild(o);
+      DISTRICTS.forEach(d => {
+        const o = document.createElement('option');
+        o.value = d;
+        o.textContent = d;
+        districtSelect.appendChild(o);
       });
+
+      function refreshWardOptions() {
+        wardSelect.innerHTML = '';
+        const optWard = document.createElement('option');
+        optWard.value = '';
+        optWard.textContent = mode === 'filter' ? 'Tất cả' : 'Chọn phường';
+        wardSelect.appendChild(optWard);
+
+        const wards = WARDS_BY_DISTRICT[districtSelect.value] || [];
+        wards.forEach(w => {
+          const o = document.createElement('option');
+          o.value = w;
+          o.textContent = w;
+          wardSelect.appendChild(o);
+        });
+      }
+
+      districtSelect.addEventListener('change', refreshWardOptions);
+      refreshWardOptions();
     }
 
-    districtSelect.addEventListener("change", () => {
-      refreshWardOptions();
-    });
-
-    // khởi tạo
-    refreshWardOptions();
+    // Bộ lọc bên trái
+    setupDistrictWardPair('district', 'ward', 'filter');
+    // Form thêm mặt bằng
+    setupDistrictWardPair('f_district', 'f_ward', 'form');
 
     let PAGE = 1;
     let TOTAL = 0;
-function getFilters(){
+
+    function getFilters(){
       return {
         kw: document.getElementById("kw").value.trim(),
         district: document.getElementById("district").value,
@@ -402,7 +378,21 @@ function getFilters(){
     function money(v){ return Number(v||0).toLocaleString("vi-VN",{style:"currency",currency:"VND",maximumFractionDigits:0}); }
 
     // ====== 3) QUERY BUILDER ======
-    async function fetchPremises({kw='', district='', ward='', status='', frontage='', minPrice=0, maxPrice=0, minArea=0, maxArea=0, suitable='', sort='newest', page=1, perPage=24}) {
+    async function fetchPremises({
+      kw='',
+      district='',
+      ward='',
+      status='',
+      frontage='',
+      minPrice=0,
+      maxPrice=0,
+      minArea=0,
+      maxArea=0,
+      suitable='',
+      sort='newest',
+      page=1,
+      perPage=24
+    }) {
       let q = supabase.from('premises').select('*', { count: 'exact' });
 
       if (district) q = q.eq('district', district);
@@ -655,14 +645,16 @@ function getFilters(){
     }
 
     function resetFilters(){
-      ["kw","district","minPrice","maxPrice","minArea","maxArea","frontage","status","suitable","sort","perPage"].forEach(id=>{
+      ["kw","district","ward","minPrice","maxPrice","minArea","maxArea","frontage","status","suitable","sort","perPage"].forEach(id=>{
         const el = document.getElementById(id);
+        if (!el) return;
         if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
       });
       document.getElementById('sort').value = 'newest';
       document.getElementById('perPage').value = '24';
       applyFilters(true);
     }
+
 
     function debounce(fn, delay){ let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), delay); }; }
 
