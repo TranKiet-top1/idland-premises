@@ -382,17 +382,64 @@
           </div>`;
         return;
       }
-      const hasImages = Array.isArray(row.images) && row.images.length > 0;
+      
+      const html = rows.map(it => {
+        // Tính figureHtml cho từng mặt bằng
+        let figureHtml;
 
-      if (hasImages) {
-        const firstPath = row.images[0];
-        const { data } = supabase
-          .storage
-          .from(STORAGE_BUCKET)
-          .getPublicUrl(firstPath);
-        const imgUrl = data.publicUrl;
-        // nhúng vào <img src="imgUrl" ...>
-      }
+        if (Array.isArray(it.images) && it.images.length > 0) {
+          // it.images[0] là "uuid/filename.jpg" trong bucket
+          const firstPath = it.images[0];
+
+          const { data } = supabase
+            .storage
+            .from(STORAGE_BUCKET)
+            .getPublicUrl(firstPath);
+
+          const imgUrl = data?.publicUrl;
+
+          if (imgUrl) {
+            figureHtml = `<img src="${imgUrl}"
+              class="w-full h-full object-cover"
+              onerror="this.parentNode.innerHTML='(Không có ảnh)'" />`;
+          } else {
+            figureHtml = `(Không có ảnh)`;
+          }
+        } else {
+          figureHtml = `(Không có ảnh)`;
+        }
+
+        return `
+          <article class="card bg-base-100/95 border border-base-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer premise-card rounded-2xl overflow-hidden" data-id="${encodeURIComponent(it.id)}">
+            <figure class="h-44 bg-base-200 flex items-center justify-center text-base-content/50">
+              ${figureHtml}
+            </figure>
+
+            <div class="card-body p-4 space-y-2">
+              <div class="flex items-start justify-between gap-2">
+                <h3 class="card-title text-[15px] leading-line-clamp-1">${it.address || `${it.street||""} ${it.district||""}`}</h3>
+                <div class="badge badge-outline text-xs ${it.status==='available'?'badge-success':it.status==='deposited'?'badge-warning':'badge-neutral'}">
+                  ${it.status==='available'?'Còn trống':it.status==='deposited'?'Giữ cọc':'Đã thuê'}
+                </div>
+              </div>
+
+              <div class="text-[12px] opacity-70 flex flex-wrap gap-x-3 gap-y-1">
+                <span>${it.district || ''}</span>
+                ${it.frontage ? '<span>• Mặt tiền</span>' : ''}
+                ${it.area ? `<span>• ${it.area} m²</span>` : ''}
+                ${it.width && it.length ? `<span>• ${it.width}x${it.length} m</span>` : ''}
+                ${it.floors ? `<span>• ${it.floors} tầng/span>` : ''}
+              </div>
+
+              <div class="flex items-center justify-between mt-1">
+                <div class="text-xl sm:text-2xl font-extrabold text-primary">${money(it.price)}</div>
+                ${it.commission_note ? `<div class="badge badge-outline badge-sm">${it.commission_note}</div>` : ''}
+              </div>
+            </div>
+          </article>
+        `;
+      }).join("");
+
 
 
       const html = rows.map(it => `
