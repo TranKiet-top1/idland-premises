@@ -42,6 +42,39 @@
       </div>
     </div>
   </header>
+  <!-- Upload ảnh mặt bằng -->
+  <div class="mt-4 mb-6 p-4 bg-base-200 rounded-2xl flex flex-col md:flex-row items-start md:items-end gap-3">
+    <div class="flex-1 w-full">
+      <label class="label py-1">
+        <span class="label-text text-xs font-semibold uppercase tracking-wide">
+          Mã mặt bằng (ID / Code)
+        </span>
+      </label>
+      <input id="upload-code" type="text"
+        placeholder="VD: MB 0016"
+        class="input input-bordered input-sm w-full rounded-xl" />
+      <label class="label">
+        <span class="label-text-alt text-xs text-gray-500">
+          Nhập đúng mã trong cột ID (code) ở Google Sheet
+        </span>
+      </label>
+    </div>
+
+    <div class="flex-1 w-full">
+      <label class="label py-1">
+        <span class="label-text text-xs font-semibold uppercase tracking-wide">
+          Chọn ảnh
+        </span>
+      </label>
+      <input id="upload-images" type="file" accept="image/*" multiple
+        class="file-input file-input-bordered file-input-sm w-full rounded-xl" />
+    </div>
+
+    <button id="btn-upload-images"
+      class="btn btn-primary btn-sm rounded-xl mt-2 md:mt-0">
+      Upload ảnh
+    </button>
+  </div>
 
   <!-- HERO -->
   <section class="bg-base-100/80 border-b">
@@ -96,15 +129,6 @@
           <span class="label-text text-xs font-semibold uppercase tracking-wide">Quận</span>
         </label>
         <select id="district" class="select select-bordered select-sm w-full rounded-xl">
-          <option value="">Tất cả</option>
-        </select>
-      </div>
-
-      <div class="form-control">
-        <label class="label py-1">
-          <span class="label-text text-xs font-semibold uppercase tracking-wide">Phường</span>
-        </label>
-        <select id="ward" class="select select-bordered select-sm w-full rounded-xl">
           <option value="">Tất cả</option>
         </select>
       </div>
@@ -228,12 +252,8 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <input id="f_address" class="input input-bordered input-sm" placeholder="Địa chỉ (ghi rõ số, đường)">
         <input id="f_street" class="input input-bordered input-sm" placeholder="Đường">
-        <select id="f_district" class="select select-bordered select-sm">
-          <option value="">Chọn quận</option>
-        </select>
-        <select id="f_ward" class="select select-bordered select-sm">
-          <option value="">Chọn phường</option>
-        </select>
+        <input id="f_district" class="input input-bordered input-sm" placeholder="Quận (VD: Quận 10)">
+        <input id="f_ward" class="input input-bordered input-sm" placeholder="Phường">
         <input id="f_width" type="number" class="input input-bordered input-sm" placeholder="Ngang (m)">
         <input id="f_length" type="number" class="input input-bordered input-sm" placeholder="Dài (m)">
         <input id="f_area" type="number" class="input input-bordered input-sm" placeholder="Diện tích (m²)">
@@ -291,69 +311,9 @@
 
     // ====== 2) STATE ======
     document.getElementById('yr').textContent = new Date().getFullYear();
-
-    const DISTRICTS = [
-      "Quận 1","Quận 3","Quận 4","Quận 5","Quận 6","Quận 7","Quận 8",
-      "Quận 10","Quận 11","Quận Bình Thạnh","Quận Phú Nhuận",
-      "Quận Gò Vấp","Quận Tân Bình","Quận Tân Phú","Quận 12",
-      "Thành phố Thủ Đức","Huyện Bình Chánh","Huyện Hóc Môn",
-      "Huyện Nhà Bè","Huyện Củ Chi","Huyện Cần Giờ"
-    ];
-
-    const WARDS_BY_DISTRICT = {
-      "Quận 1": ["Bến Nghé","Bến Thành","Cô Giang","Cầu Ông Lãnh","Đa Kao","Nguyễn Cư Trinh","Nguyễn Thái Bình","Phạm Ngũ Lão","Tân Định"],
-      "Quận 3": ["Võ Thị Sáu","Phường 1","Phường 2","Phường 3","Phường 4","Phường 5","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14"],
-      "Quận 5": ["Phường 1","Phường 2","Phường 3","Phường 4","Phường 5","Phường 6","Phường 7","Phường 8","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15"],
-      "Quận 10": ["Phường 1","Phường 2","Phường 3","Phường 4","Phường 5","Phường 6","Phường 7","Phường 8","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15"],
-      "Quận 11": ["Phường 1","Phường 2","Phường 3","Phường 4","Phường 5","Phường 6","Phường 7","Phường 8","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15","Phường 16"],
-      "Quận Phú Nhuận": ["Phường 1","Phường 2","Phường 3","Phường 4","Phường 5","Phường 7","Phường 8","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15","Phường 17"],
-      "Quận Bình Thạnh": ["Phường 1","Phường 2","Phường 3","Phường 5","Phường 6","Phường 7","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15","Phường 17","Phường 19","Phường 21","Phường 22","Phường 24","Phường 25","Phường 26","Phường 27","Phường 28"],
-      "Quận Gò Vấp": ["Phường 1","Phường 3","Phường 4","Phường 5","Phường 6","Phường 7","Phường 8","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15","Phường 16","Phường 17"],
-      "Quận Tân Bình": ["Phường 1","Phường 2","Phường 3","Phường 4","Phường 5","Phường 6","Phường 7","Phường 8","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14","Phường 15"]
-    };
-
-    function setupDistrictWardPair(districtId, wardId, mode) {
-      const districtSelect = document.getElementById(districtId);
-      const wardSelect = document.getElementById(wardId);
-      if (!districtSelect || !wardSelect) return;
-
-      districtSelect.innerHTML = '';
-      const optDistrict = document.createElement('option');
-      optDistrict.value = '';
-      optDistrict.textContent = mode === 'filter' ? 'Tất cả' : 'Chọn quận';
-      districtSelect.appendChild(optDistrict);
-
-      DISTRICTS.forEach(d => {
-        const o = document.createElement('option');
-        o.value = d;
-        o.textContent = d;
-        districtSelect.appendChild(o);
-      });
-
-      function refreshWardOptions() {
-        wardSelect.innerHTML = '';
-        const optWard = document.createElement('option');
-        optWard.value = '';
-        optWard.textContent = mode === 'filter' ? 'Tất cả' : 'Chọn phường';
-        wardSelect.appendChild(optWard);
-
-        const wards = WARDS_BY_DISTRICT[districtSelect.value] || [];
-        wards.forEach(w => {
-          const o = document.createElement('option');
-          o.value = w;
-          o.textContent = w;
-          wardSelect.appendChild(o);
-        });
-      }
-
-      districtSelect.addEventListener('change', refreshWardOptions);
-      refreshWardOptions();
-    }
-
-    // Bộ lọc bên trái
-    setupDistrictWardPair('district', 'ward', 'filter');
-    // Form thêm mặt bằng
-    setupDistrictWardPair('f_district', 'f_ward', 'form');
+    const districts = ["Quận 1","Quận 3","Quận 5","Quận 10","Quận Phú Nhuận","Quận Bình Thạnh","TP. Thủ Đức","Quận Tân Bình","Quận 7","Quận 8","Quận 11","Quận 4","Quận 6"];
+    const disSel = document.getElementById("district");
+    districts.forEach(d => { const o = document.createElement("option"); o.value=o.textContent=d; disSel.appendChild(o); });
 
     let PAGE = 1;
     let TOTAL = 0;
@@ -362,7 +322,6 @@
       return {
         kw: document.getElementById("kw").value.trim(),
         district: document.getElementById("district").value,
-        ward: document.getElementById("ward").value,
         minPrice: Number(document.getElementById("minPrice").value||0),
         maxPrice: Number(document.getElementById("maxPrice").value||0),
         minArea: Number(document.getElementById("minArea").value||0),
@@ -378,25 +337,10 @@
     function money(v){ return Number(v||0).toLocaleString("vi-VN",{style:"currency",currency:"VND",maximumFractionDigits:0}); }
 
     // ====== 3) QUERY BUILDER ======
-    async function fetchPremises({
-      kw='',
-      district='',
-      ward='',
-      status='',
-      frontage='',
-      minPrice=0,
-      maxPrice=0,
-      minArea=0,
-      maxArea=0,
-      suitable='',
-      sort='newest',
-      page=1,
-      perPage=24
-    }) {
+    async function fetchPremises({kw='', district='', status='', frontage='', minPrice=0, maxPrice=0, minArea=0, maxArea=0, suitable='', sort='newest', page=1, perPage=24}) {
       let q = supabase.from('premises').select('*', { count: 'exact' });
 
       if (district) q = q.eq('district', district);
-      if (ward)     q = q.eq('ward', ward);
       if (status)   q = q.eq('status', status);
       if (frontage) q = q.eq('frontage', frontage === 'yes');
       if (minPrice) q = q.gte('price', minPrice);
@@ -438,6 +382,18 @@
           </div>`;
         return;
       }
+      const hasImages = Array.isArray(row.images) && row.images.length > 0;
+
+      if (hasImages) {
+        const firstPath = row.images[0];
+        const { data } = supabase
+          .storage
+          .from(STORAGE_BUCKET)
+          .getPublicUrl(firstPath);
+        const imgUrl = data.publicUrl;
+        // nhúng vào <img src="imgUrl" ...>
+      }
+
 
       const html = rows.map(it => `
         <article class="card bg-base-100/95 border border-base-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer premise-card rounded-2xl overflow-hidden" data-id="${encodeURIComponent(it.id)}">
@@ -645,16 +601,14 @@
     }
 
     function resetFilters(){
-      ["kw","district","ward","minPrice","maxPrice","minArea","maxArea","frontage","status","suitable","sort","perPage"].forEach(id=>{
+      ["kw","district","minPrice","maxPrice","minArea","maxArea","frontage","status","suitable","sort","perPage"].forEach(id=>{
         const el = document.getElementById(id);
-        if (!el) return;
         if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
       });
       document.getElementById('sort').value = 'newest';
       document.getElementById('perPage').value = '24';
       applyFilters(true);
     }
-
 
     function debounce(fn, delay){ let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), delay); }; }
 
