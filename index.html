@@ -476,9 +476,10 @@
           '';
 
         // TIÊU ĐỀ: Đường + Phường (nếu có)
-        const titleAddr =
-          (it.address && it.address.trim()) ||
-          [it.street, it.ward].filter(Boolean).join(", ");
+        const titleAddr = [
+          it.address,
+          it.ward
+        ].filter(Boolean).join(", ");
 
         // DÒNG CHỮ NHỎ: Quận • DT • Kích thước • PN • Ngày update (+ Mặt tiền nếu có)
         const metaParts = [];
