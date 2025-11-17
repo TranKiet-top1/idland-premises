@@ -456,9 +456,8 @@
       } else if (sort === 'price_desc') {
         q = q.order('price', { ascending: false });
       } else {
-        q = q
-          .order('updated_at', { ascending: false })
-          .order('created_at', { ascending: false });
+        // bảng không có updated_at → chỉ dùng created_at
+        q = q.order('created_at', { ascending: false });
       }
 
       const from = (page-1)*perPage;
@@ -800,6 +799,7 @@
       }
     }
 
+    // Định dạng ngày: 28/11/2025
     function formatDate(d) {
       if (!d) return "";
       const dt = new Date(d);
@@ -860,7 +860,7 @@
 
     // ====== AUTH ======
     async function initAuth() {
-      // check env badge (nếu cần)
+      // check env badge
       try {
         const { error } = await supabase.from('premises').select('id', { count: 'exact', head: true }).limit(1);
         if (error) throw error;
@@ -890,7 +890,7 @@
       document.getElementById("auth-section").classList.add("hidden");
       document.getElementById("app-root").classList.remove("hidden");
 
-      // QUAN TRỌNG: load dữ liệu sau khi login
+      // 🔥 load list sau khi login
       await applyFilters(true);
 
       const hashId = decodeURIComponent(location.hash.slice(1) || "");
