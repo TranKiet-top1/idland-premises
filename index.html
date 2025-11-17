@@ -57,6 +57,10 @@
             <button class="btn btn-primary btn-sm rounded-full shadow-md" onclick="openAdd()">
               + Thêm mặt bằng
             </button>
+            <!-- NÚT ĐĂNG XUẤT -->
+            <button id="btn-logout" class="btn btn-ghost text-sm opacity-70 hover:opacity-100">
+              Đăng xuất
+            </button>
           </div>
         </div>
       </div>
@@ -256,7 +260,6 @@
             </label>
             <select id="add-district" class="select select-bordered select-sm w-full rounded-xl">
               <option value="">Chọn quận</option>
-              <!-- JS sẽ tự đổ list quận -->
             </select>
           </div>
 
@@ -267,7 +270,6 @@
             </label>
             <select id="add-ward" class="select select-bordered select-sm w-full rounded-xl">
               <option value="">Chọn phường</option>
-              <!-- JS sẽ tự đổ list phường theo quận -->
             </select>
           </div>
 
@@ -321,7 +323,7 @@
   </div> <!-- /#app-root -->
 
   <script>
-    // ====== 1) CONFIG SUPABASE & AUTH STATE ======
+    // ====== CONFIG SUPABASE & AUTH STATE ======
     const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjbG5jb3drb2Vkd3F6Y2VtaGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzcwOTUsImV4cCI6MjA3Nzg1MzA5NX0.jfNM46UgXIq9LrwSXcERJJULeKB7bl_c9R9LaVhRy1A";
     const STORAGE_BUCKET = "premise-images";
@@ -330,7 +332,7 @@
     let CURRENT_USER = null;
     let CURRENT_ROLE = null; // 'admin' | 'staff'
 
-    // ====== 2) STATE ======
+    // ====== STATE ======
     document.getElementById('yr').textContent = new Date().getFullYear();
 
     const DISTRICTS = [
@@ -363,7 +365,6 @@
       "Huyện Nhà Bè": [],
       "Huyện Củ Chi": [],
       "Huyện Cần Giờ": []
-      // Bổ sung phường nếu cần
     };
 
     function setupDistrictWardPair(districtId, wardId, allLabel = "Tất cả") {
@@ -371,7 +372,6 @@
       const wardSelect = document.getElementById(wardId);
       if (!districtSelect || !wardSelect) return;
 
-      // Đổ danh sách quận
       districtSelect.innerHTML = "";
       const optAllDistrict = document.createElement("option");
       optAllDistrict.value = "";
@@ -405,9 +405,7 @@
       refreshWardOptions();
     }
 
-    // 1) Bộ lọc bên trái
     setupDistrictWardPair("district", "ward", "Tất cả");
-    // 2) Form thêm
     setupDistrictWardPair("add-district", "add-ward", "Chọn");
 
     let PAGE = 1;
@@ -432,7 +430,7 @@
 
     function money(v){ return Number(v||0).toLocaleString("vi-VN",{style:"currency",currency:"VND",maximumFractionDigits:0}); }
 
-    // ====== 3) QUERY BUILDER ======
+    // ====== QUERY BUILDER ======
     async function fetchPremises({kw='', district='', ward='', status='', frontage='', minPrice=0, maxPrice=0, minArea=0, maxArea=0, suitable='', sort='newest', page=1, perPage=24}) {
       let q = supabase.from('premises').select('*', { count: 'exact' });
 
@@ -458,7 +456,6 @@
       } else if (sort === 'price_desc') {
         q = q.order('price', { ascending: false });
       } else {
-        // Sắp xếp theo cập nhật mới nhất
         q = q
           .order('updated_at', { ascending: false })
           .order('created_at', { ascending: false });
@@ -473,7 +470,7 @@
       return { data, count: count||0 };
     }
 
-    // ====== 4) RENDER ======
+    // ====== RENDER LIST ======
     function renderCards(rows){
       const grid = document.getElementById("grid");
 
@@ -504,10 +501,8 @@
           it.status === 'rented' ? 'badge-neutral' :
           '';
 
-        // TIÊU ĐỀ: Đường + Phường (nếu có) – có mask
         const titleAddr = maskAddress(it.address, it.ward, it.street);
 
-        // DÒNG CHỮ NHỎ: Quận • DT • Kích thước • PN • Ngày update • Mặt tiền
         const metaParts = [];
         if (it.district) metaParts.push(it.district);
         if (it.area) metaParts.push(`${it.area} m²`);
@@ -586,7 +581,7 @@
       btnMore.textContent = more ? 'Tải thêm' : 'Hết dữ liệu';
     }
 
-    // ====== 5) DETAIL POPUP ======
+    // ====== DETAIL POPUP ======
     async function openDetail(id){
       const { data, error } = await supabase
         .from('premises')
@@ -712,7 +707,7 @@
       document.getElementById("detailDlg").showModal();
     }
 
-    // ====== 6) UPLOAD ẢNH LÊN STORAGE ======
+    // ====== UPLOAD ẢNH ======
     async function uploadImages(files, prefix = '') {
       const urls = [];
       const total = files.length;
@@ -739,7 +734,7 @@
       return urls;
     }
 
-    // ====== 7) ADD ITEM ======
+    // ====== ADD ITEM ======
     async function addItem(){
       const g  = id => document.getElementById(id).value;
       const chk= id => document.getElementById(id).checked;
@@ -784,13 +779,12 @@
 
     function openAdd(){ document.getElementById('dlg').showModal(); }
 
-    // ====== 8) CSV EXPORT (gợi ý) ======
+    // ====== CSV EXPORT ======
     function downloadCSV(){
       alert('Gợi ý: vào Supabase Table Editor → premises → Export → CSV để tải toàn bộ dữ liệu.');
     }
 
-    // ====== 9) UI HELPERS ======
-    // Resolve image path (URL or storage path) to final URL
+    // ====== HELPERS ======
     function resolveImageUrl(src){
       if (!src) return null;
       if (/^https?:\/\//i.test(src)) return src;
@@ -806,7 +800,6 @@
       }
     }
 
-    // Định dạng ngày: 28/11/2025
     function formatDate(d) {
       if (!d) return "";
       const dt = new Date(d);
@@ -825,7 +818,6 @@
       if (!addr && !ward && !street) return "";
       const full = addr || [street, ward].filter(Boolean).join(", ");
       if (!isStaff()) return full;
-      // Bỏ phần số nhà ở đầu
       return full.replace(/^[0-9\/\- ]+/, "").trim();
     }
 
@@ -856,7 +848,6 @@
 
     function debounce(fn, delay){ let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), delay); }; }
 
-    // Quick filters
     function quickFilter(status) {
       document.getElementById('status').value = status;
       applyFilters(true);
@@ -867,9 +858,9 @@
       applyFilters(true);
     }
 
-    // ====== 10) AUTH LOGIC ======
+    // ====== AUTH ======
     async function initAuth() {
-      // check env badge (kết nối Supabase)
+      // check env badge (nếu cần)
       try {
         const { error } = await supabase.from('premises').select('id', { count: 'exact', head: true }).limit(1);
         if (error) throw error;
@@ -879,8 +870,8 @@
       }
 
       const { data } = await supabase.auth.getUser();
+
       if (!data.user) {
-        // chưa login
         document.getElementById("auth-section").classList.remove("hidden");
         document.getElementById("app-root").classList.add("hidden");
         return;
@@ -888,25 +879,20 @@
 
       CURRENT_USER = data.user;
 
-      // lấy profile để biết role
-      const { data: profile, error } = await supabase
+      const { data: profile } = await supabase
         .from("profiles")
-        .select("role, full_name")
+        .select("role")
         .eq("id", CURRENT_USER.id)
         .maybeSingle();
 
-      if (error) {
-        console.error(error);
-      }
       CURRENT_ROLE = profile?.role || "staff";
 
       document.getElementById("auth-section").classList.add("hidden");
       document.getElementById("app-root").classList.remove("hidden");
 
-      // Sau khi auth ok => load data
+      // QUAN TRỌNG: load dữ liệu sau khi login
       await applyFilters(true);
 
-      // Deep-link mặt bằng qua hash (nếu có)
       const hashId = decodeURIComponent(location.hash.slice(1) || "");
       if (hashId) openDetail(hashId);
     }
@@ -933,13 +919,21 @@
       await initAuth();
     }
 
-    // ====== 11) EVENTS & INIT ======
+    async function handleLogout() {
+      await supabase.auth.signOut();
+      CURRENT_USER = null;
+      CURRENT_ROLE = null;
+      location.reload(); // reload về màn login
+    }
+
+    // ====== EVENTS & INIT ======
     document.getElementById('btnApply').addEventListener('click', ()=>applyFilters(true));
     document.getElementById('btnMore').addEventListener('click', ()=>{ PAGE++; applyFilters(false); });
     document.getElementById('kw').addEventListener('input', debounce(()=>applyFilters(true), 400));
 
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("btn-login").addEventListener("click", handleLogin);
+      document.getElementById("btn-logout").addEventListener("click", handleLogout);
       initAuth();
     });
   </script>
