@@ -319,13 +319,38 @@
 
     <!-- EDIT MODAL (ADMIN) -->
     <dialog id="editDlg" class="modal">
-      <div class="modal-box max-w-3xl relative">
+      <div class="modal-box max-w-4xl relative">
         <!-- backdrop để click ra ngoài đóng -->
         <form method="dialog" class="modal-backdrop absolute inset-0" onclick="document.getElementById('editDlg').close()"></form>
 
         <h3 class="font-bold text-lg mb-3">Chỉnh sửa mặt bằng</h3>
 
         <div class="grid md:grid-cols-2 gap-3">
+          <!-- ĐỊA CHỈ / TIÊU ĐỀ -->
+          <div class="form-control md:col-span-2">
+            <label class="label"><span class="label-text">Tiêu đề / Địa chỉ hiển thị</span></label>
+            <input id="edit-address" type="text" class="input input-bordered w-full" placeholder="VD: 44-46 Thân Nhân Trung" />
+          </div>
+
+          <div class="form-control">
+            <label class="label"><span class="label-text">Thành phố</span></label>
+            <input id="edit-city" type="text" class="input input-bordered w-full" />
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text">Quận</span></label>
+            <input id="edit-district" type="text" class="input input-bordered w-full" />
+          </div>
+
+          <div class="form-control">
+            <label class="label"><span class="label-text">Phường</span></label>
+            <input id="edit-ward" type="text" class="input input-bordered w-full" />
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text">Tên đường</span></label>
+            <input id="edit-street" type="text" class="input input-bordered w-full" />
+          </div>
+
+          <!-- GIÁ / DIỆN TÍCH / KÍCH THƯỚC -->
           <div class="form-control">
             <label class="label"><span class="label-text">Giá thuê (đ)</span></label>
             <input id="edit-price" type="number" class="input input-bordered w-full" />
@@ -344,6 +369,7 @@
             <input id="edit-length" type="number" step="0.1" class="input input-bordered w-full" />
           </div>
 
+          <!-- TẦNG / PN / WC / MẶT TIỀN / TRẠNG THÁI -->
           <div class="form-control">
             <label class="label"><span class="label-text">Số tầng</span></label>
             <input id="edit-floors" type="number" class="input input-bordered w-full" />
@@ -352,11 +378,15 @@
             <label class="label"><span class="label-text">Số phòng ngủ</span></label>
             <input id="edit-bedrooms" type="number" class="input input-bordered w-full" />
           </div>
-
           <div class="form-control">
             <label class="label"><span class="label-text">Số WC</span></label>
             <input id="edit-wc" type="number" class="input input-bordered w-full" />
           </div>
+          <div class="form-control flex items-center gap-2 mt-6">
+            <input id="edit-frontage" type="checkbox" class="checkbox" />
+            <span class="label-text">Mặt tiền</span>
+          </div>
+
           <div class="form-control">
             <label class="label"><span class="label-text">Trạng thái</span></label>
             <select id="edit-status" class="select select-bordered w-full">
@@ -366,14 +396,27 @@
             </select>
           </div>
 
+          <!-- HOA HỒNG -->
           <div class="form-control md:col-span-2">
             <label class="label"><span class="label-text">Hoa hồng / ghi chú HH</span></label>
             <input id="edit-commission" type="text" class="input input-bordered w-full" />
           </div>
 
+          <!-- ẢNH -->
+          <div class="form-control md:col-span-2">
+            <label class="label"><span class="label-text">Danh sách ảnh (mỗi dòng 1 path)</span></label>
+            <textarea id="edit-images" class="textarea textarea-bordered w-full min-h-[80px]" placeholder="VD: MB0001/1.jpg&#10;MB0001/2.jpg"></textarea>
+            <label class="label">
+              <span class="label-text-alt text-xs opacity-70">
+                Ảnh sẽ lưu vào cột <code>images</code> dạng mảng. Mỗi dòng = một ảnh trong bucket.
+              </span>
+            </label>
+          </div>
+
+          <!-- THÔNG TIN CHI TIẾT -->
           <div class="form-control md:col-span-2">
             <label class="label"><span class="label-text">Thông tin chi tiết mặt bằng</span></label>
-            <textarea id="edit-detail" class="textarea textarea-bordered w-full min-h-[120px]" placeholder="Ghi mô tả chi tiết: kết cấu, thời gian trống, điều kiện hợp đồng, ưu điểm khu vực..."></textarea>
+            <textarea id="edit-detail" class="textarea textarea-bordered w-full min-h-[140px]" placeholder="Kết cấu, thời gian trống, điều kiện hợp đồng, ưu điểm khu vực..."></textarea>
           </div>
         </div>
 
@@ -398,6 +441,9 @@
 
     let CURRENT_USER = null;
     let CURRENT_ROLE = null; // 'admin' | 'staff'
+    let PAGE = 1;
+    let TOTAL = 0;
+    let EDITING_ID = null;
 
     // ====== STATE ======
     document.getElementById('yr').textContent = new Date().getFullYear();
@@ -474,10 +520,6 @@
 
     setupDistrictWardPair("district", "ward", "Tất cả");
     setupDistrictWardPair("add-district", "add-ward", "Chọn");
-
-    let PAGE = 1;
-    let TOTAL = 0;
-    let EDITING_ID = null;
 
     function getFilters(){
       return {
@@ -702,6 +744,16 @@
           ${isAdmin() ? `<button class="btn btn-outline btn-sm join-item" onclick="openEditPremise('${id}')">Chỉnh sửa</button>` : ''}
         </div>`;
 
+      const detailText = item.detail || item.description || item.info_detail || "";
+      const detailBlock = detailText
+        ? `
+            <div class="mt-3 text-sm leading-relaxed">
+              <div class="font-semibold mb-1">Thông tin chi tiết</div>
+              <p>${detailText.replace(/\n/g, "<br/>")}</p>
+            </div>
+          `
+        : "";
+
       const htmlDetail = `
         <div class="grid md:grid-cols-2 gap-6">
           <div class="space-y-3">
@@ -734,14 +786,7 @@
               : ''
             }
 
-            ${
-              item.detail || item.description || item.info_detail
-              ? `<div class="mt-3 text-sm leading-relaxed">
-                  <div class="font-semibold mb-1">Thông tin chi tiết</div>
-                  <p>${(item.detail || item.description || item.info_detail).replace(/\n/g, '<br/>')}</p>
-                </div>`
-              : ''
-            }
+            ${detailBlock}
 
             ${item.suitable?.length?`<div class="flex flex-wrap gap-1 text-xs mt-3">
               ${item.suitable.map(s=>`<div class="badge badge-ghost">${s}</div>`).join('')}
@@ -792,16 +837,33 @@
         return;
       }
 
-      document.getElementById('edit-price').value      = data.price || '';
-      document.getElementById('edit-area').value       = data.area || '';
-      document.getElementById('edit-width').value      = data.width || '';
-      document.getElementById('edit-length').value     = data.length || '';
-      document.getElementById('edit-floors').value     = data.floors || '';
-      document.getElementById('edit-bedrooms').value   = data.bedrooms || data.rooms || data.pn || '';
-      document.getElementById('edit-wc').value         = data.bathrooms || data.wc || '';
+      // ĐỊA CHỈ
+      document.getElementById('edit-address').value  = data.address || '';
+      document.getElementById('edit-city').value     = data.city || '';
+      document.getElementById('edit-district').value = data.district || '';
+      document.getElementById('edit-ward').value     = data.ward || '';
+      document.getElementById('edit-street').value   = data.street || '';
+
+      // SỐ LIỆU
+      document.getElementById('edit-price').value    = data.price || '';
+      document.getElementById('edit-area').value     = data.area || '';
+      document.getElementById('edit-width').value    = data.width || '';
+      document.getElementById('edit-length').value   = data.length || '';
+      document.getElementById('edit-floors').value   = data.floors || '';
+      document.getElementById('edit-bedrooms').value = data.bedrooms || data.rooms || data.pn || '';
+      document.getElementById('edit-wc').value       = data.bathrooms || data.wc || '';
+
+      document.getElementById('edit-frontage').checked = !!data.frontage;
       document.getElementById('edit-status').value     = data.status || 'available';
       document.getElementById('edit-commission').value = data.commission_note || '';
-      document.getElementById('edit-detail').value     = data.detail || data.description || data.info_detail || '';
+
+      // ẢNH
+      const imgs = Array.isArray(data.images) ? data.images : [];
+      document.getElementById('edit-images').value = imgs.join('\n');
+
+      // THÔNG TIN CHI TIẾT
+      document.getElementById('edit-detail').value =
+        data.detail || data.description || data.info_detail || '';
 
       document.getElementById('editDlg').showModal();
     }
@@ -809,36 +871,44 @@
     async function saveEditPremise() {
       if (!isAdmin() || !EDITING_ID) return;
 
-      const id         = EDITING_ID;
-      const price      = Number(document.getElementById('edit-price').value || 0);
-      const area       = Number(document.getElementById('edit-area').value || 0);
-      const width      = Number(document.getElementById('edit-width').value || 0);
-      const length     = Number(document.getElementById('edit-length').value || 0);
-      const floors     = Number(document.getElementById('edit-floors').value || 0);
-      const bedrooms   = Number(document.getElementById('edit-bedrooms').value || 0);
-      const wc         = Number(document.getElementById('edit-wc').value || 0);
-      const status     = document.getElementById('edit-status').value;
-      const commission = document.getElementById('edit-commission').value.trim();
-      const detail     = document.getElementById('edit-detail').value.trim();
-
       const payload = {
-        price: price || null,
-        area: area || null,
-        width: width || null,
-        length: length || null,
-        floors: floors || null,
-        status,
-        commission_note: commission || null,
-        detail: detail || null,
+        address:  document.getElementById('edit-address').value.trim() || null,
+        city:     document.getElementById('edit-city').value.trim() || null,
+        district: document.getElementById('edit-district').value.trim() || null,
+        ward:     document.getElementById('edit-ward').value.trim() || null,
+        street:   document.getElementById('edit-street').value.trim() || null,
+
+        price:   Number(document.getElementById('edit-price').value)   || null,
+        area:    Number(document.getElementById('edit-area').value)    || null,
+        width:   Number(document.getElementById('edit-width').value)   || null,
+        length:  Number(document.getElementById('edit-length').value)  || null,
+        floors:  Number(document.getElementById('edit-floors').value)  || null,
+
+        status:  document.getElementById('edit-status').value,
+        frontage: document.getElementById('edit-frontage').checked,
+
+        commission_note: document.getElementById('edit-commission').value.trim() || null,
+        detail:          document.getElementById('edit-detail').value.trim() || null,
+
+        updated_at: new Date().toISOString(),
       };
 
-      if (!Number.isNaN(bedrooms) && bedrooms > 0) payload.bedrooms = bedrooms;
-      if (!Number.isNaN(wc) && wc > 0) payload.bathrooms = wc;
+      const bedrooms = Number(document.getElementById('edit-bedrooms').value) || null;
+      const wc       = Number(document.getElementById('edit-wc').value) || null;
+      if (bedrooms) payload.bedrooms  = bedrooms;
+      if (wc)       payload.bathrooms = wc;
+
+      // ẢNH
+      const rawImages = document.getElementById('edit-images').value
+        .split('\n')
+        .map(s => s.trim())
+        .filter(Boolean);
+      payload.images = rawImages.length ? rawImages : null;
 
       const { error } = await supabase
         .from('premises')
         .update(payload)
-        .eq('id', id);
+        .eq('id', EDITING_ID);
 
       if (error) {
         console.error(error);
@@ -850,8 +920,8 @@
       document.getElementById('editDlg').close();
       EDITING_ID = null;
 
+      // reload danh sách để reflect updated_at mới nhất
       await applyFilters(true);
-      await openDetail(id);
     }
 
     // ====== UPLOAD ẢNH ======
