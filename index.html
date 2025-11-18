@@ -326,6 +326,19 @@
         <h3 class="font-bold text-lg mb-3">Chỉnh sửa mặt bằng</h3>
 
         <div class="grid md:grid-cols-2 gap-3">
+          <!-- MÃ MẶT BẰNG -->
+          <div class="form-control md:col-span-2">
+            <label class="label">
+              <span class="label-text">Mã mặt bằng (code)</span>
+            </label>
+            <input id="edit-code" type="text" class="input input-bordered w-full" placeholder="VD: MB 0016" />
+            <label class="label">
+              <span class="label-text-alt text-xs opacity-70">
+                Mã này phải <b>duy nhất</b> (unique). Không nên trùng mã khác.
+              </span>
+            </label>
+          </div>
+
           <!-- ĐỊA CHỈ / TIÊU ĐỀ -->
           <div class="form-control md:col-span-2">
             <label class="label"><span class="label-text">Tiêu đề / Địa chỉ hiển thị</span></label>
@@ -747,11 +760,57 @@
       const detailText = item.detail || item.description || item.info_detail || "";
       const detailBlock = detailText
         ? `
-            <div class="mt-3 text-sm leading-relaxed">
-              <div class="font-semibold mb-1">Thông tin chi tiết</div>
-              <p>${detailText.replace(/\n/g, "<br/>")}</p>
-            </div>
-          `
+          <div class="mt-4 text-sm leading-relaxed">
+            <div class="font-semibold mb-1">Thông tin chi tiết</div>
+            <p>${detailText.replace(/\n/g, "<br/>")}</p>
+          </div>
+        `
+        : "";
+
+      const updatedLabel = formatDateVN(item.updated_at || item.created_at);
+
+      const basicInfoLines = [];
+
+      if (item.area) {
+        basicInfoLines.push(`Diện tích: <b>${item.area} m²</b>`);
+      }
+      if (item.width && item.length) {
+        basicInfoLines.push(`Kích thước: <b>${item.width}×${item.length} m</b>`);
+      }
+      if (item.floors) {
+        basicInfoLines.push(`Số tầng: <b>${item.floors}</b>`);
+      }
+      if (item.bedrooms || item.rooms || item.pn) {
+        const pn = item.bedrooms || item.rooms || item.pn;
+        basicInfoLines.push(`Phòng ngủ: <b>${pn}</b>`);
+      }
+      if (item.bathrooms || item.wc) {
+        const wc = item.bathrooms || item.wc;
+        basicInfoLines.push(`WC: <b>${wc}</b>`);
+      }
+      if (item.frontage === true) {
+        basicInfoLines.push(`<b>Nhà mặt tiền</b>`);
+      }
+
+      if (item.status) {
+        let st = "Không rõ";
+        if (item.status === "available") st = "Còn trống";
+        else if (item.status === "deposited") st = "Giữ cọc";
+        else if (item.status === "rented") st = "Đã thuê";
+        basicInfoLines.push(`Trạng thái: <b>${st}</b>`);
+      }
+
+      if (updatedLabel) {
+        basicInfoLines.push(`Cập nhật: <b>${updatedLabel}</b>`);
+      }
+
+      const basicInfoBlock = basicInfoLines.length
+        ? `
+          <div class="mt-3 text-sm leading-relaxed space-y-1">
+            <div class="font-semibold mb-1">Thông tin cơ bản</div>
+            ${basicInfoLines.map(line => `<div>${line}</div>`).join("")}
+          </div>
+        `
         : "";
 
       const htmlDetail = `
@@ -761,9 +820,16 @@
             <div class="mt-3">${gmapEmbed}</div>
           </div>
           <div class="space-y-3">
+            <!-- TIÊU ĐỀ + MÃ MẶT BẰNG -->
             <h2 class="text-xl font-bold">${maskAddress(item.address, item.ward, item.street)}</h2>
-            <div class="text-sm opacity-70">${item.ward||""} ${item.district||""} • ${item.city||""}</div>
-            <div class="flex flex-wrap gap-2 text-xs">
+            <div class="text-sm opacity-70">
+              ${[item.ward, item.district, item.city].filter(Boolean).join(" • ")}
+            </div>
+            <div class="text-xs opacity-60 mt-1">
+              Mã mặt bằng: <b>${item.code || "—"}</b>
+            </div>
+
+            <div class="flex flex-wrap gap-2 text-xs mt-2">
               ${item.frontage?`<span class="badge badge-outline">Mặt tiền</span>`:''}
               ${item.area?`<span class="badge badge-outline">${item.area} m²</span>`:''}
               ${(item.width&&item.length)?`<span class="badge badge-outline">${item.width}×${item.length} m</span>`:''}
@@ -776,16 +842,7 @@
             <div class="text-3xl font-extrabold text-primary mt-2">${money(item.price)}</div>
             ${item.commission_note?`<div class="text-sm mt-1">Hoa hồng: <b>${item.commission_note}</b></div>`:''}
 
-            ${
-              (item.bedrooms || item.rooms || item.pn || item.bathrooms || item.wc || item.floors)
-              ? `<div class="mt-3 space-y-1 text-sm">
-                  ${item.bedrooms || item.rooms || item.pn ? `<div><b>Phòng ngủ:</b> ${item.bedrooms || item.rooms || item.pn}</div>` : ''}
-                  ${item.bathrooms || item.wc ? `<div><b>WC:</b> ${item.bathrooms || item.wc}</div>` : ''}
-                  ${item.floors ? `<div><b>Số tầng:</b> ${item.floors}</div>` : ''}
-                </div>`
-              : ''
-            }
-
+            ${basicInfoBlock}
             ${detailBlock}
 
             ${item.suitable?.length?`<div class="flex flex-wrap gap-1 text-xs mt-3">
@@ -837,6 +894,9 @@
         return;
       }
 
+      // MÃ
+      document.getElementById('edit-code').value     = data.code || '';
+
       // ĐỊA CHỈ
       document.getElementById('edit-address').value  = data.address || '';
       document.getElementById('edit-city').value     = data.city || '';
@@ -872,6 +932,7 @@
       if (!isAdmin() || !EDITING_ID) return;
 
       const payload = {
+        code:    document.getElementById('edit-code').value.trim() || null,
         address:  document.getElementById('edit-address').value.trim() || null,
         city:     document.getElementById('edit-city').value.trim() || null,
         district: document.getElementById('edit-district').value.trim() || null,
@@ -1017,7 +1078,7 @@
       }
     }
 
-    // Định dạng ngày: 28/11/2025
+    // định dạng ngày dạng 28/11/2025 (cho metaLine ngoài card)
     function formatDate(d) {
       if (!d) return "";
       const dt = new Date(d);
@@ -1026,6 +1087,14 @@
       const mon = String(dt.getMonth() + 1).padStart(2, "0");
       const yr  = dt.getFullYear();
       return `${day}/${mon}/${yr}`;
+    }
+
+    // định dạng ngày cho popup (dùng locale vi-VN)
+    function formatDateVN(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleDateString("vi-VN");
     }
 
     function isStaff() {
