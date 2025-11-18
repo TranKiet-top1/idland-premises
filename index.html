@@ -1,1105 +1,430 @@
-<!doctype html>
-<html lang="vi" data-theme="corporate">
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ID-Land – Bộ lọc mặt bằng (Supabase)</title>
+  <meta charset="UTF-8" />
+  <title>ID-Land Premises</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <!-- Tailwind + DaisyUI -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" />
+  <link
+    href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css"
+    rel="stylesheet"
+  />
+
   <!-- Supabase JS v2 -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
   <style>
-    .line-clamp-1{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    }
+    .premise-card:hover {
+      transform: translateY(-2px);
+    }
   </style>
 </head>
 <body class="bg-base-200">
 
-  <!-- AUTH WRAPPER -->
-  <div id="auth-section" class="min-h-screen flex items-center justify-center hidden">
-    <div class="card w-full max-w-sm bg-base-100 shadow-xl">
-      <div class="card-body space-y-3">
-        <h2 class="card-title mb-2">Đăng nhập ID-Land Premises</h2>
-        <input id="auth-email" type="email" placeholder="Email"
-               class="input input-bordered w-full" />
-        <input id="auth-password" type="password" placeholder="Mật khẩu"
-               class="input input-bordered w-full" />
-        <button id="btn-login" class="btn btn-primary w-full">Đăng nhập</button>
-        <p id="auth-error" class="text-error text-sm mt-1 hidden"></p>
-      </div>
-    </div>
-  </div>
-
-  <!-- MAIN APP -->
-  <div id="app-root" class="hidden min-h-screen bg-gradient-to-b from-base-200 to-base-100 text-base-content">
-
-    <!-- NAV -->
-    <header class="sticky top-0 z-20 bg-base-100/90 backdrop-blur border-b shadow-sm">
-      <div class="max-w-7xl mx-auto px-4">
-        <div class="navbar p-0 min-h-14">
-          <div class="flex-1 gap-3 items-center">
-            <div class="flex items-center gap-2">
-              <div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                <span class="font-black text-primary text-lg">ID</span>
-              </div>
-              <div class="flex flex-col leading-tight">
-                <span class="font-bold text-lg">ID-Land Premises</span>
-                <span class="text-xs opacity-70 hidden sm:block">Kho mặt bằng cho thuê • TP.HCM</span>
-              </div>
-            </div>
-            <div id="badgeEnv" class="badge badge-outline text-xs">Supabase</div>
-          </div>
-          <div class="flex-none flex items-center gap-3">
-            <div class="hidden sm:flex flex-col items-end text-[11px] leading-tight">
-              <span id="countGlobal" class="opacity-70">—</span>
-              <span class="opacity-40">Đồng bộ Google Sheet</span>
-            </div>
-            <button class="btn btn-primary btn-sm rounded-full shadow-md" onclick="openAdd()">
-              + Thêm mặt bằng
-            </button>
-            <!-- NÚT ĐĂNG XUẤT -->
-            <button id="btn-logout" class="btn btn-ghost text-sm opacity-70 hover:opacity-100">
-              Đăng xuất
-            </button>
+  <!-- ======== AUTH SECTION (LOGIN) ======== -->
+  <section id="auth-section" class="min-h-screen flex items-center justify-center">
+    <div class="card w-full max-w-md bg-base-100 shadow-xl">
+      <div class="card-body">
+        <div class="flex items-center gap-2 mb-4">
+          <img src="logo.png" class="h-10 w-auto rounded-xl" alt="ID-Land" />
+          <div>
+            <h2 class="card-title">ID-Land Premises</h2>
+            <p class="text-xs opacity-70">Đăng nhập để xem kho mặt bằng</p>
           </div>
         </div>
-      </div>
-    </header>
 
-    <!-- HERO -->
-    <section class="bg-base-100/80 border-b">
-      <div class="max-w-7xl mx-auto px-4 py-4 sm:py-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div class="space-y-1">
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text">Email</span>
+          </label>
+          <input id="login-email" type="email" placeholder="you@idland.vn" class="input input-bordered" />
+        </div>
+
+        <div class="form-control mt-2">
+          <label class="label">
+            <span class="label-text">Mật khẩu</span>
+          </label>
+          <input id="login-password" type="password" placeholder="••••••••" class="input input-bordered" />
+        </div>
+
+        <div class="form-control mt-4">
+          <button id="btn-login" class="btn btn-primary w-full">Đăng nhập</button>
+        </div>
+
+        <p class="mt-3 text-xs opacity-70">
+          Quyền <b>admin</b>: xem & chỉnh sửa full thông tin, số nhà & số chủ.<br/>
+          Quyền <b>nhân sự</b>: bị ẩn số nhà & số điện thoại chủ nhà.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== APP SECTION ======== -->
+  <div id="app-root" class="hidden min-h-screen flex flex-col">
+    <!-- NAVBAR -->
+    <div class="navbar bg-base-100 shadow-sm px-4">
+      <div class="flex-1 flex items-center gap-2">
+        <img src="logo.png" class="h-9 w-auto rounded-xl" alt="ID-Land" />
+        <div>
+          <div class="font-bold text-lg leading-tight">ID-Land Premises</div>
+          <div class="text-xs opacity-60">Kho mặt bằng cho thuê • TP.HCM</div>
+        </div>
+      </div>
+      <div class="flex-none flex items-center gap-2 text-sm">
+        <span id="role-badge" class="badge badge-outline"></span>
+        <button id="btn-logout" class="btn btn-ghost btn-sm">Đăng xuất</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <main class="flex-1 max-w-6xl mx-auto w-full px-2 sm:px-4 py-4">
+      <!-- Header + actions -->
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div>
           <h1 class="text-xl sm:text-2xl font-bold">
             Bộ lọc mặt bằng cho thuê <span class="text-primary">ID-Land</span>
           </h1>
-          <p class="text-sm sm:text-[13px] opacity-70 max-w-2xl">
-            Nhân sự chỉ cần nhập yêu cầu của khách: <b>giá – diện tích – khu vực – mặt tiền</b>, bộ lọc sẽ trả về danh sách mặt bằng phù hợp kèm hình ảnh & Google Maps.
+          <p class="text-xs sm:text-sm opacity-70">
+            Nhân sự chỉ cần nhập yêu cầu của khách: <b>giá – diện tích – khu vực – mặt tiền</b>,
+            bộ lọc sẽ trả về danh sách mặt bằng phù hợp kèm hình ảnh &amp; Google Maps.
           </p>
-          <div class="flex flex-wrap gap-2 pt-1">
-            <div class="badge badge-ghost badge-sm gap-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-success"></span> Realtime từ Supabase
+        </div>
+
+        <div class="flex flex-wrap gap-2 justify-end">
+          <button id="btn-add-premise" class="btn btn-primary btn-sm hidden">
+            + Thêm mặt bằng
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick filters -->
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <span class="text-xs opacity-70">Lọc nhanh:</span>
+        <button class="btn btn-xs" data-quick="available">Còn trống</button>
+        <button class="btn btn-xs" data-quick="deposited">Giữ cọc</button>
+        <button class="btn btn-xs" data-quick-district="Quận 1">Quận 1</button>
+        <button class="btn btn-xs" data-quick-district="Quận 10">Quận 10</button>
+        <button class="btn btn-xs btn-ghost btn-outline" id="btn-clear-quick">
+          Xoá lọc nhanh
+        </button>
+      </div>
+
+      <!-- Filters & list -->
+      <div class="grid md:grid-cols-[260px,1fr] gap-4">
+        <!-- FILTER PANEL -->
+        <aside class="bg-base-100 rounded-2xl shadow-sm p-4">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-2 h-2 rounded-full bg-success"></span>
+            <h2 class="font-semibold text-sm">Bộ lọc</h2>
+          </div>
+
+          <div class="form-control mb-3">
+            <label class="label">
+              <span class="label-text text-xs">Từ khoá</span>
+            </label>
+            <input
+              id="filter-keyword"
+              type="text"
+              placeholder="VD: Trần Hưng Đạo, Q5..."
+              class="input input-sm input-bordered"
+            />
+          </div>
+
+          <div class="form-control mb-3">
+            <label class="label">
+              <span class="label-text text-xs">Quận</span>
+            </label>
+            <select id="filter-district" class="select select-sm select-bordered">
+              <option value="">Tất cả</option>
+            </select>
+          </div>
+
+          <div class="form-control mb-3">
+            <label class="label">
+              <span class="label-text text-xs">Phường</span>
+            </label>
+            <select id="filter-ward" class="select select-sm select-bordered">
+              <option value="">Tất cả</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">Giá tối thiểu</span>
+              </label>
+              <input
+                id="filter-price-min"
+                type="number"
+                class="input input-sm input-bordered"
+              />
             </div>
-            <div class="badge badge-ghost badge-sm">Đồng bộ Google Sheet</div>
-            <div class="badge badge-ghost badge-sm">Upload ảnh mặt bằng</div>
-          </div>
-        </div>
-        <div class="flex gap-2 items-center text-xs mt-2 md:mt-0">
-          <span class="hidden sm:inline opacity-60">Lọc nhanh:</span>
-          <button class="btn btn-xs btn-outline rounded-full" onclick="quickFilter('available')">Còn trống</button>
-          <button class="btn btn-xs btn-outline rounded-full" onclick="quickFilter('deposited')">Giữ cọc</button>
-          <button class="btn btn-xs btn-outline rounded-full" onclick="quickFilterDistrict('Quận 1')">Quận 1</button>
-          <button class="btn btn-xs btn-outline rounded-full" onclick="quickFilterDistrict('Quận 10')">Quận 10</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- BODY -->
-    <main class="max-w-7xl mx-auto px-4 py-5 grid grid-cols-1 lg:grid-cols-5 gap-5">
-      <!-- FILTERS -->
-      <aside class="lg:col-span-1 bg-base-100 rounded-2xl p-4 sm:p-5 shadow-sm border space-y-3 sticky top-[108px] h-fit">
-        <div class="flex items-center justify-between gap-2">
-          <div class="text-base font-semibold flex items-center gap-2">
-            <span class="inline-flex w-6 h-6 rounded-full bg-primary/10 items-center justify-center">
-              <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
-            </span>
-            Bộ lọc
-          </div>
-        </div>
-
-        <div class="form-control">
-          <label class="label py-1">
-            <span class="label-text text-xs font-semibold uppercase tracking-wide">Từ khóa</span>
-          </label>
-          <input id="kw" class="input input-bordered input-sm w-full rounded-xl" placeholder="VD: Trần Hưng Đạo, Q5..." />
-        </div>
-
-        <div class="form-control">
-          <label class="label py-1">
-            <span class="label-text text-xs font-semibold uppercase tracking-wide">Quận</span>
-          </label>
-          <select id="district" class="select select-bordered select-sm w-full rounded-xl">
-            <option value="">Tất cả</option>
-          </select>
-        </div>
-
-        <!-- PHƯỜNG FILTER -->
-        <div class="form-control">
-          <label class="label py-1">
-            <span class="label-text text-xs font-semibold uppercase tracking-wide">Phường</span>
-          </label>
-          <select id="ward" class="select select-bordered select-sm w-full rounded-xl">
-            <option value="">Tất cả</option>
-          </select>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <div class="form-control">
-            <label class="label py-1">
-              <span class="label-text text-[11px] font-semibold uppercase tracking-wide">Giá tối thiểu</span>
-            </label>
-            <input id="minPrice" type="number" class="input input-bordered input-sm w-full rounded-xl" />
-          </div>
-          <div class="form-control">
-            <label class="label py-1">
-              <span class="label-text text-[11px] font-semibold uppercase tracking-wide">Giá tối đa</span>
-            </label>
-            <input id="maxPrice" type="number" class="input input-bordered input-sm w-full rounded-xl" />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <div class="form-control">
-            <label class="label py-1">
-              <span class="label-text text-[11px] font-semibold uppercase tracking-wide">DT tối thiểu (m²)</span>
-            </label>
-            <input id="minArea" type="number" class="input input-bordered input-sm w-full rounded-xl" />
-          </div>
-          <div class="form-control">
-            <label class="label py-1">
-              <span class="label-text text-[11px] font-semibold uppercase tracking-wide">DT tối đa (m²)</span>
-            </label>
-            <input id="maxArea" type="number" class="input input-bordered input-sm w-full rounded-xl" />
-          </div>
-        </div>
-
-        <div class="form-control">
-          <label class="label py-1">
-            <span class="label-text text-xs font-semibold uppercase tracking-wide">Mặt tiền</span>
-          </label>
-          <select id="frontage" class="select select-bordered select-sm w-full rounded-xl">
-            <option value="">Tất cả</option>
-            <option value="yes">Có</option>
-            <option value="no">Không</option>
-          </select>
-        </div>
-
-        <div class="form-control">
-          <label class="label py-1">
-            <span class="label-text text-xs font-semibold uppercase tracking-wide">Tình trạng</span>
-          </label>
-          <select id="status" class="select select-bordered select-sm w-full rounded-xl">
-            <option value="">Tất cả</option>
-            <option value="available">Còn trống</option>
-            <option value="deposited">Giữ cọc</option>
-            <option value="rented">Đã thuê</option>
-          </select>
-        </div>
-
-        <div class="form-control">
-          <label class="label py-1">
-            <span class="label-text text-xs font-semibold uppercase tracking-wide">Ngành phù hợp</span>
-          </label>
-          <input id="suitable" class="input input-bordered input-sm w-full rounded-xl" placeholder="VD: cafe, phở..." />
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <div class="form-control">
-            <label class="label py-1">
-              <span class="label-text text-xs font-semibold uppercase tracking-wide">Sắp xếp</span>
-            </label>
-            <select id="sort" class="select select-bordered select-sm w-full rounded-xl">
-              <option value="newest">Mới nhất</option>
-              <option value="price_asc">Giá tăng dần</option>
-              <option value="price_desc">Giá giảm dần</option>
-            </select>
-          </div>
-          <div class="form-control">
-            <label class="label py-1">
-              <span class="label-text text-xs font-semibold uppercase tracking-wide">Mỗi trang</span>
-            </label>
-            <select id="perPage" class="select select-bordered select-sm w-full rounded-xl">
-              <option>24</option><option>48</option><option>96</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="flex gap-2 pt-1">
-          <button id="btnApply" class="btn btn-primary btn-sm flex-1 rounded-full">Lọc</button>
-          <button class="btn btn-sm flex-1 rounded-full" onclick="resetFilters()">Xóa lọc</button>
-        </div>
-        <p class="text-[11px] opacity-60 pt-1">
-          Gợi ý: nhập đúng <b>đường + quận</b> để lọc nhanh (VD: “Lê Đức Thọ Q. Gò Vấp”).
-        </p>
-      </aside>
-
-      <!-- LIST -->
-      <section class="lg:col-span-4 space-y-3">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div id="countPage" class="text-xs sm:text-sm opacity-70">—</div>
-          <div class="flex items-center gap-2 justify-between sm:justify-end">
-            <button class="btn btn-ghost btn-xs rounded-full" onclick="downloadCSV()">
-              Tải CSV trên Supabase
-            </button>
-          </div>
-        </div>
-
-        <div id="grid" class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
-
-        <div class="flex justify-center mt-4">
-          <button id="btnMore" class="btn btn-sm rounded-full px-6" disabled>—</button>
-        </div>
-      </section>
-    </main>
-
-    <!-- ADD MODAL -->
-    <dialog id="dlg" class="modal">
-      <div class="modal-box max-w-2xl">
-        <h3 class="font-bold text-lg mb-3">Thêm mặt bằng mới</h3>
-        <p class="text-xs opacity-60 mb-3">
-          Điền tối đa thông tin có thể. Ảnh mặt bằng sẽ được upload lên Supabase Storage (bucket <b>premise-images</b>).
-        </p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input id="f_address" class="input input-bordered input-sm" placeholder="Địa chỉ (ghi rõ số, đường)">
-          <input id="f_street" class="input input-bordered input-sm" placeholder="Đường">
-
-          <!-- QUẬN -->
-          <div class="form-control">
-            <label class="label py-1">
-              <span class="label-text text-xs font-semibold uppercase tracking-wide">Quận</span>
-            </label>
-            <select id="add-district" class="select select-bordered select-sm w-full rounded-xl">
-              <option value="">Chọn quận</option>
-            </select>
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">Giá tối đa</span>
+              </label>
+              <input
+                id="filter-price-max"
+                type="number"
+                class="input input-sm input-bordered"
+              />
+            </div>
           </div>
 
-          <!-- PHƯỜNG -->
-          <div class="form-control">
-            <label class="label py-1">
-              <span class="label-text text-xs font-semibold uppercase tracking-wide">Phường</span>
-            </label>
-            <select id="add-ward" class="select select-bordered select-sm w-full rounded-xl">
-              <option value="">Chọn phường</option>
-            </select>
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">DT tối thiểu (m²)</span>
+              </label>
+              <input
+                id="filter-area-min"
+                type="number"
+                class="input input-sm input-bordered"
+              />
+            </div>
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">DT tối đa (m²)</span>
+              </label>
+              <input
+                id="filter-area-max"
+                type="number"
+                class="input input-sm input-bordered"
+              />
+            </div>
           </div>
 
-          <input id="f_width" type="number" class="input input-bordered input-sm" placeholder="Ngang (m)">
-          <input id="f_length" type="number" class="input input-bordered input-sm" placeholder="Dài (m)">
-          <input id="f_area" type="number" class="input input-bordered input-sm" placeholder="Diện tích (m²)">
-          <input id="f_floors" type="number" class="input input-bordered input-sm" placeholder="Số tầng">
-          <input id="f_price" type="number" class="input input-bordered input-sm" placeholder="Giá thuê (VND)">
-          <input id="f_commission" class="input input-bordered input-sm" placeholder="Hoa hồng (vd: hh1/2)">
-          <input id="f_suitable" class="input input-bordered input-sm" placeholder="Ngành phù hợp (cách nhau dấu phẩy)">
-          <select id="f_status" class="select select-bordered select-sm">
-            <option value="available">Còn trống</option>
-            <option value="deposited">Giữ cọc</option>
-            <option value="rented">Đã thuê</option>
-          </select>
-          <input id="f_contact_name" class="input input-bordered input-sm" placeholder="Tên liên hệ">
-          <input id="f_contact_phone" class="input input-bordered input-sm" placeholder="SĐT liên hệ">
-          <label class="label cursor-pointer gap-2">
-            <span class="label-text text-sm">Mặt tiền</span>
-            <input id="f_frontage" type="checkbox" class="toggle toggle-sm">
-          </label>
-        </div>
-        <div class="divider my-3">Ảnh mặt bằng</div>
-        <input id="f_images" type="file" class="file-input file-input-bordered file-input-sm w-full" multiple accept="image/*" />
-        <progress id="upProgress" class="progress progress-primary w-full hidden mt-2" value="0" max="100"></progress>
-        <p id="upHint" class="text-[11px] opacity-60 mt-1">
-          Chọn 1–10 ảnh. Ưu tiên ảnh mặt tiền, tổng thể, layout bên trong.
-        </p>
-        <div class="modal-action">
-          <form method="dialog" class="flex gap-2">
-            <button class="btn btn-sm">Đóng</button>
-            <button class="btn btn-primary btn-sm" onclick="addItem()">Lưu mặt bằng</button>
-          </form>
-        </div>
-      </div>
-    </dialog>
-
-    <!-- DETAIL MODAL -->
-    <dialog id="detailDlg" class="modal">
-      <div class="modal-box max-w-4xl">
-        <form method="dialog">
-          <button class="btn btn-sm btn-circle absolute right-2 top-2">✕</button>
-        </form>
-        <div id="detailBody" class="space-y-4"></div>
-      </div>
-    </dialog>
-
-    <!-- EDIT MODAL (ADMIN) -->
-    <dialog id="editDlg" class="modal">
-      <div class="modal-box max-w-4xl relative">
-        <!-- backdrop để click ra ngoài đóng -->
-        <form method="dialog" class="modal-backdrop absolute inset-0" onclick="document.getElementById('editDlg').close()"></form>
-
-        <h3 class="font-bold text-lg mb-3">Chỉnh sửa mặt bằng</h3>
-
-        <div class="grid md:grid-cols-2 gap-3">
-          <!-- MÃ MẶT BẰNG -->
-          <div class="form-control md:col-span-2">
+          <div class="form-control mb-3">
             <label class="label">
-              <span class="label-text">Mã mặt bằng (code)</span>
+              <span class="label-text text-xs">Mặt tiền</span>
             </label>
-            <input id="edit-code" type="text" class="input input-bordered w-full" placeholder="VD: MB 0016" />
+            <select id="filter-frontage" class="select select-sm select-bordered">
+              <option value="">Tất cả</option>
+              <option value="1">Chỉ mặt tiền</option>
+            </select>
+          </div>
+
+          <div class="form-control mb-4">
             <label class="label">
-              <span class="label-text-alt text-xs opacity-70">
-                Mã này phải <b>duy nhất</b> (unique). Không nên trùng mã khác.
-              </span>
+              <span class="label-text text-xs">Tình trạng</span>
             </label>
-          </div>
-
-          <!-- ĐỊA CHỈ / TIÊU ĐỀ -->
-          <div class="form-control md:col-span-2">
-            <label class="label"><span class="label-text">Tiêu đề / Địa chỉ hiển thị</span></label>
-            <input id="edit-address" type="text" class="input input-bordered w-full" placeholder="VD: 44-46 Thân Nhân Trung" />
-          </div>
-
-          <div class="form-control">
-            <label class="label"><span class="label-text">Thành phố</span></label>
-            <input id="edit-city" type="text" class="input input-bordered w-full" />
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Quận</span></label>
-            <input id="edit-district" type="text" class="input input-bordered w-full" />
-          </div>
-
-          <div class="form-control">
-            <label class="label"><span class="label-text">Phường</span></label>
-            <input id="edit-ward" type="text" class="input input-bordered w-full" />
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Tên đường</span></label>
-            <input id="edit-street" type="text" class="input input-bordered w-full" />
-          </div>
-
-          <!-- GIÁ / DIỆN TÍCH / KÍCH THƯỚC -->
-          <div class="form-control">
-            <label class="label"><span class="label-text">Giá thuê (đ)</span></label>
-            <input id="edit-price" type="number" class="input input-bordered w-full" />
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Diện tích (m²)</span></label>
-            <input id="edit-area" type="number" class="input input-bordered w-full" />
-          </div>
-
-          <div class="form-control">
-            <label class="label"><span class="label-text">Chiều ngang (m)</span></label>
-            <input id="edit-width" type="number" step="0.1" class="input input-bordered w-full" />
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Chiều dài (m)</span></label>
-            <input id="edit-length" type="number" step="0.1" class="input input-bordered w-full" />
-          </div>
-
-          <!-- TẦNG / PN / WC / MẶT TIỀN / TRẠNG THÁI -->
-          <div class="form-control">
-            <label class="label"><span class="label-text">Số tầng</span></label>
-            <input id="edit-floors" type="number" class="input input-bordered w-full" />
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Số phòng ngủ</span></label>
-            <input id="edit-bedrooms" type="number" class="input input-bordered w-full" />
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Số WC</span></label>
-            <input id="edit-wc" type="number" class="input input-bordered w-full" />
-          </div>
-          <div class="form-control flex items-center gap-2 mt-6">
-            <input id="edit-frontage" type="checkbox" class="checkbox" />
-            <span class="label-text">Mặt tiền</span>
-          </div>
-
-          <div class="form-control">
-            <label class="label"><span class="label-text">Trạng thái</span></label>
-            <select id="edit-status" class="select select-bordered w-full">
+            <select id="filter-status" class="select select-sm select-bordered">
+              <option value="">Tất cả</option>
               <option value="available">Còn trống</option>
               <option value="deposited">Giữ cọc</option>
               <option value="rented">Đã thuê</option>
             </select>
           </div>
 
-          <!-- HOA HỒNG -->
-          <div class="form-control md:col-span-2">
-            <label class="label"><span class="label-text">Hoa hồng / ghi chú HH</span></label>
-            <input id="edit-commission" type="text" class="input input-bordered w-full" />
+          <div class="flex gap-2">
+            <button id="btn-apply" class="btn btn-sm btn-primary flex-1">
+              Lọc
+            </button>
+            <button id="btn-reset" class="btn btn-sm btn-ghost">
+              Xoá lọc
+            </button>
+          </div>
+        </aside>
+
+        <!-- LIST PANEL -->
+        <section class="flex flex-col gap-3">
+          <div class="flex items-center justify-between mb-1 text-xs opacity-70">
+            <span>
+              Hiển thị <span id="count-show">0</span> / <span id="count-total">0</span>
+            </span>
+            <button
+              id="btn-download-csv"
+              class="btn btn-xs btn-ghost"
+            >
+              Tải CSV trên Supabase
+            </button>
           </div>
 
-          <!-- ẢNH -->
-          <div class="form-control md:col-span-2">
-            <label class="label"><span class="label-text">Danh sách ảnh (mỗi dòng 1 path)</span></label>
-            <textarea id="edit-images" class="textarea textarea-bordered w-full min-h-[80px]" placeholder="VD: MB0001/1.jpg&#10;MB0001/2.jpg"></textarea>
-            <label class="label">
-              <span class="label-text-alt text-xs opacity-70">
-                Ảnh sẽ lưu vào cột <code>images</code> dạng mảng. Mỗi dòng = một ảnh trong bucket.
-              </span>
-            </label>
+          <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- cards here -->
           </div>
 
-          <!-- THÔNG TIN CHI TIẾT -->
-          <div class="form-control md:col-span-2">
-            <label class="label"><span class="label-text">Thông tin chi tiết mặt bằng</span></label>
-            <textarea id="edit-detail" class="textarea textarea-bordered w-full min-h-[140px]" placeholder="Kết cấu, thời gian trống, điều kiện hợp đồng, ưu điểm khu vực..."></textarea>
+          <div class="mt-4 flex justify-center">
+            <button id="btn-load-more" class="btn btn-sm btn-ghost">
+              Hết dữ liệu
+            </button>
           </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- ===== DETAIL DIALOG ===== -->
+  <dialog id="detailDlg" class="modal">
+    <div class="modal-box max-w-5xl p-4">
+      <form method="dialog" class="modal-backdrop absolute inset-0" onclick="document.getElementById('detailDlg').close()"></form>
+      <div id="detail-content"></div>
+    </div>
+  </dialog>
+
+  <!-- ===== EDIT DIALOG (ADMIN) ===== -->
+  <dialog id="editDlg" class="modal">
+    <div class="modal-box max-w-4xl">
+      <form method="dialog" class="modal-backdrop absolute inset-0" onclick="document.getElementById('editDlg').close()"></form>
+      <h3 class="font-bold text-lg mb-3">Chỉnh sửa mặt bằng</h3>
+
+      <div class="grid md:grid-cols-2 gap-3">
+        <div class="form-control md:col-span-2">
+          <label class="label">
+            <span class="label-text">Mã mặt bằng (code)</span>
+          </label>
+          <input id="edit-code" type="text" class="input input-bordered w-full" />
+          <label class="label">
+            <span class="label-text-alt text-xs opacity-70">
+              Mỗi mã nên là duy nhất (MB 0001, MB 0002,...)
+            </span>
+          </label>
         </div>
 
-        <div class="modal-action relative z-10">
-          <button type="button" class="btn btn-ghost" onclick="document.getElementById('editDlg').close()">Huỷ</button>
-          <button type="button" class="btn btn-primary" onclick="saveEditPremise()">Lưu thay đổi</button>
+        <div class="form-control md:col-span-2">
+          <label class="label">
+            <span class="label-text">Tiêu đề / Địa chỉ hiển thị</span>
+          </label>
+          <input id="edit-address" type="text" class="input input-bordered w-full" />
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text">Thành phố</span></label>
+          <input id="edit-city" type="text" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Quận</span></label>
+          <input id="edit-district" type="text" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Phường</span></label>
+          <input id="edit-ward" type="text" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Tên đường</span></label>
+          <input id="edit-street" type="text" class="input input-bordered w-full" />
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text">Giá thuê (đ)</span></label>
+          <input id="edit-price" type="number" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Diện tích (m²)</span></label>
+          <input id="edit-area" type="number" class="input input-bordered w-full" />
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text">Chiều ngang (m)</span></label>
+          <input id="edit-width" type="number" step="0.1" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Chiều dài (m)</span></label>
+          <input id="edit-length" type="number" step="0.1" class="input input-bordered w-full" />
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text">Số tầng</span></label>
+          <input id="edit-floors" type="number" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Số PN</span></label>
+          <input id="edit-bedrooms" type="number" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Số WC</span></label>
+          <input id="edit-wc" type="number" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control flex items-center gap-2 mt-6">
+          <input id="edit-frontage" type="checkbox" class="checkbox" />
+          <span class="label-text">Nhà mặt tiền</span>
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text">Trạng thái</span></label>
+          <select id="edit-status" class="select select-bordered w-full">
+            <option value="available">Còn trống</option>
+            <option value="deposited">Giữ cọc</option>
+            <option value="rented">Đã thuê</option>
+          </select>
+        </div>
+
+        <div class="form-control md:col-span-2">
+          <label class="label"><span class="label-text">Hoa hồng / ghi chú HH</span></label>
+          <input id="edit-commission" type="text" class="input input-bordered w-full" />
+        </div>
+
+        <div class="form-control md:col-span-2">
+          <label class="label"><span class="label-text">Danh sách ảnh (mỗi dòng 1 path)</span></label>
+          <textarea id="edit-images" class="textarea textarea-bordered w-full min-h-[80px]" placeholder="VD: MB0001/1.jpg&#10;MB0001/2.jpg"></textarea>
+          <label class="label">
+            <span class="label-text-alt text-xs opacity-70">
+              Path bắt đầu từ bucket storage, ví dụ: <code>MB0001/1.jpg</code>
+            </span>
+          </label>
+        </div>
+
+        <div class="form-control md:col-span-2">
+          <label class="label"><span class="label-text">Thông tin chi tiết mặt bằng</span></label>
+          <textarea id="edit-detail" class="textarea textarea-bordered w-full min-h-[140px]"></textarea>
         </div>
       </div>
-    </dialog>
 
-    <footer class="text-center text-[11px] text-base-content/60 py-6 border-t mt-4">
-      © <span id="yr"></span> ID-Land • Bộ lọc mặt bằng (Supabase + Google Sheet)
-    </footer>
-  </div> <!-- /#app-root -->
+      <div class="modal-action">
+        <button class="btn btn-ghost" onclick="document.getElementById('editDlg').close()">Huỷ</button>
+        <button class="btn btn-primary" onclick="saveEditPremise()">Lưu thay đổi</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===== TOAST ===== -->
+  <div id="toast" class="toast toast-end z-50 hidden">
+    <div class="alert alert-info text-sm" id="toast-text"></div>
+  </div>
 
   <script>
-    // ====== CONFIG SUPABASE & AUTH STATE ======
-    const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co";
+    // ===== CONFIG =====
+    const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co";   // thay bằng URL của bạn nếu khác
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjbG5jb3drb2Vkd3F6Y2VtaGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzcwOTUsImV4cCI6MjA3Nzg1MzA5NX0.jfNM46UgXIq9LrwSXcERJJULeKB7bl_c9R9LaVhRy1A";
-    const STORAGE_BUCKET = "premise-images";
+    const STORAGE_BUCKET = "premise-images"; // tên bucket lưu ảnh
+    const PAGE_SIZE = 24;
+
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let CURRENT_USER = null;
-    let CURRENT_ROLE = null; // 'admin' | 'staff'
-    let PAGE = 1;
-    let TOTAL = 0;
+    let CURRENT_ROLE = "staff";
+    let PAGE = 0;
+    let TOTAL_COUNT = 0;
+    let LAST_ROWS = [];
     let EDITING_ID = null;
 
-    // ====== STATE ======
-    document.getElementById('yr').textContent = new Date().getFullYear();
-
-    const DISTRICTS = [
-      "Quận 1","Quận 3","Quận 4","Quận 5","Quận 6","Quận 7","Quận 8",
-      "Quận 10","Quận 11","Quận Bình Thạnh","Quận Phú Nhuận",
-      "Quận Gò Vấp","Quận Tân Bình","Quận Tân Phú","Quận 12",
-      "Thành phố Thủ Đức","Huyện Bình Chánh","Huyện Hóc Môn",
-      "Huyện Nhà Bè","Huyện Củ Chi","Huyện Cần Giờ"
-    ];
-
-    const WARDS_BY_DISTRICT = {
-      "Quận 1": ["Bến Nghé","Bến Thành","Cô Giang","Cầu Ông Lãnh","Đa Kao","Nguyễn Cư Trinh","Nguyễn Thái Bình","Phạm Ngũ Lão","Tân Định"],
-      "Quận 3": ["Võ Thị Sáu","Phường 1","Phường 2","Phường 3","Phường 4","Phường 5","Phường 9","Phường 10","Phường 11","Phường 12","Phường 13","Phường 14"],
-      "Quận 4": [],
-      "Quận 5": [],
-      "Quận 6": [],
-      "Quận 7": [],
-      "Quận 8": [],
-      "Quận 10": [],
-      "Quận 11": [],
-      "Quận Bình Thạnh": [],
-      "Quận Phú Nhuận": [],
-      "Quận Gò Vấp": [],
-      "Quận Tân Bình": [],
-      "Quận Tân Phú": [],
-      "Quận 12": [],
-      "Thành phố Thủ Đức": [],
-      "Huyện Bình Chánh": [],
-      "Huyện Hóc Môn": [],
-      "Huyện Nhà Bè": [],
-      "Huyện Củ Chi": [],
-      "Huyện Cần Giờ": []
-    };
-
-    function setupDistrictWardPair(districtId, wardId, allLabel = "Tất cả") {
-      const districtSelect = document.getElementById(districtId);
-      const wardSelect = document.getElementById(wardId);
-      if (!districtSelect || !wardSelect) return;
-
-      districtSelect.innerHTML = "";
-      const optAllDistrict = document.createElement("option");
-      optAllDistrict.value = "";
-      optAllDistrict.textContent = allLabel === "Tất cả" ? "Tất cả" : "Chọn quận";
-      districtSelect.appendChild(optAllDistrict);
-
-      DISTRICTS.forEach(d => {
-        const o = document.createElement("option");
-        o.value = d;
-        o.textContent = d;
-        districtSelect.appendChild(o);
-      });
-
-      function refreshWardOptions() {
-        wardSelect.innerHTML = "";
-        const optAllWard = document.createElement("option");
-        optAllWard.value = "";
-        optAllWard.textContent = allLabel === "Tất cả" ? "Tất cả" : "Chọn phường";
-        wardSelect.appendChild(optAllWard);
-
-        const wards = WARDS_BY_DISTRICT[districtSelect.value] || [];
-        wards.forEach(w => {
-          const o = document.createElement("option");
-          o.value = w;
-          o.textContent = w;
-          wardSelect.appendChild(o);
-        });
-      }
-
-      districtSelect.addEventListener("change", refreshWardOptions);
-      refreshWardOptions();
+    // ===== HELPERS =====
+    function toast(msg) {
+      const toastEl = document.getElementById("toast");
+      const textEl = document.getElementById("toast-text");
+      textEl.textContent = msg;
+      toastEl.classList.remove("hidden");
+      setTimeout(() => toastEl.classList.add("hidden"), 2500);
     }
 
-    setupDistrictWardPair("district", "ward", "Tất cả");
-    setupDistrictWardPair("add-district", "add-ward", "Chọn");
-
-    function getFilters(){
-      return {
-        kw: document.getElementById("kw").value.trim(),
-        district: document.getElementById("district").value,
-        ward: document.getElementById("ward").value,
-        minPrice: Number(document.getElementById("minPrice").value||0),
-        maxPrice: Number(document.getElementById("maxPrice").value||0),
-        minArea: Number(document.getElementById("minArea").value||0),
-        maxArea: Number(document.getElementById("maxArea").value||0),
-        frontage: document.getElementById("frontage").value,
-        status: document.getElementById("status").value,
-        suitable: document.getElementById("suitable").value.trim(),
-        sort: document.getElementById("sort").value,
-        perPage: Number(document.getElementById("perPage").value||24),
-      };
+    function money(v) {
+      if (v == null || isNaN(v)) return "";
+      return new Intl.NumberFormat("vi-VN").format(v) + " đ";
     }
 
-    function money(v){ return Number(v||0).toLocaleString("vi-VN",{style:"currency",currency:"VND",maximumFractionDigits:0}); }
-
-    // ====== QUERY BUILDER ======
-    async function fetchPremises({kw='', district='', ward='', status='', frontage='', minPrice=0, maxPrice=0, minArea=0, maxArea=0, suitable='', sort='newest', page=1, perPage=24}) {
-      let q = supabase.from('premises').select('*', { count: 'exact' });
-
-      if (district) q = q.eq('district', district);
-      if (ward)     q = q.eq('ward', ward);
-      if (status)   q = q.eq('status', status);
-      if (frontage) q = q.eq('frontage', frontage === 'yes');
-      if (minPrice) q = q.gte('price', minPrice);
-      if (maxPrice) q = q.lte('price', maxPrice);
-      if (minArea)  q = q.gte('area', minArea);
-      if (maxArea)  q = q.lte('area', maxArea);
-      if (suitable) q = q.contains('suitable', [suitable]);
-
-      if (kw) {
-        const safe = kw.replaceAll(",", " ");
-        q = q.or(
-          `address.ilike.%${safe}%,street.ilike.%${safe}%,district.ilike.%${safe}%`
-        );
-      }
-
-      if (sort === 'price_asc') {
-        q = q.order('price', { ascending: true });
-      } else if (sort === 'price_desc') {
-        q = q.order('price', { ascending: false });
-      } else {
-        q = q.order('created_at', { ascending: false });
-      }
-
-      const from = (page-1)*perPage;
-      const to   = from + perPage - 1;
-      q = q.range(from, to);
-
-      const { data, count, error } = await q;
-      if (error) { console.error("Query error:", error); toast('Lỗi tải dữ liệu'); return { data: [], count: 0 }; }
-      return { data, count: count||0 };
+    function formatDateVN(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleDateString("vi-VN");
     }
 
-    // ====== RENDER LIST ======
-    function renderCards(rows){
-      const grid = document.getElementById("grid");
-
-      if (!rows.length && PAGE === 1) {
-        grid.innerHTML = `
-          <div class="col-span-full">
-            <div class="rounded-2xl border border-dashed bg-base-100/80 p-6 text-center text-sm opacity-80">
-              Chưa có mặt bằng nào khớp bộ lọc hiện tại. Thử nới lỏng điều kiện tìm kiếm.
-            </div>
-          </div>`;
-        return;
-      }
-
-      const htmlCards = rows.map(it => {
-        const imgUrl = Array.isArray(it.images) && it.images.length > 0
-          ? resolveImageUrl(it.images[0])
-          : null;
-
-        const statusLabel =
-          it.status === 'available' ? 'Còn trống' :
-          it.status === 'deposited' ? 'Giữ cọc' :
-          it.status === 'rented' ? 'Đã thuê' :
-          (it.status || '');
-
-        const statusClass =
-          it.status === 'available' ? 'badge-success' :
-          it.status === 'deposited' ? 'badge-warning' :
-          it.status === 'rented' ? 'badge-neutral' :
-          '';
-
-        const titleAddr = maskAddress(it.address, it.ward, it.street);
-
-        const metaParts = [];
-        if (it.district) metaParts.push(it.district);
-        if (it.area) metaParts.push(`${it.area} m²`);
-        if (it.width && it.length) metaParts.push(`${it.width}×${it.length} m`);
-
-        const bedrooms = it.bedrooms || it.rooms || it.pn;
-        if (bedrooms) metaParts.push(`${bedrooms} PN`);
-
-        const updated = it.updated_at || it.created_at;
-        if (updated) metaParts.push(`Cập nhật ${formatDate(updated)}`);
-
-        if (it.frontage) metaParts.push('Mặt tiền');
-
-        const metaLine = metaParts.join(" • ");
-
-        return `
-          <article class="card bg-base-100/95 border border-base-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer premise-card rounded-2xl overflow-hidden" data-id="${encodeURIComponent(it.id)}">
-            <figure class="h-44 bg-base-200 flex items-center justify-center text-base-content/50">
-              ${
-                imgUrl
-                  ? `<img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML='(Không có ảnh)'" />`
-                  : `(Không có ảnh)`
-              }
-            </figure>
-            <div class="card-body p-4 space-y-2">
-              <div class="flex items-start justify-between gap-3">
-                <h3 class="card-title text-[15px] leading-snug line-clamp-1">${titleAddr}</h3>
-                ${
-                  statusLabel
-                    ? `<div class="badge badge-outline badge-sm ${statusClass}">${statusLabel}</div>`
-                    : ''
-                }
-              </div>
-              <div class="text-[12px] opacity-70">
-                ${metaLine}
-              </div>
-              <div class="flex items-center justify-between pt-1">
-                <div class="text-xl sm:text-2xl font-extrabold text-primary">${money(it.price)}</div>
-                ${
-                  it.commission_note
-                    ? `<div class="badge badge-outline badge-secondary badge-sm">HH: ${it.commission_note}</div>`
-                    : ''
-                }
-              </div>
-            </div>
-          </article>
-        `;
-      }).join("");
-
-      if (PAGE === 1) grid.innerHTML = htmlCards;
-      else grid.insertAdjacentHTML('beforeend', htmlCards);
-
-      grid.querySelectorAll('.premise-card').forEach(card => {
-        card.addEventListener('click', () => {
-          const id = decodeURIComponent(card.dataset.id || '');
-          openDetail(id);
-        });
-      });
-    }
-
-    async function applyFilters(resetPage=true){
-      if (resetPage) PAGE = 1;
-      const f = getFilters();
-      const btnMore = document.getElementById('btnMore');
-      btnMore.disabled = true; btnMore.textContent = 'Đang tải...';
-
-      const { data, count } = await fetchPremises({ ...f, page: PAGE, perPage: f.perPage });
-      TOTAL = count;
-      document.getElementById('countGlobal').textContent = `${count.toLocaleString('vi-VN')} mặt bằng`;
-      document.getElementById('countPage').textContent = `Hiển thị ${(Math.min(PAGE*f.perPage, count)).toLocaleString('vi-VN')} / ${count.toLocaleString('vi-VN')}`;
-
-      renderCards(data||[]);
-
-      const more = PAGE * f.perPage < count;
-      btnMore.disabled = !more;
-      btnMore.textContent = more ? 'Tải thêm' : 'Hết dữ liệu';
-    }
-
-    // ====== DETAIL POPUP ======
-    async function openDetail(id){
-      const { data, error } = await supabase
-        .from('premises')
-        .select('*')
-        .eq('id', id)
-        .single();
-      if (error) { console.error(error); return; }
-      const item = data;
-      const imgs = Array.isArray(item.images) ? item.images : [];
-
-      const gallery = imgs.length
-        ? (() => {
-            const slides = imgs.map((src, i) => {
-              const url = resolveImageUrl(src);
-              if (!url) {
-                return `
-                  <div id="slide${i}" class="carousel-item w-full h-80 bg-base-200 flex items-center justify-center text-base-content/50">
-                    (Không có ảnh)
-                  </div>
-                `;
-              }
-              return `
-                <div id="slide${i}" class="carousel-item w-full h-80 bg-base-200">
-                  <img src="${url}" class="w-full h-full object-contain" />
-                </div>
-              `;
-            }).join("");
-            const dots = imgs
-              .map((_, i) => `<a href="#slide${i}" class="btn btn-xs rounded-full">${i + 1}</a>`)
-              .join("");
-            return `
-              <div class="carousel w-full rounded-xl border bg-base-200">
-                ${slides}
-              </div>
-              <div class="flex gap-2 justify-center mt-2">
-                ${dots}
-              </div>
-            `;
-          })()
-        : `<div class="h-80 bg-base-200 rounded-xl flex items-center justify-center text-base-content/50">(Không có ảnh)</div>`;
-
-      const maps = encodeURIComponent(item.address || `${item.street||""} ${item.district||""}`);
-      const gmapEmbed = `<iframe class="w-full h-64 rounded-xl border" loading="lazy"
-        src="https://www.google.com/maps?q=${maps}&output=embed"></iframe>`;
-
-      const actions = `
-        <div class="join join-horizontal">
-          ${item.contact_phone && !isStaff() ? `<a class="btn btn-primary btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>` : ''}
-          ${item.contact_phone && !isStaff() ? `<a class="btn btn-sm join-item" target="_blank" href="https://zalo.me/${(item.contact_phone||'').replace(/[^0-9]/g,'')}">Zalo</a>` : ''}
-          <a class="btn btn-sm join-item" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${maps}">Mở Google Maps</a>
-          <button class="btn btn-sm join-item" onclick="navigator.clipboard.writeText(location.origin + location.pathname + '#'+encodeURIComponent('${id}'));toast('Đã copy link mặt bằng')">Copy link</button>
-          ${isAdmin() ? `<button class="btn btn-outline btn-sm join-item" onclick="openEditPremise('${id}')">Chỉnh sửa</button>` : ''}
-        </div>`;
-
-      // ===== LẤY GIÁ TRỊ TỪ NHIỀU TÊN CỘT KHÁC NHAU =====
-      const pnVal = pickField(item, ["pn", "so_pn", "bedrooms", "bedroom", "rooms"]);
-      const wcVal = pickField(item, ["wc", "so_wc", "bathrooms", "toilet"]);
-      const floorsVal = pickField(item, ["floors", "so_tang", "floor"]);
-
-      const detailText = pickField(item, [
-        "detail",
-        "thong_tin_chi_tiet",
-        "chi_tiet",
-        "description",
-        "info_detail"
-      ]) || "";
-
-      const updatedLabel = formatDateVN(item.updated_at || item.created_at);
-
-      // ===== BLOCK THÔNG TIN CƠ BẢN =====
-      const basicInfoLines = [];
-
-      if (item.area) {
-        basicInfoLines.push(`Diện tích: <b>${item.area} m²</b>`);
-      }
-      if (item.width && item.length) {
-        basicInfoLines.push(`Kích thước: <b>${item.width}×${item.length} m</b>`);
-      }
-      if (floorsVal) {
-        basicInfoLines.push(`Số tầng: <b>${floorsVal}</b>`);
-      }
-      if (pnVal) {
-        basicInfoLines.push(`Phòng ngủ: <b>${pnVal}</b>`);
-      }
-      if (wcVal) {
-        basicInfoLines.push(`WC: <b>${wcVal}</b>`);
-      }
-      if (item.frontage === true) {
-        basicInfoLines.push(`<b>Nhà mặt tiền</b>`);
-      }
-      if (item.status) {
-        let st = "Không rõ";
-        if (item.status === "available") st = "Còn trống";
-        else if (item.status === "deposited") st = "Giữ cọc";
-        else if (item.status === "rented") st = "Đã thuê";
-        basicInfoLines.push(`Trạng thái: <b>${st}</b>`);
-      }
-      if (updatedLabel) {
-        basicInfoLines.push(`Cập nhật: <b>${updatedLabel}</b>`);
-      }
-
-      const basicInfoBlock = basicInfoLines.length
-        ? `
-          <div class="mt-3 text-sm leading-relaxed space-y-1">
-            <div class="font-semibold mb-1">Thông tin cơ bản</div>
-            ${basicInfoLines.map(line => `<div>${line}</div>`).join("")}
-          </div>
-        `
-        : "";
-
-      // ===== BLOCK THÔNG TIN CHI TIẾT =====
-      const detailBlock = detailText
-        ? `
-          <div class="mt-4 text-sm leading-relaxed">
-            <div class="font-semibold mb-1">Thông tin chi tiết</div>
-            <p>${detailText.replace(/\n/g, "<br/>")}</p>
-          </div>
-        `
-        : "";
-
-      const htmlDetail = `
-        <div class="grid md:grid-cols-2 gap-6">
-          <div class="space-y-3">
-            ${gallery}
-            <div class="mt-3">${gmapEmbed}</div>
-          </div>
-          <div class="space-y-3">
-            <!-- TIÊU ĐỀ + MÃ MẶT BẰNG -->
-            <h2 class="text-xl font-bold">${maskAddress(item.address, item.ward, item.street)}</h2>
-            <div class="text-sm opacity-70">
-              ${[item.ward, item.district, item.city].filter(Boolean).join(" • ")}
-            </div>
-            <div class="text-xs opacity-60 mt-1">
-              Mã mặt bằng: <b>${item.code || "—"}</b>
-            </div>
-
-            <div class="flex flex-wrap gap-2 text-xs mt-2">
-              ${item.frontage?`<span class="badge badge-outline">Mặt tiền</span>`:''}
-              ${item.area?`<span class="badge badge-outline">${item.area} m²</span>`:''}
-              ${(item.width&&item.length)?`<span class="badge badge-outline">${item.width}×${item.length} m</span>`:''}
-              ${floorsVal?`<span class="badge badge-outline">${floorsVal} tầng</span>`:''}
-              ${item.status?`<span class="badge ${item.status==='available'?'badge-success':item.status==='deposited'?'badge-warning':'badge-neutral'}">
-                ${item.status==='available'?'Còn trống':item.status==='deposited'?'Giữ cọc':'Đã thuê'}
-              </span>`:''}
-            </div>
-
-            <div class="text-3xl font-extrabold text-primary mt-2">${money(item.price)}</div>
-            ${item.commission_note?`<div class="text-sm mt-1">Hoa hồng: <b>${item.commission_note}</b></div>`:''}
-
-            ${basicInfoBlock}
-            ${detailBlock}
-
-            ${item.suitable?.length?`<div class="flex flex-wrap gap-1 text-xs mt-3">
-              ${item.suitable.map(s=>`<div class="badge badge-ghost">${s}</div>`).join('')}
-            </div>`:''}
-
-            ${
-              (item.contact_phone||item.contact_name) && !isStaff()
-              ? `<div class="space-x-2 text-sm mt-3">
-                  <span class="opacity-70">Liên hệ:</span>
-                  <b>${item.contact_name||""}</b>
-                  <a class="link" href="tel:${item.contact_phone||''}">${item.contact_phone||''}</a>
-                </div>`
-              : ''
-            }
-            ${
-              isStaff()
-              ? `<div class="mt-3 text-sm opacity-70">
-                  Liên hệ admin để xem số điện thoại chủ nhà.
-                </div>`
-              : ''
-            }
-
-            <div class="mt-4">
-              ${actions}
-            </div>
-          </div>
-        </div>`;
-
-      document.getElementById("detailBody").innerHTML = htmlDetail;
-      document.getElementById("detailDlg").showModal();
-    }
-
-    // ====== EDIT (ADMIN) ======
-    async function openEditPremise(id) {
-      if (!isAdmin()) return;
-
-      EDITING_ID = id;
-
-      const { data, error } = await supabase
-        .from('premises')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) {
-        console.error(error);
-        toast('Không tải được dữ liệu để chỉnh sửa');
-        return;
-      }
-
-      // MÃ
-      document.getElementById('edit-code').value     = data.code || '';
-
-      // ĐỊA CHỈ
-      document.getElementById('edit-address').value  = data.address || '';
-      document.getElementById('edit-city').value     = data.city || '';
-      document.getElementById('edit-district').value = data.district || '';
-      document.getElementById('edit-ward').value     = data.ward || '';
-      document.getElementById('edit-street').value   = data.street || '';
-
-      // SỐ LIỆU
-      document.getElementById('edit-price').value    = data.price || '';
-      document.getElementById('edit-area').value     = data.area || '';
-      document.getElementById('edit-width').value    = data.width || '';
-      document.getElementById('edit-length').value   = data.length || '';
-      document.getElementById('edit-floors').value   = data.floors || '';
-      document.getElementById('edit-bedrooms').value = data.bedrooms || data.rooms || data.pn || '';
-      document.getElementById('edit-wc').value       = data.bathrooms || data.wc || '';
-
-      document.getElementById('edit-frontage').checked = !!data.frontage;
-      document.getElementById('edit-status').value     = data.status || 'available';
-      document.getElementById('edit-commission').value = data.commission_note || '';
-
-      // ẢNH
-      const imgs = Array.isArray(data.images) ? data.images : [];
-      document.getElementById('edit-images').value = imgs.join('\n');
-
-      // THÔNG TIN CHI TIẾT
-      document.getElementById('edit-detail').value =
-        data.detail || data.description || data.info_detail || '';
-
-      document.getElementById('editDlg').showModal();
-    }
-
-    async function saveEditPremise() {
-      if (!isAdmin() || !EDITING_ID) return;
-
-      const payload = {
-        code:    document.getElementById('edit-code').value.trim() || null,
-        address:  document.getElementById('edit-address').value.trim() || null,
-        city:     document.getElementById('edit-city').value.trim() || null,
-        district: document.getElementById('edit-district').value.trim() || null,
-        ward:     document.getElementById('edit-ward').value.trim() || null,
-        street:   document.getElementById('edit-street').value.trim() || null,
-
-        price:   Number(document.getElementById('edit-price').value)   || null,
-        area:    Number(document.getElementById('edit-area').value)    || null,
-        width:   Number(document.getElementById('edit-width').value)   || null,
-        length:  Number(document.getElementById('edit-length').value)  || null,
-        floors:  Number(document.getElementById('edit-floors').value)  || null,
-
-        status:  document.getElementById('edit-status').value,
-        frontage: document.getElementById('edit-frontage').checked,
-
-        commission_note: document.getElementById('edit-commission').value.trim() || null,
-        detail:          document.getElementById('edit-detail').value.trim() || null,
-
-        updated_at: new Date().toISOString(),
-      };
-
-      const bedrooms = Number(document.getElementById('edit-bedrooms').value) || null;
-      const wc       = Number(document.getElementById('edit-wc').value) || null;
-      if (bedrooms) payload.bedrooms  = bedrooms;
-      if (wc)       payload.bathrooms = wc;
-
-      // ẢNH
-      const rawImages = document.getElementById('edit-images').value
-        .split('\n')
-        .map(s => s.trim())
-        .filter(Boolean);
-      payload.images = rawImages.length ? rawImages : null;
-
-      const { error } = await supabase
-        .from('premises')
-        .update(payload)
-        .eq('id', EDITING_ID);
-
-      if (error) {
-        console.error(error);
-        toast('Lưu thất bại: ' + (error.message || 'Lỗi không xác định'));
-        return;
-      }
-
-      toast('Đã lưu thay đổi');
-      document.getElementById('editDlg').close();
-      EDITING_ID = null;
-
-      // reload danh sách để reflect updated_at mới nhất
-      await applyFilters(true);
-    }
-
-    // ====== UPLOAD ẢNH ======
-    async function uploadImages(files, prefix = '') {
-      const urls = [];
-      const total = files.length;
-      if (!total) return urls;
-      const bar = document.getElementById('upProgress');
-      const hint = document.getElementById('upHint');
-      bar.classList.remove('hidden');
-      bar.value = 0;
-      for (let i = 0; i < total; i++) {
-        const f = files[i];
-        const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
-        const path = `${prefix}${Date.now()}_${i}.${ext}`;
-        const { error: upErr } = await supabase
-          .storage.from(STORAGE_BUCKET)
-          .upload(path, f, { cacheControl: '3600', upsert: true });
-        if (upErr) { console.error("Upload error:", upErr); throw upErr; }
-        const { data: pub, error: urlErr } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-        if (urlErr) { console.error("Public URL error:", urlErr); }
-        urls.push(pub.publicUrl);
-        bar.value = Math.round(((i + 1) / total) * 100);
-        hint.textContent = `Đang tải ${i + 1}/${total}…`;
-      }
-      setTimeout(() => { bar.classList.add('hidden'); bar.value = 0; hint.textContent = 'Tải ảnh xong.'; }, 500);
-      return urls;
-    }
-
-    // ====== ADD ITEM ======
-    async function addItem(){
-      const g  = id => document.getElementById(id).value;
-      const chk= id => document.getElementById(id).checked;
-      const files = document.getElementById('f_images').files;
-      try {
-        const codePrefix = 'MB-' + Math.random().toString(36).slice(2,8);
-        const imageUrls = await uploadImages(files, `${codePrefix}/`);
-        const payload = {
-          city:"TP.HCM",
-          district: g("add-district") || "Quận 1",
-          ward: g("add-ward") || "",
-          street:g("f_street")||"",
-          address:g("f_address")||"",
-          width: g("f_width")?Number(g("f_width")):null,
-          length:g("f_length")?Number(g("f_length")):null,
-          area:  g("f_area")?Number(g("f_area")):null,
-          floors:g("f_floors")?Number(g("f_floors")):null,
-          frontage:chk("f_frontage"),
-          price:Number(g("f_price")||0),
-          commission_note:g("f_commission")||"",
-          suitable:(g("f_suitable")||"").split(',').map(s=>s.trim()).filter(Boolean),
-          status:g("f_status")||"available",
-          contact_name:g("f_contact_name")||"",
-          contact_phone:g("f_contact_phone")||"",
-          images:imageUrls,
-        };
-        const { data: inserted, error } = await supabase.from('premises').insert(payload).select().single();
-        if (error) throw error;
-        toast('Đã thêm mặt bằng');
-        document.getElementById('dlg').close();
-        ['f_address','f_street','add-district','add-ward','f_width','f_length','f_area','f_floors','f_price','f_commission','f_suitable','f_contact_name','f_contact_phone'].forEach(id=>{ const el=document.getElementById(id); if (el) el.value=''; });
-        document.getElementById('f_frontage').checked = false;
-        document.getElementById('f_images').value = '';
-        await openDetail(inserted.id);
-        PAGE = 1;
-        await applyFilters(true);
-      } catch (e) {
-        console.error("Insert error:", e);
-        toast('Không thể thêm (kiểm tra policy INSERT của bảng và policy INSERT của Storage).');
-      }
-    }
-
-    function openAdd(){ document.getElementById('dlg').showModal(); }
-
-    // ====== CSV EXPORT ======
-    function downloadCSV(){
-      alert('Gợi ý: vào Supabase Table Editor → premises → Export → CSV để tải toàn bộ dữ liệu.');
-    }
-
-    // ====== HELPERS ======
-    function resolveImageUrl(src){
-      if (!src) return null;
-      if (/^https?:\/\//i.test(src)) return src;
-      try {
-        const { data } = supabase
-          .storage
-          .from(STORAGE_BUCKET)
-          .getPublicUrl(src);
-        return data && data.publicUrl ? data.publicUrl : null;
-      } catch (e) {
-        console.error('resolveImageUrl error:', e);
-        return null;
-      }
-    }
-
-    // định dạng ngày dạng 28/11/2025 (cho metaLine ngoài card)
-    function formatDate(d) {
-      if (!d) return "";
-      const dt = new Date(d);
-      if (isNaN(dt)) return "";
-      const day = String(dt.getDate()).padStart(2, "0");
-      const mon = String(dt.getMonth() + 1).padStart(2, "0");
-      const yr  = dt.getFullYear();
-      return `${day}/${mon}/${yr}`;
-    }
-
-    // helper lấy field theo nhiều tên khác nhau
     function pickField(obj, names) {
       for (const n of names) {
         if (obj && obj[n] !== undefined && obj[n] !== null && obj[n] !== "") {
@@ -1109,142 +434,702 @@
       return null;
     }
 
-    // định dạng ngày cho popup (dùng locale vi-VN)
-    function formatDateVN(iso) {
-      if (!iso) return "";
-      const d = new Date(iso);
-      if (isNaN(d.getTime())) return "";
-      return d.toLocaleDateString("vi-VN");
+    function isAdmin() {
+      return CURRENT_ROLE === "admin";
     }
-
     function isStaff() {
       return CURRENT_ROLE === "staff";
     }
 
-    function isAdmin() {
-      return CURRENT_ROLE === "admin";
-    }
+    function maskAddress(row) {
+      const full = row.address || "";
+      if (!isStaff()) return full || [row.street, row.ward, row.district].filter(Boolean).join(", ");
 
-    function maskAddress(addr, ward, street) {
-      if (!addr && !ward && !street) return "";
-      const full = addr || [street, ward].filter(Boolean).join(", ");
-      if (!isStaff()) return full;
-      return full.replace(/^[0-9\/\- ]+/, "").trim();
+      // Staff: ẩn số nhà, chỉ giữ tên đường + quận
+      if (full) {
+        const parts = full.split(" ");
+        if (parts.length > 1) {
+          parts.shift();
+          return parts.join(" ");
+        }
+        return full;
+      }
+      return [row.street, row.ward, row.district].filter(Boolean).join(", ");
     }
 
     function maskPhone(phone) {
       if (!phone) return "";
       if (!isStaff()) return phone;
-      return "Liên hệ admin để xem số";
+      // staff: ẩn 4 số cuối
+      const digits = phone.replace(/[^0-9]/g, "");
+      if (digits.length <= 4) return "*******";
+      return digits.slice(0, digits.length - 4) + "****";
     }
 
-    function toast(msg){
-      const el = document.createElement("div");
-      el.textContent = msg;
-      el.className = "fixed bottom-4 right-4 bg-base-100 border shadow-lg rounded-2xl px-4 py-2 text-sm z-50";
-      document.body.appendChild(el);
-      setTimeout(()=> el.remove(), 2400);
+    function buildImageUrl(path) {
+      if (!path) return null;
+      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      return data?.publicUrl || null;
     }
 
-    function resetFilters(){
-      ["kw","district","ward","minPrice","maxPrice","minArea","maxArea","frontage","status","suitable","sort","perPage"].forEach(id=>{
-        const el = document.getElementById(id);
-        if (!el) return;
-        if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
-      });
-      document.getElementById('sort').value = 'newest';
-      document.getElementById('perPage').value = '24';
-      applyFilters(true);
-    }
-
-    function debounce(fn, delay){ let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), delay); }; }
-
-    function quickFilter(status) {
-      document.getElementById('status').value = status;
-      applyFilters(true);
-    }
-    function quickFilterDistrict(d) {
-      document.getElementById('district').value = d;
-      document.getElementById('ward').value = "";
-      applyFilters(true);
-    }
-
-    // ====== AUTH ======
+    // ===== AUTH =====
     async function initAuth() {
-      // check env badge
-      try {
-        const { error } = await supabase.from('premises').select('id', { count: 'exact', head: true }).limit(1);
-        if (error) throw error;
-        document.getElementById('badgeEnv').classList.add('badge-success');
-      } catch (e) {
-        document.getElementById('badgeEnv').classList.add('badge-error');
-      }
-
       const { data } = await supabase.auth.getUser();
-
       if (!data.user) {
         document.getElementById("auth-section").classList.remove("hidden");
         document.getElementById("app-root").classList.add("hidden");
         return;
       }
-
       CURRENT_USER = data.user;
 
+      // lấy role từ bảng profiles (id, role)
+      let role = "staff";
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", CURRENT_USER.id)
         .maybeSingle();
-
-      CURRENT_ROLE = profile?.role || "staff";
+      if (profile && profile.role) role = profile.role;
+      CURRENT_ROLE = role;
 
       document.getElementById("auth-section").classList.add("hidden");
       document.getElementById("app-root").classList.remove("hidden");
 
-      // 🔥 load list sau khi login
-      await applyFilters(true);
+      document.getElementById("role-badge").textContent =
+        role === "admin" ? "Admin" : "Nhân sự";
+      if (isAdmin()) {
+        document.getElementById("btn-add-premise").classList.remove("hidden");
+      }
 
-      const hashId = decodeURIComponent(location.hash.slice(1) || "");
-      if (hashId) openDetail(hashId);
+      await applyFilters(true);
+      await buildDistrictWardOptions(); // dựa trên data mới
     }
 
     async function handleLogin() {
-      const email = document.getElementById("auth-email").value.trim();
-      const password = document.getElementById("auth-password").value;
-      const errEl = document.getElementById("auth-error");
-      errEl.classList.add("hidden");
-      errEl.textContent = "";
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        errEl.textContent = error.message || "Đăng nhập thất bại";
-        errEl.classList.remove("hidden");
+      const email = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-password").value.trim();
+      if (!email || !password) {
+        toast("Vui lòng nhập email & mật khẩu");
         return;
       }
-
-      CURRENT_USER = data.user;
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        console.error(error);
+        toast("Đăng nhập thất bại");
+        return;
+      }
+      toast("Đăng nhập thành công");
       await initAuth();
     }
 
     async function handleLogout() {
       await supabase.auth.signOut();
-      CURRENT_USER = null;
-      CURRENT_ROLE = null;
-      location.reload(); // reload về màn login
+      location.reload();
     }
 
-    // ====== EVENTS & INIT ======
-    document.getElementById('btnApply').addEventListener('click', ()=>applyFilters(true));
-    document.getElementById('btnMore').addEventListener('click', ()=>{ PAGE++; applyFilters(false); });
-    document.getElementById('kw').addEventListener('input', debounce(()=>applyFilters(true), 400));
+    // ===== FILTERS =====
+    function getFilterValues() {
+      return {
+        keyword: document.getElementById("filter-keyword").value.trim(),
+        district: document.getElementById("filter-district").value,
+        ward: document.getElementById("filter-ward").value,
+        priceMin: Number(document.getElementById("filter-price-min").value) || null,
+        priceMax: Number(document.getElementById("filter-price-max").value) || null,
+        areaMin: Number(document.getElementById("filter-area-min").value) || null,
+        areaMax: Number(document.getElementById("filter-area-max").value) || null,
+        frontage: document.getElementById("filter-frontage").value,
+        status: document.getElementById("filter-status").value,
+      };
+    }
 
+    async function applyFilters(resetPage = false) {
+      if (resetPage) PAGE = 0;
+
+      const { keyword, district, ward, priceMin, priceMax, areaMin, areaMax, frontage, status } = getFilterValues();
+
+      let query = supabase
+        .from("premises")
+        .select("*", { count: "exact" });
+
+      if (keyword) {
+        const kw = "%" + keyword + "%";
+        query = query.or(
+          [
+            `address.ilike.${kw}`,
+            `street.ilike.${kw}`,
+            `ward.ilike.${kw}`,
+            `district.ilike.${kw}`,
+            `code.ilike.${kw}`,
+          ].join(",")
+        );
+      }
+      if (district) query = query.eq("district", district);
+      if (ward) query = query.eq("ward", ward);
+      if (status) query = query.eq("status", status);
+      if (frontage === "1") query = query.eq("frontage", true);
+      if (priceMin != null) query = query.gte("price", priceMin);
+      if (priceMax != null) query = query.lte("price", priceMax);
+      if (areaMin != null) query = query.gte("area", areaMin);
+      if (areaMax != null) query = query.lte("area", areaMax);
+
+      const from = PAGE * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      query = query
+        .order("updated_at", { ascending: false })
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      const { data, error, count } = await query;
+      if (error) {
+        console.error(error);
+        toast("Không tải được dữ liệu");
+        return;
+      }
+
+      LAST_ROWS = data || [];
+      TOTAL_COUNT = count || 0;
+
+      if (PAGE === 0) {
+        renderCards(LAST_ROWS, true);
+      } else {
+        renderCards(LAST_ROWS, false);
+      }
+
+      document.getElementById("count-total").textContent = TOTAL_COUNT;
+      document.getElementById("count-show").textContent = Math.min(
+        (PAGE + 1) * PAGE_SIZE,
+        TOTAL_COUNT
+      );
+
+      const btnMore = document.getElementById("btn-load-more");
+      if ((PAGE + 1) * PAGE_SIZE >= TOTAL_COUNT) {
+        btnMore.textContent = "Hết dữ liệu";
+        btnMore.classList.add("btn-disabled");
+      } else {
+        btnMore.textContent = "Tải thêm";
+        btnMore.classList.remove("btn-disabled");
+      }
+    }
+
+    function renderCards(rows, replace) {
+      const grid = document.getElementById("grid");
+      if (replace) grid.innerHTML = "";
+
+      if (!rows || rows.length === 0) {
+        if (PAGE === 0) {
+          grid.innerHTML =
+            `<div class="col-span-full text-center text-sm opacity-70 py-10">
+              Chưa có mặt bằng nào khớp bộ lọc hiện tại. Thử nới lỏng điều kiện tìm kiếm.
+            </div>`;
+        }
+        return;
+      }
+
+      const html = rows.map((row) => {
+        const hasImages = Array.isArray(row.images) && row.images.length > 0;
+        const firstPath = hasImages ? row.images[0] : null;
+        const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
+
+        const pnVal = pickField(row, ["pn", "so_pn", "bedrooms", "rooms"]);
+        const wcVal = pickField(row, ["wc", "bathrooms"]);
+        const floorsVal = pickField(row, ["floors"]);
+
+        const updatedLabel = formatDateVN(row.updated_at || row.created_at);
+
+        return `
+          <article class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden" data-id="${row.id}">
+            <figure class="h-52 bg-base-200 flex items-center justify-center">
+              ${
+                imgUrl
+                  ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
+                  : `<div class="text-xs opacity-60">(Không có ảnh)</div>`
+              }
+            </figure>
+            <div class="card-body p-4 gap-2">
+              <h3 class="font-semibold text-sm line-clamp-2">${maskAddress(row)}</h3>
+              <div class="text-[11px] opacity-70">
+                ${[row.ward, row.district].filter(Boolean).join(" • ")}
+              </div>
+              <div class="flex flex-wrap items-center gap-2 text-[11px] mt-1">
+                ${row.area ? `<span>${row.area} m²</span>` : ""}
+                ${
+                  row.width && row.length
+                    ? `<span>${row.width}×${row.length} m</span>`
+                    : ""
+                }
+                ${pnVal ? `<span>${pnVal} PN</span>` : ""}
+                ${floorsVal ? `<span>${floorsVal} tầng</span>` : ""}
+              </div>
+              <div class="text-[11px] opacity-60">
+                ${updatedLabel ? `Cập nhật ${updatedLabel}` : ""}
+              </div>
+              <div class="flex items-center justify-between mt-1">
+                <div class="text-primary font-extrabold text-lg">${money(row.price)}</div>
+                <div class="text-[11px] px-2 py-0.5 rounded-full border ${
+                  row.status === "available"
+                    ? "border-success text-success"
+                    : row.status === "deposited"
+                    ? "border-warning text-warning"
+                    : "border-base-300 text-base-400"
+                }">
+                  ${
+                    row.status === "available"
+                      ? "Còn trống"
+                      : row.status === "deposited"
+                      ? "Giữ cọc"
+                      : "Đã thuê"
+                  }
+                </div>
+              </div>
+            </div>
+          </article>
+        `;
+      });
+
+      grid.insertAdjacentHTML("beforeend", html.join(""));
+
+      // attach click
+      grid.querySelectorAll("[data-id]").forEach((el) => {
+        el.onclick = () => openDetail(el.getAttribute("data-id"));
+      });
+    }
+
+    async function buildDistrictWardOptions() {
+      // lấy tất cả quận/phường từ Supabase 1 lần đơn giản (không filter)
+      const { data, error } = await supabase
+        .from("premises")
+        .select("district, ward");
+      if (error || !data) return;
+
+      const districts = Array.from(
+        new Set(data.map((r) => r.district).filter(Boolean))
+      ).sort();
+
+      const selectDistrict = document.getElementById("filter-district");
+      const current = selectDistrict.value;
+      selectDistrict.innerHTML = '<option value="">Tất cả</option>';
+      districts.forEach((d) => {
+        const opt = document.createElement("option");
+        opt.value = d;
+        opt.textContent = d;
+        selectDistrict.appendChild(opt);
+      });
+      if (current) selectDistrict.value = current;
+
+      updateWardOptions();
+    }
+
+    function updateWardOptions() {
+      const district = document.getElementById("filter-district").value;
+      const selectWard = document.getElementById("filter-ward");
+      selectWard.innerHTML = '<option value="">Tất cả</option>';
+      if (!district) return;
+      // filter từ LAST_ROWS + data đã load từ buildDistrictWardOptions (simple: call supabase)
+      supabase
+        .from("premises")
+        .select("ward, district")
+        .eq("district", district)
+        .then(({ data }) => {
+          if (!data) return;
+          const wards = Array.from(
+            new Set(data.map((r) => r.ward).filter(Boolean))
+          ).sort();
+          wards.forEach((w) => {
+            const opt = document.createElement("option");
+            opt.value = w;
+            opt.textContent = w;
+            selectWard.appendChild(opt);
+          });
+        });
+    }
+
+    // ===== DETAIL & EDIT =====
+    async function openDetail(id) {
+      const dlg = document.getElementById("detailDlg");
+      const wrap = document.getElementById("detail-content");
+      wrap.innerHTML = `<div class="py-10 text-center text-sm opacity-70">Đang tải...</div>`;
+      dlg.showModal();
+
+      const { data, error } = await supabase
+        .from("premises")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error || !data) {
+        wrap.innerHTML =
+          `<div class="py-10 text-center text-sm text-error">Không tải được dữ liệu.</div>`;
+        return;
+      }
+
+      const item = data;
+      const pnVal = pickField(item, ["pn", "so_pn", "bedrooms", "rooms"]);
+      const wcVal = pickField(item, ["wc", "bathrooms"]);
+      const floorsVal = pickField(item, ["floors"]);
+      const detailText = pickField(item, [
+        "detail",
+        "thong_tin_chi_tiet",
+        "chi_tiet",
+        "description",
+        "info_detail",
+      ]) || "";
+
+      const imgs = Array.isArray(item.images) ? item.images : [];
+      const imgUrls = imgs.map(buildImageUrl).filter(Boolean);
+      const firstImg = imgUrls[0] || null;
+
+      const updatedLabel = formatDateVN(item.updated_at || item.created_at);
+
+      const basicInfoLines = [];
+      if (item.area) basicInfoLines.push(`Diện tích: <b>${item.area} m²</b>`);
+      if (item.width && item.length)
+        basicInfoLines.push(`Kích thước: <b>${item.width}×${item.length} m</b>`);
+      if (floorsVal) basicInfoLines.push(`Số tầng: <b>${floorsVal}</b>`);
+      if (pnVal) basicInfoLines.push(`Phòng ngủ: <b>${pnVal}</b>`);
+      if (wcVal) basicInfoLines.push(`WC: <b>${wcVal}</b>`);
+      if (item.frontage === true) basicInfoLines.push(`<b>Nhà mặt tiền</b>`);
+      if (item.status) {
+        let st = "Không rõ";
+        if (item.status === "available") st = "Còn trống";
+        else if (item.status === "deposited") st = "Giữ cọc";
+        else if (item.status === "rented") st = "Đã thuê";
+        basicInfoLines.push(`Trạng thái: <b>${st}</b>`);
+      }
+      if (updatedLabel)
+        basicInfoLines.push(`Cập nhật: <b>${updatedLabel}</b>`);
+
+      const basicInfoBlock = basicInfoLines.length
+        ? `
+        <div class="mt-3 text-sm leading-relaxed space-y-1">
+          <div class="font-semibold mb-1">Thông tin cơ bản</div>
+          ${basicInfoLines.map((l) => `<div>${l}</div>`).join("")}
+        </div>
+      `
+        : "";
+
+      const detailBlock = detailText
+        ? `
+        <div class="mt-4 text-sm leading-relaxed">
+          <div class="font-semibold mb-1">Thông tin chi tiết</div>
+          <p>${detailText.replace(/\n/g, "<br/>")}</p>
+        </div>
+      `
+        : "";
+
+      const mapsQuery = encodeURIComponent(
+        [item.address, item.ward, item.district, item.city]
+          .filter(Boolean)
+          .join(", ")
+      );
+      const mapEmbed = `
+        <iframe
+          class="w-full h-64 border-0 rounded-xl"
+          loading="lazy"
+          allowfullscreen
+          referrerpolicy="no-referrer-when-downgrade"
+          src="https://www.google.com/maps/embed/v1/place?key=AIzaSyD7HTSTUBY-FAKE-KEY&q=${mapsQuery}">
+        </iframe>`;
+
+      const actions = `
+        <div class="join join-horizontal">
+          ${
+            item.contact_phone && !isStaff()
+              ? `<a class="btn btn-primary btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>`
+              : ""
+          }
+          ${
+            item.contact_phone && !isStaff()
+              ? `<a class="btn btn-sm join-item" target="_blank" href="https://zalo.me/${(item.contact_phone || "").replace(/[^0-9]/g, "")}">Zalo</a>`
+              : ""
+          }
+          <a class="btn btn-sm join-item" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Mở Google Maps</a>
+          <button class="btn btn-sm join-item" onclick="navigator.clipboard.writeText(location.origin + location.pathname + '#'+encodeURIComponent('${id}'));toast('Đã copy link mặt bằng')">Copy link</button>
+          ${
+            isAdmin()
+              ? `<button class="btn btn-outline btn-sm join-item" onclick="openEditPremise('${id}')">Chỉnh sửa</button>`
+              : ""
+          }
+        </div>
+      `;
+
+      const gallery = `
+        <div class="w-full flex flex-col items-center gap-2">
+          <div class="w-full h-[340px] bg-base-200 flex items-center justify-center rounded-xl overflow-hidden">
+            ${
+              firstImg
+                ? `<img src="${firstImg}" class="w-full h-full object-cover" />`
+                : `<div class="text-xs opacity-60">(Không có ảnh)</div>`
+            }
+          </div>
+          ${
+            imgUrls.length > 1
+              ? `<div class="flex gap-1">
+                  ${imgUrls
+                    .map(
+                      (_, idx) =>
+                        `<button class="btn btn-ghost btn-xs">${idx + 1}</button>`
+                    )
+                    .join("")}
+                 </div>`
+              : '<div class="text-xs opacity-50 mt-1">1</div>'
+          }
+        </div>
+      `;
+
+      const html = `
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="space-y-4">
+            ${gallery}
+            <div>${mapEmbed}</div>
+          </div>
+
+          <div class="space-y-3">
+            <h2 class="text-xl font-bold">${maskAddress(item)}</h2>
+            <div class="text-sm opacity-70">
+              ${[item.ward, item.district, item.city].filter(Boolean).join(" • ")}
+            </div>
+            <div class="text-xs opacity-60 mt-1">
+              Mã mặt bằng: <b>${item.code || "—"}</b>
+            </div>
+
+            <div class="flex flex-wrap gap-2 mt-2 text-xs">
+              ${
+                item.area
+                  ? `<div class="badge badge-ghost">${item.area} m²</div>`
+                  : ""
+              }
+              ${
+                item.width && item.length
+                  ? `<div class="badge badge-ghost">${item.width}×${item.length} m</div>`
+                  : ""
+              }
+              ${
+                item.status === "available"
+                  ? `<div class="badge badge-success">Còn trống</div>`
+                  : item.status === "deposited"
+                  ? `<div class="badge badge-warning">Giữ cọc</div>`
+                  : `<div class="badge badge-neutral">Đã thuê</div>`
+              }
+            </div>
+
+            <div class="text-3xl font-extrabold text-primary mt-2">
+              ${money(item.price)}
+            </div>
+            ${
+              item.commission_note
+                ? `<div class="text-sm mt-1">Hoa hồng: <b>${item.commission_note}</b></div>`
+                : ""
+            }
+
+            ${basicInfoBlock}
+            ${detailBlock}
+
+            ${
+              item.suitable && item.suitable.length
+                ? `<div class="flex flex-wrap gap-1 text-xs mt-3">
+                    ${item.suitable
+                      .map((s) => `<div class="badge badge-ghost">${s}</div>`)
+                      .join("")}
+                   </div>`
+                : ""
+            }
+
+            ${
+              (item.contact_phone || item.contact_name) && !isStaff()
+                ? `<div class="space-x-2 text-sm mt-3">
+                    <span class="opacity-70">Liên hệ:</span>
+                    <b>${item.contact_name || ""}</b>
+                    <a class="link" href="tel:${item.contact_phone || ""}">${
+                    item.contact_phone || ""
+                  }</a>
+                   </div>`
+                : ""
+            }
+
+            ${
+              isStaff()
+                ? `<div class="mt-3 text-sm opacity-70">
+                    Liên hệ admin để xem số điện thoại chủ nhà.
+                   </div>`
+                : ""
+            }
+
+            <div class="mt-4">
+              ${actions}
+            </div>
+          </div>
+        </div>
+      `;
+
+      wrap.innerHTML = html;
+    }
+
+    async function openEditPremise(id) {
+      if (!isAdmin()) return;
+      EDITING_ID = id;
+
+      const { data, error } = await supabase
+        .from("premises")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error || !data) {
+        console.error(error);
+        toast("Không tải được dữ liệu để chỉnh sửa");
+        return;
+      }
+
+      const item = data;
+      document.getElementById("edit-code").value = item.code || "";
+      document.getElementById("edit-address").value = item.address || "";
+      document.getElementById("edit-city").value = item.city || "";
+      document.getElementById("edit-district").value = item.district || "";
+      document.getElementById("edit-ward").value = item.ward || "";
+      document.getElementById("edit-street").value = item.street || "";
+
+      document.getElementById("edit-price").value = item.price || "";
+      document.getElementById("edit-area").value = item.area || "";
+      document.getElementById("edit-width").value = item.width || "";
+      document.getElementById("edit-length").value = item.length || "";
+      document.getElementById("edit-floors").value = item.floors || "";
+
+      const pnVal = pickField(item, ["pn", "so_pn", "bedrooms", "rooms"]);
+      const wcVal = pickField(item, ["wc", "bathrooms"]);
+      document.getElementById("edit-bedrooms").value = pnVal || "";
+      document.getElementById("edit-wc").value = wcVal || "";
+
+      document.getElementById("edit-frontage").checked = !!item.frontage;
+      document.getElementById("edit-status").value = item.status || "available";
+      document.getElementById("edit-commission").value =
+        item.commission_note || "";
+
+      const imgs = Array.isArray(item.images) ? item.images : [];
+      document.getElementById("edit-images").value = imgs.join("\n");
+
+      document.getElementById("edit-detail").value =
+        pickField(item, [
+          "detail",
+          "thong_tin_chi_tiet",
+          "chi_tiet",
+          "description",
+          "info_detail",
+        ]) || "";
+
+      document.getElementById("editDlg").showModal();
+    }
+
+    async function saveEditPremise() {
+      if (!isAdmin() || !EDITING_ID) return;
+
+      const payload = {
+        code: document.getElementById("edit-code").value.trim() || null,
+        address: document.getElementById("edit-address").value.trim() || null,
+        city: document.getElementById("edit-city").value.trim() || null,
+        district: document.getElementById("edit-district").value.trim() || null,
+        ward: document.getElementById("edit-ward").value.trim() || null,
+        street: document.getElementById("edit-street").value.trim() || null,
+        price: Number(document.getElementById("edit-price").value) || null,
+        area: Number(document.getElementById("edit-area").value) || null,
+        width: Number(document.getElementById("edit-width").value) || null,
+        length: Number(document.getElementById("edit-length").value) || null,
+        floors: Number(document.getElementById("edit-floors").value) || null,
+        status: document.getElementById("edit-status").value,
+        frontage: document.getElementById("edit-frontage").checked,
+        commission_note:
+          document.getElementById("edit-commission").value.trim() || null,
+        detail: document.getElementById("edit-detail").value.trim() || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      const pn = Number(document.getElementById("edit-bedrooms").value) || null;
+      const wc = Number(document.getElementById("edit-wc").value) || null;
+      if (pn) payload.pn = pn;
+      if (wc) payload.wc = wc;
+
+      const rawImages = document
+        .getElementById("edit-images")
+        .value.split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      payload.images = rawImages.length ? rawImages : null;
+
+      const { error } = await supabase
+        .from("premises")
+        .update(payload)
+        .eq("id", EDITING_ID);
+
+      if (error) {
+        console.error(error);
+        toast("Lưu thất bại: " + (error.message || "Lỗi không xác định"));
+        return;
+      }
+
+      toast("Đã lưu thay đổi");
+      document.getElementById("editDlg").close();
+      EDITING_ID = null;
+      await applyFilters(true);
+    }
+
+    // ===== EVENTS =====
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("btn-login").addEventListener("click", handleLogin);
       document.getElementById("btn-logout").addEventListener("click", handleLogout);
+
+      document
+        .getElementById("filter-district")
+        .addEventListener("change", updateWardOptions);
+
+      document
+        .getElementById("btn-apply")
+        .addEventListener("click", () => applyFilters(true));
+
+      document.getElementById("btn-reset").addEventListener("click", () => {
+        document.getElementById("filter-keyword").value = "";
+        document.getElementById("filter-district").value = "";
+        document.getElementById("filter-ward").value = "";
+        document.getElementById("filter-price-min").value = "";
+        document.getElementById("filter-price-max").value = "";
+        document.getElementById("filter-area-min").value = "";
+        document.getElementById("filter-area-max").value = "";
+        document.getElementById("filter-frontage").value = "";
+        document.getElementById("filter-status").value = "";
+        applyFilters(true);
+      });
+
+      document
+        .getElementById("btn-load-more")
+        .addEventListener("click", async () => {
+          PAGE++;
+          await applyFilters(false);
+        });
+
+      // quick filters
+      document.querySelectorAll("[data-quick]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const v = btn.getAttribute("data-quick");
+          document.getElementById("filter-status").value = v;
+          applyFilters(true);
+        });
+      });
+      document.querySelectorAll("[data-quick-district]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const v = btn.getAttribute("data-quick-district");
+          document.getElementById("filter-district").value = v;
+          updateWardOptions();
+          applyFilters(true);
+        });
+      });
+      document
+        .getElementById("btn-clear-quick")
+        .addEventListener("click", () => {
+          document.getElementById("filter-status").value = "";
+          document.getElementById("filter-district").value = "";
+          document.getElementById("filter-ward").value = "";
+          applyFilters(true);
+        });
+
       initAuth();
     });
   </script>
