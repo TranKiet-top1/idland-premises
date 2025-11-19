@@ -341,7 +341,13 @@
           <label class="label"><span class="label-text">Số WC</span></label>
           <input id="edit-wc" type="number" class="input input-bordered w-full" />
         </div>
-        <div class="form-control flex items-center gap-2 mt-6">
+
+        <div class="form-control md:col-span-2">
+          <label class="label"><span class="label-text">Kết cấu</span></label>
+          <input id="edit-ket-cau" type="text" class="input input-bordered w-full" placeholder="VD: Trệt 3 lầu, trống suốt…" />
+        </div>
+
+        <div class="form-control flex items-center gap-2 mt-2">
           <input id="edit-frontage" type="checkbox" class="checkbox" />
           <span class="label-text">Nhà mặt tiền</span>
         </div>
@@ -390,9 +396,9 @@
 
   <script>
     // ===== CONFIG =====
-    const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co";   // thay bằng URL của bạn nếu khác
+    const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjbG5jb3drb2Vkd3F6Y2VtaGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzcwOTUsImV4cCI6MjA3Nzg1MzA5NX0.jfNM46UgXIq9LrwSXcERJJULeKB7bl_c9R9LaVhRy1A";
-    const STORAGE_BUCKET = "premise-images"; // tên bucket lưu ảnh
+    const STORAGE_BUCKET = "premise-images";
     const PAGE_SIZE = 24;
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -434,18 +440,13 @@
       return null;
     }
 
-    function isAdmin() {
-      return CURRENT_ROLE === "admin";
-    }
-    function isStaff() {
-      return CURRENT_ROLE === "staff";
-    }
+    function isAdmin() { return CURRENT_ROLE === "admin"; }
+    function isStaff() { return CURRENT_ROLE === "staff"; }
 
     function maskAddress(row) {
       const full = row.address || "";
       if (!isStaff()) return full || [row.street, row.ward, row.district].filter(Boolean).join(", ");
 
-      // Staff: ẩn số nhà, chỉ giữ tên đường + quận
       if (full) {
         const parts = full.split(" ");
         if (parts.length > 1) {
@@ -455,15 +456,6 @@
         return full;
       }
       return [row.street, row.ward, row.district].filter(Boolean).join(", ");
-    }
-
-    function maskPhone(phone) {
-      if (!phone) return "";
-      if (!isStaff()) return phone;
-      // staff: ẩn 4 số cuối
-      const digits = phone.replace(/[^0-9]/g, "");
-      if (digits.length <= 4) return "*******";
-      return digits.slice(0, digits.length - 4) + "****";
     }
 
     function buildImageUrl(path) {
@@ -482,7 +474,6 @@
       }
       CURRENT_USER = data.user;
 
-      // lấy role từ bảng profiles (id, role)
       let role = "staff";
       const { data: profile } = await supabase
         .from("profiles")
@@ -494,7 +485,6 @@
 
       document.getElementById("auth-section").classList.add("hidden");
       document.getElementById("app-root").classList.remove("hidden");
-
       document.getElementById("role-badge").textContent =
         role === "admin" ? "Admin" : "Nhân sự";
       if (isAdmin()) {
@@ -502,7 +492,7 @@
       }
 
       await applyFilters(true);
-      await buildDistrictWardOptions(); // dựa trên data mới
+      await buildDistrictWardOptions();
     }
 
     async function handleLogin() {
@@ -634,7 +624,6 @@
         const pnVal = pickField(row, ["pn", "so_pn", "bedrooms", "rooms"]);
         const wcVal = pickField(row, ["wc", "bathrooms"]);
         const floorsVal = pickField(row, ["floors"]);
-
         const updatedLabel = formatDateVN(row.updated_at || row.created_at);
 
         return `
@@ -659,8 +648,14 @@
                     : ""
                 }
                 ${pnVal ? `<span>${pnVal} PN</span>` : ""}
+                ${wcVal ? `<span>${wcVal} WC</span>` : ""}
                 ${floorsVal ? `<span>${floorsVal} tầng</span>` : ""}
               </div>
+              ${
+                row.ket_cau
+                  ? `<div class="text-[11px] opacity-70 line-clamp-1 mt-1">${row.ket_cau}</div>`
+                  : ""
+              }
               <div class="text-[11px] opacity-60">
                 ${updatedLabel ? `Cập nhật ${updatedLabel}` : ""}
               </div>
@@ -689,14 +684,12 @@
 
       grid.insertAdjacentHTML("beforeend", html.join(""));
 
-      // attach click
       grid.querySelectorAll("[data-id]").forEach((el) => {
         el.onclick = () => openDetail(el.getAttribute("data-id"));
       });
     }
 
     async function buildDistrictWardOptions() {
-      // lấy tất cả quận/phường từ Supabase 1 lần đơn giản (không filter)
       const { data, error } = await supabase
         .from("premises")
         .select("district, ward");
@@ -725,7 +718,6 @@
       const selectWard = document.getElementById("filter-ward");
       selectWard.innerHTML = '<option value="">Tất cả</option>';
       if (!district) return;
-      // filter từ LAST_ROWS + data đã load từ buildDistrictWardOptions (simple: call supabase)
       supabase
         .from("premises")
         .select("ward, district")
@@ -788,6 +780,7 @@
       if (floorsVal) basicInfoLines.push(`Số tầng: <b>${floorsVal}</b>`);
       if (pnVal) basicInfoLines.push(`Phòng ngủ: <b>${pnVal}</b>`);
       if (wcVal) basicInfoLines.push(`WC: <b>${wcVal}</b>`);
+      if (item.ket_cau) basicInfoLines.push(`Kết cấu: <b>${item.ket_cau}</b>`);
       if (item.frontage === true) basicInfoLines.push(`<b>Nhà mặt tiền</b>`);
       if (item.status) {
         let st = "Không rõ";
@@ -1000,6 +993,8 @@
       document.getElementById("edit-bedrooms").value = pnVal || "";
       document.getElementById("edit-wc").value = wcVal || "";
 
+      document.getElementById("edit-ket-cau").value = item.ket_cau || "";
+
       document.getElementById("edit-frontage").checked = !!item.frontage;
       document.getElementById("edit-status").value = item.status || "available";
       document.getElementById("edit-commission").value =
@@ -1040,6 +1035,7 @@
         commission_note:
           document.getElementById("edit-commission").value.trim() || null,
         detail: document.getElementById("edit-detail").value.trim() || null,
+        ket_cau: document.getElementById("edit-ket-cau").value.trim() || null,
         updated_at: new Date().toISOString(),
       };
 
@@ -1105,7 +1101,6 @@
           await applyFilters(false);
         });
 
-      // quick filters
       document.querySelectorAll("[data-quick]").forEach((btn) => {
         btn.addEventListener("click", () => {
           const v = btn.getAttribute("data-quick");
