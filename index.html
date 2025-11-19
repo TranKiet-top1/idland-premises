@@ -4,195 +4,259 @@
   <meta charset="UTF-8" />
   <title>ID-Land Premises</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" />
+  
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; }
-    .premise-card:hover { transform: translateY(-2px); }
-    /* Ẩn scrollbar xấu */
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .premise-card:hover { transform: translateY(-3px); }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   </style>
 </head>
-<body class="bg-base-200">
+<body class="bg-base-200 min-h-screen flex flex-col">
 
-  <section id="auth-section" class="min-h-screen flex items-center justify-center">
+  <section id="auth-section" class="flex-1 flex items-center justify-center p-4">
     <div class="card w-full max-w-md bg-base-100 shadow-xl">
       <div class="card-body">
-        <div class="flex items-center gap-2 mb-4">
-          <div class="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white font-bold">ID</div>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="h-12 w-12 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xl">ID</div>
           <div>
-            <h2 class="card-title">ID-Land Premises</h2>
-            <p class="text-xs opacity-70">Đăng nhập hệ thống</p>
+            <h2 class="card-title text-2xl">ID-Land</h2>
+            <p class="text-sm opacity-70">Hệ thống quản lý kho mặt bằng</p>
           </div>
         </div>
+
         <div class="form-control">
           <label class="label"><span class="label-text">Email</span></label>
-          <input id="login-email" type="email" class="input input-bordered" />
+          <input id="login-email" type="email" placeholder="admin@idland.vn" class="input input-bordered" />
         </div>
-        <div class="form-control mt-2">
+        <div class="form-control mt-3">
           <label class="label"><span class="label-text">Mật khẩu</span></label>
-          <input id="login-password" type="password" class="input input-bordered" />
+          <input id="login-password" type="password" placeholder="••••••••" class="input input-bordered" />
         </div>
-        <div class="form-control mt-4">
-          <button id="btn-login" class="btn btn-primary w-full">Đăng nhập</button>
+        
+        <div class="form-control mt-6">
+          <button id="btn-login" class="btn btn-primary w-full text-lg">Đăng nhập</button>
         </div>
+        <div id="login-error" class="text-error text-sm mt-3 text-center hidden"></div>
       </div>
     </div>
   </section>
 
-  <div id="app-root" class="hidden min-h-screen flex flex-col">
+  <div id="app-root" class="hidden flex-col min-h-screen">
+    
     <div class="navbar bg-base-100 shadow-sm px-4 sticky top-0 z-30">
       <div class="flex-1 flex items-center gap-2">
-        <div class="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xs">ID</div>
-        <div>
-          <div class="font-bold text-lg leading-tight">ID-Land</div>
-          <div class="text-xs opacity-60">Kho mặt bằng TP.HCM</div>
+        <div class="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-xs">ID</div>
+        <div class="leading-tight hidden sm:block">
+          <div class="font-bold text-lg">ID-Land Premises</div>
+          <div class="text-[10px] opacity-60 uppercase tracking-wide">Kho dữ liệu nội bộ</div>
         </div>
       </div>
-      <div class="flex-none flex items-center gap-2 text-sm">
-        <span id="role-badge" class="badge badge-outline uppercase font-bold"></span>
-        <button id="btn-logout" class="btn btn-ghost btn-sm">Đăng xuất</button>
+      <div class="flex-none flex items-center gap-3">
+        <div class="text-right hidden sm:block">
+          <div id="user-email" class="text-xs font-bold">user@email.com</div>
+          <div id="role-badge" class="badge badge-xs badge-outline uppercase">Staff</div>
+        </div>
+        <button id="btn-logout" class="btn btn-ghost btn-sm text-error">Đăng xuất</button>
       </div>
     </div>
 
-    <main class="flex-1 max-w-6xl mx-auto w-full px-2 sm:px-4 py-4">
-      <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <h1 class="text-xl font-bold">Danh sách mặt bằng</h1>
-        <div class="flex gap-2">
-          <button id="btn-pending" class="btn btn-warning btn-sm hidden">
-            Cần duyệt <span class="badge badge-sm bg-white text-warning border-none" id="count-pending">0</span>
-          </button>
+    <main class="flex-1 w-full max-w-7xl mx-auto p-4">
+      
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 class="text-2xl font-bold">Danh sách mặt bằng</h1>
+          <p class="text-sm opacity-70">Quản lý và tìm kiếm mặt bằng cho thuê TP.HCM</p>
+        </div>
+        
+        <div class="flex flex-wrap gap-2">
+          <div id="admin-controls" class="hidden flex gap-2">
+            <button id="btn-pending" class="btn btn-warning btn-sm text-white">
+              Cần duyệt <span class="badge badge-sm bg-white text-warning border-none ml-1" id="count-pending">0</span>
+            </button>
+            <button id="btn-approve-all" class="btn btn-success btn-sm text-white hidden">
+              ✔ Duyệt tất cả
+            </button>
+          </div>
+          
           <button id="btn-add-premise" class="btn btn-primary btn-sm">
-            + Đăng mặt bằng
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+            Đăng mới
           </button>
         </div>
       </div>
 
-      <div class="bg-base-100 p-3 rounded-xl shadow-sm mb-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 text-xs">
-        <input id="filter-keyword" type="text" placeholder="Tìm đường, phường..." class="input input-sm input-bordered col-span-2" />
-        <select id="filter-district" class="select select-sm select-bordered"><option value="">Tất cả Quận</option></select>
-        <select id="filter-price" class="select select-sm select-bordered">
-           <option value="">Mọi mức giá</option>
+      <div class="bg-base-100 p-4 rounded-xl shadow-sm mb-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div class="col-span-2">
+            <input id="filter-keyword" type="text" placeholder="🔍 Tìm theo tên đường, mã MB..." class="input input-sm input-bordered w-full" />
+        </div>
+        <select id="filter-district" class="select select-sm select-bordered w-full">
+            <option value="">Tất cả Quận</option>
+        </select>
+        <select id="filter-price" class="select select-sm select-bordered w-full">
+           <option value="">Mức giá: Tất cả</option>
            <option value="0-20">Dưới 20 triệu</option>
            <option value="20-50">20 - 50 triệu</option>
            <option value="50-100">50 - 100 triệu</option>
            <option value="100+">Trên 100 triệu</option>
         </select>
-        <select id="filter-status" class="select select-sm select-bordered">
-           <option value="">Mọi trạng thái</option>
+        <select id="filter-status" class="select select-sm select-bordered w-full">
+           <option value="">Trạng thái: Tất cả</option>
            <option value="available">Còn trống</option>
            <option value="deposited">Giữ cọc</option>
+           <option value="rented">Đã thuê</option>
         </select>
-        <button id="btn-search" class="btn btn-sm btn-primary">Tìm kiếm</button>
+        <button id="btn-search" class="btn btn-sm btn-primary w-full">Lọc dữ liệu</button>
       </div>
 
-      <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-      <div class="mt-4 text-center"><button id="btn-load-more" class="btn btn-ghost btn-sm">Tải thêm</button></div>
+      <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        </div>
+      
+      <div class="mt-8 text-center">
+        <button id="btn-load-more" class="btn btn-ghost">Tải thêm kết quả</button>
+      </div>
     </main>
   </div>
 
   <dialog id="addDlg" class="modal">
-    <div class="modal-box max-w-3xl">
+    <div class="modal-box max-w-4xl">
       <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button></form>
-      <h3 class="font-bold text-lg text-primary mb-4">Đăng mặt bằng mới</h3>
+      <h3 class="font-bold text-xl text-primary mb-1">Đăng mặt bằng mới</h3>
+      <p class="text-xs opacity-60 mb-4 italic">Mã mặt bằng (MB-xxxx) sẽ được hệ thống tự động tạo sau khi lưu.</p>
       
-      <div class="grid md:grid-cols-2 gap-3">
-        <div class="col-span-2 text-xs opacity-60 italic">
-          * Mã mặt bằng sẽ được hệ thống tự động tạo (MB-xxxx).<br>
-          * Bài đăng của nhân viên sẽ cần Admin duyệt trước khi hiển thị công khai.
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="space-y-3">
+            <h4 class="font-semibold text-sm border-b pb-1">Vị trí</h4>
+            <div class="form-control">
+                <label class="label pt-0"><span class="label-text text-xs font-bold">Địa chỉ hiển thị *</span></label>
+                <input id="add-address" type="text" placeholder="VD: 123 Nguyễn Trãi" class="input input-bordered input-sm" />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div class="form-control">
+                    <label class="label pt-0"><span class="label-text text-xs">Quận *</span></label>
+                    <select id="add-district" class="select select-bordered select-sm w-full"></select>
+                </div>
+                <div class="form-control">
+                    <label class="label pt-0"><span class="label-text text-xs">Phường *</span></label>
+                    <select id="add-ward" class="select select-bordered select-sm w-full" disabled>
+                        <option value="">--</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-control">
+                <label class="label pt-0"><span class="label-text text-xs">Tên đường (để lọc)</span></label>
+                <input id="add-street" type="text" class="input input-bordered input-sm" />
+            </div>
+            
+            <h4 class="font-semibold text-sm border-b pb-1 mt-4">Đặc điểm</h4>
+            <div class="flex gap-4">
+                 <label class="cursor-pointer flex items-center gap-2 border p-2 rounded-lg flex-1">
+                    <input id="add-frontage" type="checkbox" class="checkbox checkbox-sm checkbox-primary" /> 
+                    <span class="text-sm font-medium">Mặt tiền</span>
+                 </label>
+                 </div>
         </div>
 
-        <div class="form-control md:col-span-2">
-          <label class="label"><span class="label-text font-semibold">Địa chỉ / Số nhà *</span></label>
-          <input id="add-address" type="text" placeholder="VD: 123 Nguyễn Trãi" class="input input-bordered" />
-        </div>
+        <div class="space-y-3">
+            <h4 class="font-semibold text-sm border-b pb-1">Thông số & Giá</h4>
+            <div class="form-control">
+                <label class="label pt-0"><span class="label-text text-xs font-bold text-primary">Giá thuê (VNĐ) *</span></label>
+                <input id="add-price" type="text" class="input input-bordered input-sm font-bold text-primary" onkeyup="formatCurrencyInput(this)" placeholder="0" />
+            </div>
+            
+            <div class="grid grid-cols-3 gap-2">
+                <div class="form-control">
+                    <label class="label pt-0"><span class="label-text text-xs">Diện tích (m²)</span></label>
+                    <input id="add-area" type="number" class="input input-bordered input-sm" />
+                </div>
+                <div class="form-control">
+                    <label class="label pt-0"><span class="label-text text-xs">Ngang (m)</span></label>
+                    <input id="add-width" type="number" step="0.1" class="input input-bordered input-sm" />
+                </div>
+                <div class="form-control">
+                    <label class="label pt-0"><span class="label-text text-xs">Dài (m)</span></label>
+                    <input id="add-length" type="number" step="0.1" class="input input-bordered input-sm" />
+                </div>
+            </div>
 
-        <div class="form-control">
-          <label class="label"><span class="label-text">Quận (TP.HCM) *</span></label>
-          <select id="add-district" class="select select-bordered w-full"></select>
-        </div>
-        <div class="form-control">
-          <label class="label"><span class="label-text">Phường *</span></label>
-          <select id="add-ward" class="select select-bordered w-full" disabled>
-            <option value="">-- Chọn Quận trước --</option>
-          </select>
-        </div>
+            <div class="grid grid-cols-3 gap-2">
+                <div class="form-control">
+                    <label class="label pt-0"><span class="label-text text-xs">Số tầng</span></label>
+                    <input id="add-floors" type="number" class="input input-bordered input-sm" />
+                </div>
+                <div class="form-control">
+                    <label class="label pt-0"><span class="label-text text-xs">Phòng ngủ</span></label>
+                    <input id="add-bedrooms" type="number" class="input input-bordered input-sm" />
+                </div>
+                <div class="form-control">
+                    <label class="label pt-0"><span class="label-text text-xs">Toilet</span></label>
+                    <input id="add-wc" type="number" class="input input-bordered input-sm" />
+                </div>
+            </div>
 
-        <div class="form-control">
-          <label class="label"><span class="label-text">Tên đường</span></label>
-          <input id="add-street" type="text" class="input input-bordered" />
-        </div>
-         <div class="form-control">
-          <label class="label"><span class="label-text">Giá thuê (VNĐ)</span></label>
-          <input id="add-price" type="text" class="input input-bordered" onkeyup="formatCurrencyInput(this)" />
-        </div>
-
-        <div class="form-control">
-          <label class="label"><span class="label-text">Diện tích (m²)</span></label>
-          <input id="add-area" type="number" class="input input-bordered" />
-        </div>
-        <div class="form-control">
-          <label class="label"><span class="label-text">Ngang x Dài (m)</span></label>
-          <div class="flex gap-2">
-             <input id="add-width" placeholder="Ngang" type="number" class="input input-bordered w-1/2" />
-             <input id="add-length" placeholder="Dài" type="number" class="input input-bordered w-1/2" />
-          </div>
-        </div>
-        
-        <div class="form-control">
-            <label class="label"><span class="label-text">Kết cấu</span></label>
-            <div class="flex gap-2">
-                 <input id="add-floors" placeholder="Số tầng" type="number" class="input input-bordered w-1/3" />
-                 <input id="add-bedrooms" placeholder="PN" type="number" class="input input-bordered w-1/3" />
-                 <input id="add-wc" placeholder="WC" type="number" class="input input-bordered w-1/3" />
+            <div class="form-control">
+                <label class="label pt-0"><span class="label-text text-xs">Kết cấu (VD: Trệt 3 lầu...)</span></label>
+                <input id="add-ket-cau" type="text" class="input input-bordered input-sm" />
             </div>
         </div>
 
-        <div class="form-control">
-            <label class="label"><span class="label-text">Đặc điểm</span></label>
-            <div class="flex gap-4 mt-2">
-                 <label class="cursor-pointer flex items-center gap-2">
-                    <input id="add-frontage" type="checkbox" class="checkbox checkbox-sm" /> 
-                    <span class="text-sm">Mặt tiền</span>
-                 </label>
-                 <label class="cursor-pointer flex items-center gap-2">
-                    <input id="add-hxh" type="checkbox" class="checkbox checkbox-sm" /> 
-                    <span class="text-sm">Hẻm xe hơi</span>
-                 </label>
+        <div class="md:col-span-2 grid md:grid-cols-2 gap-4 mt-2">
+            <div class="form-control">
+                <label class="label pt-0"><span class="label-text text-xs font-bold text-error">SĐT Chủ nhà (Chỉ Admin thấy)</span></label>
+                <input id="add-contact-phone" type="text" class="input input-bordered input-sm input-error" placeholder="090..." />
+            </div>
+            <div class="form-control">
+                <label class="label pt-0"><span class="label-text text-xs">Hoa hồng / Ghi chú</span></label>
+                <input id="add-commission" type="text" class="input input-bordered input-sm" />
             </div>
         </div>
 
-        <div class="form-control md:col-span-2">
-            <label class="label"><span class="label-text">SĐT Chủ nhà (Chỉ Admin thấy)</span></label>
-            <input id="add-contact-phone" type="text" class="input input-bordered" placeholder="090..." />
+        <div class="md:col-span-2 form-control">
+            <label class="label pt-0"><span class="label-text text-xs">Link ảnh (Mỗi dòng 1 link)</span></label>
+            <textarea id="add-images" class="textarea textarea-bordered h-16 text-xs" placeholder="https://bucket.../img1.jpg&#10;https://bucket.../img2.jpg"></textarea>
         </div>
 
-        <div class="form-control md:col-span-2">
-          <label class="label"><span class="label-text">Link ảnh (Mỗi dòng 1 link)</span></label>
-          <textarea id="add-images" class="textarea textarea-bordered h-20" placeholder="https://..."></textarea>
-        </div>
-        <div class="form-control md:col-span-2">
-          <label class="label"><span class="label-text">Mô tả thêm</span></label>
-          <textarea id="add-detail" class="textarea textarea-bordered h-20"></textarea>
+        <div class="md:col-span-2 form-control">
+            <label class="label pt-0"><span class="label-text text-xs">Mô tả chi tiết</span></label>
+            <textarea id="add-detail" class="textarea textarea-bordered h-24 text-sm"></textarea>
         </div>
       </div>
 
       <div class="modal-action">
-        <button class="btn" onclick="document.getElementById('addDlg').close()">Huỷ</button>
-        <button class="btn btn-primary" onclick="saveNewPremise()">Lưu mặt bằng</button>
+        <button class="btn" onclick="document.getElementById('addDlg').close()">Huỷ bỏ</button>
+        <button class="btn btn-primary px-8" onclick="saveNewPremise()">Lưu tin</button>
       </div>
     </div>
   </dialog>
 
-  <dialog id="detailDlg" class="modal"><div class="modal-box max-w-5xl p-0 overflow-hidden" id="detail-content"></div><form method="dialog" class="modal-backdrop"><button>close</button></form></dialog>
-  
-  <div id="toast" class="toast toast-end z-50 hidden"><div class="alert alert-info" id="toast-text"></div></div>
+  <dialog id="detailDlg" class="modal">
+    <div class="modal-box max-w-5xl p-0 overflow-hidden relative bg-base-100">
+        <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10 bg-base-100">✕</button></form>
+        <div id="detail-content" class="min-h-[300px] flex items-center justify-center">
+            <span class="loading loading-spinner loading-lg text-primary"></span>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
+
+  <div id="toast" class="toast toast-top toast-end z-[100] hidden">
+    <div class="alert alert-info shadow-lg" id="toast-text">
+      <span>Message here</span>
+    </div>
+  </div>
 
   <script>
-    // --- 1. DATA QUẬN HUYỆN HCM (Dữ liệu cứng để chọn) ---
+    // --- CẤU HÌNH (Thay đúng URL/Key của bạn vào đây) ---
+    const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjbG5jb3drb2Vkd3F6Y2VtaGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzcwOTUsImV4cCI6MjA3Nzg1MzA5NX0.jfNM46UgXIq9LrwSXcERJJULeKB7bl_c9R9LaVhRy1A";
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // DATA QUẬN/PHƯỜNG HCM
     const HCM_DATA = {
         "Quận 1": ["Bến Nghé", "Bến Thành", "Cô Giang", "Cầu Kho", "Cầu Ông Lãnh", "Đa Kao", "Nguyễn Cư Trinh", "Nguyễn Thái Bình", "Phạm Ngũ Lão", "Tân Định"],
         "Quận 3": ["Phường 1", "Phường 2", "Phường 3", "Phường 4", "Phường 5", "Phường 9", "Phường 10", "Phường 11", "Phường 12", "Phường 13", "Phường 14", "Võ Thị Sáu"],
@@ -213,236 +277,381 @@
         "Thủ Đức": ["An Khánh", "An Lợi Đông", "An Phú", "Bình Chiểu", "Bình Thọ", "Bình Trưng Đông", "Bình Trưng Tây", "Cát Lái", "Hiệp Bình Chánh", "Hiệp Bình Phước", "Linh Chiểu", "Linh Đông", "Linh Tây", "Linh Trung", "Linh Xuân", "Long Bình", "Long Phước", "Long Thạnh Mỹ", "Long Trường", "Phú Hữu", "Phước Bình", "Phước Long A", "Phước Long B", "Tam Bình", "Tam Phú", "Tân Phú", "Tăng Nhơn Phú A", "Tăng Nhơn Phú B", "Thảo Điền", "Thạnh Mỹ Lợi", "Thủ Thiêm", "Trường Thạnh", "Trường Thọ"]
     };
 
-    // --- CONFIG ---
-    const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjbG5jb3drb2Vkd3F6Y2VtaGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzcwOTUsImV4cCI6MjA3Nzg1MzA5NX0.jfNM46UgXIq9LrwSXcERJJULeKB7bl_c9R9LaVhRy1A"; // Dùng lại Key cũ của bạn
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const PAGE_SIZE = 24;
-    let CURRENT_USER = null; 
+    // STATE VARIABLES
+    let CURRENT_USER = null;
     let CURRENT_ROLE = "staff";
-    let SHOW_PENDING_MODE = false; // Chế độ xem bài chờ duyệt
+    let SHOW_PENDING = false;
 
-    // --- INIT & LOGIC ---
+    // ================== KHỞI TẠO ==================
     document.addEventListener("DOMContentLoaded", () => {
-        initDistrictSelects();
-        initAuth();
-        
+        initDropdowns();
+        checkSession();
+
+        // Events Login/Logout
         document.getElementById("btn-login").onclick = handleLogin;
-        document.getElementById("btn-logout").onclick = async () => { await supabase.auth.signOut(); location.reload(); };
-        document.getElementById("btn-add-premise").onclick = () => document.getElementById("addDlg").showModal();
-        document.getElementById("add-district").onchange = (e) => updateWardSelect("add-ward", e.target.value);
+        document.getElementById("btn-logout").onclick = handleLogout;
+
+        // Events Actions
         document.getElementById("btn-search").onclick = () => loadPremises(true);
-        
-        // Filter Pending (Only Admin)
-        document.getElementById("btn-pending").onclick = () => {
-            SHOW_PENDING_MODE = !SHOW_PENDING_MODE;
-            const btn = document.getElementById("btn-pending");
-            if(SHOW_PENDING_MODE) {
-                btn.classList.add("btn-active");
-                btn.innerHTML = `Đang xem bài chờ duyệt... (Bấm để thoát)`;
-            } else {
-                btn.classList.remove("btn-active");
-                btn.innerHTML = `Cần duyệt <span class="badge badge-sm bg-white text-warning" id="count-pending">...</span>`;
-            }
-            loadPremises(true);
-        };
+        document.getElementById("btn-add-premise").onclick = () => document.getElementById("addDlg").showModal();
+        document.getElementById("add-district").onchange = (e) => updateWardSelect(e.target.value);
+
+        // Pending mode toggle
+        document.getElementById("btn-pending").onclick = togglePendingMode;
+        document.getElementById("btn-approve-all").onclick = approveAllPending;
     });
 
-    // Populate dropdown
-    function initDistrictSelects() {
-        const districts = Object.keys(HCM_DATA).sort();
-        const opts = `<option value="">-- Chọn Quận --</option>` + districts.map(d => `<option value="${d}">${d}</option>`).join("");
-        document.getElementById("add-district").innerHTML = opts;
-        document.getElementById("filter-district").innerHTML = `<option value="">Tất cả Quận</option>` + districts.map(d => `<option value="${d}">${d}</option>`).join("");
-    }
-
-    function updateWardSelect(wardElemId, districtName) {
-        const wardSel = document.getElementById(wardElemId);
-        if (!districtName || !HCM_DATA[districtName]) {
-            wardSel.innerHTML = `<option value="">-- Chọn Quận trước --</option>`;
-            wardSel.disabled = true;
-            return;
-        }
-        wardSel.disabled = false;
-        wardSel.innerHTML = HCM_DATA[districtName].map(w => `<option value="${w}">${w}</option>`).join("");
-    }
-
-    // --- AUTH ---
-    async function initAuth() {
+    // ================== AUTHENTICATION ==================
+    async function checkSession() {
         const { data } = await supabase.auth.getUser();
-        if (!data.user) {
-            document.getElementById("auth-section").classList.remove("hidden");
-            return;
+        if (data.user) {
+            CURRENT_USER = data.user;
+            await loadUserProfile();
+            showApp();
+        } else {
+            showLogin();
         }
-        CURRENT_USER = data.user;
-        document.getElementById("auth-section").classList.add("hidden");
-        document.getElementById("app-root").classList.remove("hidden");
+    }
 
-        // Check role
-        const { data: profile } = await supabase.from("profiles").select("role").eq("id", CURRENT_USER.id).maybeSingle();
+    async function loadUserProfile() {
+        // Lấy role
+        const { data: profile } = await supabase.from("profiles").select("role, email").eq("id", CURRENT_USER.id).maybeSingle();
+        // Nếu không có profile (lỗi), mặc định là staff
         CURRENT_ROLE = profile?.role || "staff";
-        document.getElementById("role-badge").textContent = CURRENT_ROLE;
+        const displayEmail = profile?.email || CURRENT_USER.email;
 
-        if (CURRENT_ROLE === "admin") {
-            document.getElementById("btn-pending").classList.remove("hidden");
+        // Update UI
+        document.getElementById("user-email").textContent = displayEmail;
+        document.getElementById("role-badge").textContent = CURRENT_ROLE;
+        
+        // Show Admin Controls
+        if (CURRENT_ROLE === 'admin') {
+            document.getElementById("admin-controls").classList.remove("hidden");
+            document.getElementById("role-badge").className = "badge badge-xs badge-error text-white uppercase";
             checkPendingCount();
         }
-        loadPremises(true);
     }
 
     async function handleLogin() {
-        const email = document.getElementById("login-email").value;
-        const pass = document.getElementById("login-password").value;
-        const { error } = await supabase.auth.signInWithPassword({ email: email, password: pass });
-        if (error) alert("Đăng nhập lỗi: " + error.message);
-        else initAuth();
+        const email = document.getElementById("login-email").value.trim();
+        const password = document.getElementById("login-password").value.trim();
+        const errEl = document.getElementById("login-error");
+        
+        errEl.classList.add("hidden");
+        if(!email || !password) return;
+
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+            errEl.textContent = "Đăng nhập thất bại: " + error.message;
+            errEl.classList.remove("hidden");
+        } else {
+            checkSession();
+        }
     }
 
-    // --- LOAD PREMISES ---
+    async function handleLogout() {
+        await supabase.auth.signOut();
+        location.reload();
+    }
+
+    function showApp() {
+        document.getElementById("auth-section").classList.add("hidden");
+        document.getElementById("app-root").classList.remove("hidden");
+        document.getElementById("app-root").classList.add("flex");
+        loadPremises(true);
+    }
+
+    function showLogin() {
+        document.getElementById("app-root").classList.remove("flex");
+        document.getElementById("app-root").classList.add("hidden");
+        document.getElementById("auth-section").classList.remove("hidden");
+    }
+
+    // ================== DATA & RENDERING ==================
     async function loadPremises(reset = false) {
         const grid = document.getElementById("grid");
         if (reset) grid.innerHTML = "";
+        
+        let query = supabase.from("premises").select("*, profiles(email, role)"); // JOIN bảng profiles để lấy email người đăng
 
-        let query = supabase.from("premises").select("*");
-
-        // LOGIC FILTER
-        if (SHOW_PENDING_MODE && CURRENT_ROLE === 'admin') {
-            query = query.eq("is_approved", false); // Xem bài chưa duyệt
+        // FILTER LOGIC
+        if (SHOW_PENDING && CURRENT_ROLE === 'admin') {
+            query = query.eq("is_approved", false);
         } else {
-            // Xem bài đã duyệt (Mặc định)
-            // Lưu ý: Staff vẫn xem được bài của chính mình dù chưa duyệt nhờ RLS, nhưng ở list chung ta nên filter
-            query = query.eq("is_approved", true); 
+            query = query.eq("is_approved", true);
         }
 
-        // Search
+        // Search Text
         const kw = document.getElementById("filter-keyword").value.trim();
-        if (kw) query = query.ilike("address", `%${kw}%`);
-        
+        if (kw) query = query.or(`address.ilike.%${kw}%, street.ilike.%${kw}%, code.ilike.%${kw}%`);
+
+        // Filter Dropdowns
         const dist = document.getElementById("filter-district").value;
         if (dist) query = query.eq("district", dist);
 
         const st = document.getElementById("filter-status").value;
         if (st) query = query.eq("status", st);
 
+        const priceRange = document.getElementById("filter-price").value;
+        if(priceRange) {
+            if(priceRange === "0-20") query = query.lt("price", 20000000);
+            else if(priceRange === "20-50") query = query.gte("price", 20000000).lte("price", 50000000);
+            else if(priceRange === "50-100") query = query.gte("price", 50000000).lte("price", 100000000);
+            else if(priceRange === "100+") query = query.gt("price", 100000000);
+        }
+
         query = query.order("created_at", { ascending: false }).limit(50);
 
         const { data, error } = await query;
-        if (error) { console.error(error); return; }
+        if (error) {
+            console.error(error);
+            toast("Lỗi tải dữ liệu", "error");
+            return;
+        }
 
         if (data.length === 0) {
-             grid.innerHTML = `<div class="col-span-full text-center opacity-50 py-10">Không tìm thấy mặt bằng nào.</div>`;
-             return;
+            grid.innerHTML = `<div class="col-span-full text-center py-10 opacity-50">Không tìm thấy dữ liệu phù hợp.</div>`;
+            return;
         }
 
         data.forEach(item => {
-            const isFront = item.frontage;
-            const isHXH = (item.address + (item.detail||"")).toLowerCase().includes("hxh");
-            let badge = `<span class="badge badge-xs badge-ghost">Hẻm</span>`;
-            if (isFront) badge = `<span class="badge badge-xs badge-error text-white">Mặt tiền</span>`;
-            else if (isHXH) badge = `<span class="badge badge-xs badge-info text-white">HXH</span>`;
-
-            // Logic hiển thị nút duyệt cho Admin
-            let adminAction = "";
-            if (CURRENT_ROLE === 'admin' && item.is_approved === false) {
-                adminAction = `<button onclick="approvePremise('${item.id}')" class="btn btn-xs btn-success w-full mt-2 text-white">✔ Duyệt ngay</button>`;
-            }
-
-            // Ảnh
-            const img = (item.images && item.images.length) 
-                ? supabase.storage.from("premise-images").getPublicUrl(item.images[0]).data.publicUrl 
-                : "https://placehold.co/400x300?text=No+Image";
-
-            const card = `
-            <div class="card bg-base-100 shadow border hover:shadow-md transition-all cursor-pointer" onclick="if(!event.target.closest('button')) openDetail('${item.id}')">
-                <figure class="h-48 overflow-hidden bg-gray-100 relative">
-                    <img src="${img}" class="w-full h-full object-cover" />
-                    <div class="absolute top-2 right-2">${badge}</div>
-                    ${item.is_approved === false ? '<div class="absolute top-2 left-2 badge badge-warning">Chờ duyệt</div>' : ''}
-                </figure>
-                <div class="card-body p-3 text-sm">
-                    <h3 class="font-bold truncate">${item.address || "Chưa cập nhật"}</h3>
-                    <div class="opacity-70 text-xs">${item.ward}, ${item.district}</div>
-                    <div class="font-bold text-primary text-lg mt-1">${new Intl.NumberFormat('vi-VN').format(item.price||0)} đ</div>
-                    <div class="flex gap-2 text-xs mt-1">
-                        <span>${item.width||0}x${item.length||0}m</span> • 
-                        <span>${item.area||0}m²</span>
-                    </div>
-                    ${adminAction}
-                </div>
-            </div>`;
-            grid.insertAdjacentHTML("beforeend", card);
+            const html = renderCard(item);
+            grid.insertAdjacentHTML("beforeend", html);
         });
     }
 
-    // --- ADD NEW ---
+    function renderCard(item) {
+        // Xử lý Badge Vị trí
+        let locationBadge = `<span class="badge badge-xs badge-ghost opacity-70">Hẻm</span>`;
+        const fullText = (item.address + " " + (item.detail||"")).toLowerCase();
+        if (item.frontage) locationBadge = `<span class="badge badge-xs badge-error text-white border-none">Mặt tiền</span>`;
+        else if (fullText.includes("hxh") || fullText.includes("xe hơi")) locationBadge = `<span class="badge badge-xs badge-info text-white border-none">Hẻm xe hơi</span>`;
+
+        // Xử lý ảnh
+        let imgUrl = "https://placehold.co/400x300?text=No+Image";
+        if (item.images && item.images.length > 0) {
+            // Kiểm tra nếu là full link hay path
+            if(item.images[0].startsWith("http")) imgUrl = item.images[0];
+            else imgUrl = supabase.storage.from("premise-images").getPublicUrl(item.images[0]).data.publicUrl;
+        }
+
+        // Format tiền
+        const priceStr = item.price ? new Intl.NumberFormat('vi-VN').format(item.price) : "Thỏa thuận";
+
+        // Tên người đăng (Lấy từ bảng profiles join sang)
+        const authorEmail = item.profiles?.email || "Ẩn danh";
+        const shortName = authorEmail.split('@')[0];
+
+        // Nút Duyệt (Nếu đang ở chế độ chờ duyệt)
+        let approveBtn = "";
+        if (SHOW_PENDING && CURRENT_ROLE === 'admin') {
+            approveBtn = `<button onclick="approveOne('${item.id}', event)" class="btn btn-sm btn-success w-full mt-2 text-white">✔ Duyệt</button>`;
+        }
+
+        return `
+        <div class="card bg-base-100 border shadow-sm hover:shadow-md transition-all cursor-pointer premise-card h-full flex flex-col" onclick="openDetail('${item.id}')">
+            <figure class="h-48 bg-gray-100 relative overflow-hidden">
+                <img src="${imgUrl}" class="w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" />
+                <div class="absolute top-2 right-2">${locationBadge}</div>
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 text-white text-xs truncate">
+                    <span class="opacity-80">Đăng bởi:</span> <b>${shortName}</b>
+                </div>
+            </figure>
+            <div class="card-body p-3 gap-1 flex-1">
+                <div class="text-xs opacity-60 font-medium uppercase tracking-wide">
+                    ${item.code || "Chờ cấp mã"} • ${item.district}
+                </div>
+                <h3 class="font-bold text-sm leading-tight line-clamp-2 mb-1 h-10">
+                    ${item.address}
+                </h3>
+                
+                <div class="text-lg font-extrabold text-primary">
+                    ${priceStr} <span class="text-xs font-normal text-base-content/70">/tháng</span>
+                </div>
+                
+                <div class="flex items-center gap-3 text-xs mt-auto pt-2 border-t border-base-200 opacity-80">
+                    <div class="flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg> ${item.area || 0}m²</div>
+                    <div class="flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg> ${item.floors || 0} tầng</div>
+                    <div class="flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg> ${item.pn || 0} PN</div>
+                </div>
+                ${approveBtn}
+            </div>
+        </div>
+        `;
+    }
+
+    // ================== ADD NEW PREMISE ==================
     async function saveNewPremise() {
         const getVal = (id) => document.getElementById(id).value.trim();
-        const address = getVal("add-address");
-        const district = document.getElementById("add-district").value;
-        const ward = document.getElementById("add-ward").value;
+        
+        // Validate
+        if (!getVal("add-address") || !getVal("add-district") || !getVal("add-ward") || !getVal("add-price")) {
+            toast("Vui lòng điền đủ: Địa chỉ, Quận, Phường, Giá!", "error");
+            return;
+        }
 
-        if (!address || !district || !ward) return alert("Vui lòng nhập đủ Địa chỉ, Quận, Phường");
-
-        const priceRaw = getVal("add-price").replace(/\D/g,'');
-
-        // Tạo payload
+        const priceNum = parseInt(getVal("add-price").replace(/\D/g,''));
+        
         const payload = {
-            address: address,
+            address: getVal("add-address"),
+            district: getVal("add-district"),
+            ward: getVal("add-ward"),
             street: getVal("add-street"),
-            district: district,
-            ward: ward,
-            price: priceRaw ? parseInt(priceRaw) : 0,
-            area: getVal("add-area") || null,
-            width: getVal("add-width") || null,
-            length: getVal("add-length") || null,
-            floors: getVal("add-floors") || null,
-            pn: getVal("add-bedrooms") || null,
-            wc: getVal("add-wc") || null,
+            price: priceNum,
+            area: Number(getVal("add-area")) || null,
+            width: Number(getVal("add-width")) || null,
+            length: Number(getVal("add-length")) || null,
+            floors: Number(getVal("add-floors")) || null,
+            pn: Number(getVal("add-bedrooms")) || null,
+            wc: Number(getVal("add-wc")) || null,
+            ket_cau: getVal("add-ket-cau"),
             frontage: document.getElementById("add-frontage").checked,
             contact_phone: getVal("add-contact-phone"),
-            images: getVal("add-images").split('\n').filter(x => x),
+            commission_note: getVal("add-commission"),
+            images: getVal("add-images").split('\n').map(s=>s.trim()).filter(s=>s),
             detail: getVal("add-detail"),
             status: 'available'
-            // Lưu ý: Code, created_by, is_approved sẽ do Trigger SQL tự làm
+            // Code, created_by, is_approved: TỰ ĐỘNG BỞI DATABASE TRIGGER
         };
 
         const { error } = await supabase.from("premises").insert([payload]);
         if (error) {
-            alert("Lỗi: " + error.message);
+            toast("Lỗi: " + error.message, "error");
         } else {
             document.getElementById("addDlg").close();
-            alert(CURRENT_ROLE === 'admin' ? "Đã thêm thành công!" : "Đã gửi! Chờ Admin duyệt.");
+            toast(CURRENT_ROLE === 'admin' ? "Đăng thành công!" : "Đã gửi duyệt!", "success");
             loadPremises(true);
-            if (CURRENT_ROLE === 'admin') checkPendingCount();
+            if(CURRENT_ROLE === 'admin') checkPendingCount();
         }
     }
 
-    // --- ADMIN APPROVE ---
-    async function approvePremise(id) {
-        if (!confirm("Duyệt bài đăng này?")) return;
-        const { error } = await supabase.from("premises").update({ is_approved: true }).eq("id", id);
-        if (!error) {
-            alert("Đã duyệt!");
+    // ================== ADMIN PENDING LOGIC ==================
+    async function checkPendingCount() {
+        const { count } = await supabase.from("premises").select("*", { count: 'exact', head: true }).eq("is_approved", false);
+        const cnt = count || 0;
+        document.getElementById("count-pending").innerText = cnt;
+        
+        // Hiện/Ẩn nút Duyệt tất cả
+        const btnAll = document.getElementById("btn-approve-all");
+        if (SHOW_PENDING && cnt > 0) btnAll.classList.remove("hidden");
+        else btnAll.classList.add("hidden");
+    }
+
+    function togglePendingMode() {
+        SHOW_PENDING = !SHOW_PENDING;
+        const btn = document.getElementById("btn-pending");
+        if (SHOW_PENDING) {
+            btn.classList.replace("btn-warning", "btn-active");
+            btn.innerHTML = "Đang xem bài chờ duyệt (Thoát)";
+        } else {
+            btn.classList.replace("btn-active", "btn-warning");
+            btn.innerHTML = `Cần duyệt <span class="badge badge-sm bg-white text-warning border-none ml-1" id="count-pending">...</span>`;
+            checkPendingCount();
+        }
+        loadPremises(true);
+        checkPendingCount();
+    }
+
+    async function approveOne(id, e) {
+        e.stopPropagation(); // Tránh click vào card mở detail
+        if (!confirm("Duyệt bài này?")) return;
+        await supabase.from("premises").update({ is_approved: true }).eq("id", id);
+        toast("Đã duyệt!", "success");
+        loadPremises(true);
+        checkPendingCount();
+    }
+
+    async function approveAllPending() {
+        if (!confirm("Bạn chắc chắn muốn duyệt TẤT CẢ bài đang chờ?")) return;
+        
+        // Update tất cả dòng có is_approved = false
+        const { error } = await supabase.from("premises").update({ is_approved: true }).eq("is_approved", false);
+        
+        if (error) toast("Lỗi: " + error.message, "error");
+        else {
+            toast("Đã duyệt tất cả!", "success");
             loadPremises(true);
             checkPendingCount();
         }
     }
 
-    async function checkPendingCount() {
-        const { count } = await supabase.from("premises").select("*", { count: 'exact', head: true }).eq("is_approved", false);
-        document.getElementById("count-pending").innerText = count || 0;
-        if (count > 0) document.getElementById("btn-pending").classList.remove("hidden");
-    }
-    
-    // Helper format tiền khi nhập
-    function formatCurrencyInput(input) {
-        let val = input.value.replace(/\D/g, '');
-        if (val) input.value = new Intl.NumberFormat('vi-VN').format(val);
+    // ================== HELPERS ==================
+    function initDropdowns() {
+        // Quận
+        const distSel = document.getElementById("add-district");
+        const filterDist = document.getElementById("filter-district");
+        const dists = Object.keys(HCM_DATA).sort();
+        
+        const opts = dists.map(d => `<option value="${d}">${d}</option>`).join("");
+        distSel.innerHTML = `<option value="">-- Chọn Quận --</option>` + opts;
+        filterDist.innerHTML = `<option value="">Tất cả Quận</option>` + opts;
     }
 
+    function updateWardSelect(dist) {
+        const wardSel = document.getElementById("add-ward");
+        if(!dist || !HCM_DATA[dist]) {
+            wardSel.innerHTML = `<option value="">--</option>`;
+            wardSel.disabled = true;
+            return;
+        }
+        wardSel.disabled = false;
+        wardSel.innerHTML = HCM_DATA[dist].map(w => `<option value="${w}">${w}</option>`).join("");
+    }
+
+    function formatCurrencyInput(el) {
+        let val = el.value.replace(/\D/g, '');
+        if(val) el.value = new Intl.NumberFormat('vi-VN').format(val);
+    }
+
+    function toast(msg, type="info") {
+        const t = document.getElementById("toast");
+        const txt = document.getElementById("toast-text");
+        txt.innerHTML = `<span>${msg}</span>`;
+        
+        txt.className = `alert shadow-lg ${type==='error' ? 'alert-error' : type==='success' ? 'alert-success' : 'alert-info'}`;
+        
+        t.classList.remove("hidden");
+        setTimeout(() => t.classList.add("hidden"), 3000);
+    }
+    
     async function openDetail(id) {
-        // Bạn tự thêm lại code mở detail ở đây (lấy từ file cũ qua nếu cần, hoặc tôi viết lại sau)
-        alert("Mở chi tiết ID: " + id); 
+        const dlg = document.getElementById("detailDlg");
+        const content = document.getElementById("detail-content");
+        dlg.showModal();
+        content.innerHTML = `<div class="flex justify-center p-10"><span class="loading loading-spinner loading-lg"></span></div>`;
+        
+        const { data: item } = await supabase.from("premises").select("*, profiles(email)").eq("id", id).single();
+        if(!item) return;
+
+        // Render Detail (Rút gọn cho file này đỡ dài, bạn có thể custom thêm đẹp hơn)
+        content.innerHTML = `
+            <div class="grid md:grid-cols-2 gap-0 bg-base-100 min-h-[500px]">
+                <div class="bg-gray-100 flex items-center justify-center p-4">
+                     ${item.images && item.images.length ? `<img src="${item.images[0].startsWith('http')?item.images[0]:supabase.storage.from('premise-images').getPublicUrl(item.images[0]).data.publicUrl}" class="max-h-[400px] rounded shadow"/>` : 'Không ảnh'}
+                </div>
+                <div class="p-6 flex flex-col gap-3">
+                    <div class="badge badge-outline">${item.code || 'MB-NEW'}</div>
+                    <h2 class="text-2xl font-bold leading-tight">${item.address}</h2>
+                    <p class="text-sm opacity-70">${item.ward}, ${item.district}</p>
+                    
+                    <div class="text-3xl font-extrabold text-primary my-2">${new Intl.NumberFormat('vi-VN').format(item.price)} đ</div>
+                    
+                    <div class="grid grid-cols-2 gap-4 text-sm border-y py-4">
+                        <div>Diện tích: <b>${item.area}m²</b></div>
+                        <div>Kết cấu: <b>${item.ket_cau || '--'}</b></div>
+                        <div>Ngang: <b>${item.width || '--'}m</b></div>
+                        <div>Dài: <b>${item.length || '--'}m</b></div>
+                    </div>
+                    
+                    <div class="bg-base-200 p-3 rounded text-sm mt-2">
+                        <div class="font-bold mb-1">Mô tả:</div>
+                        <p class="whitespace-pre-line opacity-80">${item.detail || 'Không có mô tả'}</p>
+                    </div>
+                    
+                    ${CURRENT_ROLE === 'admin' ? `<div class="alert alert-warning text-xs mt-auto">Admin Note: ${item.commission_note||'None'} | Tel: ${item.contact_phone||'--'}</div>` : ''}
+                </div>
+            </div>
+        `;
     }
   </script>
 </body>
