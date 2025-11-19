@@ -1166,55 +1166,50 @@
     async function saveEditPremise() {
       if (!isAdmin() || !EDITING_ID) return;
 
-      const payload = {
-        code: document.getElementById("edit-code").value.trim() || null,
-        address: document.getElementById("edit-address").value.trim() || null,
-        city: document.getElementById("edit-city").value.trim() || null,
-        district: document.getElementById("edit-district").value.trim() || null,
-        ward: document.getElementById("edit-ward").value.trim() || null,
-        street: document.getElementById("edit-street").value.trim() || null,
-        price: Number(document.getElementById("edit-price").value) || null,
-        area: Number(document.getElementById("edit-area").value) || null,
-        width: Number(document.getElementById("edit-width").value) || null,
-        length: Number(document.getElementById("edit-length").value) || null,
-        floors: Number(document.getElementById("edit-floors").value) || null,
-        status: document.getElementById("edit-status").value,
-        frontage: document.getElementById("edit-frontage").checked,
-        commission_note:
-          document.getElementById("edit-commission").value.trim() || null,
-        detail: document.getElementById("edit-detail").value.trim() || null,
-        ket_cau: document.getElementById("edit-ket-cau").value.trim() || null,
-        updated_at: new Date().toISOString(),
-      };
+        const payload = {
+          code: document.getElementById("editCode").value.trim(),
+          address: document.getElementById("editAddress").value.trim(),
+          ward: document.getElementById("editWard").value.trim(),
+          district: document.getElementById("editDistrict").value.trim(),
+          structure: document.getElementById("editStructure").value.trim(),
+          pn: Number(document.getElementById("editPN").value || 0),
+          wc: Number(document.getElementById("editWC").value || 0),
+          floors: Number(document.getElementById("editFloors").value || 0),
+          area: Number(document.getElementById("editArea").value || 0),
+          frontage: document.getElementById("editFrontage").value.trim(),
+          price: Number(
+            document.getElementById("editPrice").value.toString().replace(/[^\d]/g, "")
+            || 0
+          ),
+          contact_phone: document.getElementById("editContact").value.trim(),
+          detail: document.getElementById("editMore").value,
+          updated_at: new Date().toISOString(),
+        };
 
-      const pn = Number(document.getElementById("edit-bedrooms").value) || null;
-      const wc = Number(document.getElementById("edit-wc").value) || null;
-      if (pn) payload.pn = pn;
-      if (wc) payload.wc = wc;
+        const matchCode = currentDetail.code;
+        const matchId   = currentDetail.id;
 
-      const rawImages = document
-        .getElementById("edit-images")
-        .value.split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      payload.images = rawImages.length ? rawImages : null;
+        let query = supabase.from("premises").update(payload);
 
-      const { error } = await supabase
-        .from("premises")
-        .update(payload)
-        .eq("id", EDITING_ID); // dùng id để tránh trùng code
+        if (matchCode) {
+          query = query.eq("code", matchCode);
+        } else if (matchId) {
+          query = query.eq("id", matchId);
+        }
 
-      if (error) {
-        console.error(error);
-        toast("Lưu thất bại: " + (error.message || "Lỗi không xác định"));
-        return;
+        const { error } = await query;
+
+        if (error) {
+          console.error(error);
+          alert("Lỗi khi lưu: " + error.message);
+          return;
+        }
+
+        alert("Đã lưu thay đổi!");
+        closeEditModal();
+        closeDetailModal();
+        loadPremises();
       }
-
-      toast("Đã lưu thay đổi");
-      document.getElementById("editDlg").close();
-      EDITING_ID = null;
-      await applyFilters(true);
-    }
 
     // ===== EVENTS =====
     document.addEventListener("DOMContentLoaded", () => {
