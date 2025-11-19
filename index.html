@@ -124,6 +124,7 @@
             <h2 class="font-semibold text-sm">Bộ lọc</h2>
           </div>
 
+          <!-- Từ khoá -->
           <div class="form-control mb-3">
             <label class="label">
               <span class="label-text text-xs">Từ khoá</span>
@@ -136,6 +137,7 @@
             />
           </div>
 
+          <!-- Quận / Phường -->
           <div class="form-control mb-3">
             <label class="label">
               <span class="label-text text-xs">Quận</span>
@@ -154,6 +156,70 @@
             </select>
           </div>
 
+          <!-- PN / WC / Tầng -->
+          <div class="grid grid-cols-1 gap-2 mb-3">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">Số PN</span>
+              </label>
+              <select id="filter-pn" class="select select-sm select-bordered">
+                <option value="">Tất cả</option>
+                <option value="1">1 PN</option>
+                <option value="2">2 PN</option>
+                <option value="3">3 PN</option>
+                <option value="4">4 PN</option>
+                <option value="5">5 PN</option>
+                <option value="6">6 PN</option>
+                <option value="7">7 PN</option>
+                <option value="8">8 PN</option>
+                <option value="9">9 PN</option>
+                <option value="10">10 PN</option>
+                <option value=">10">&gt; 10 PN</option>
+              </select>
+            </div>
+
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">Số WC</span>
+              </label>
+              <select id="filter-wc" class="select select-sm select-bordered">
+                <option value="">Tất cả</option>
+                <option value="1">1 WC</option>
+                <option value="2">2 WC</option>
+                <option value="3">3 WC</option>
+                <option value="4">4 WC</option>
+                <option value="5">5 WC</option>
+                <option value="6">6 WC</option>
+                <option value="7">7 WC</option>
+                <option value="8">8 WC</option>
+                <option value="9">9 WC</option>
+                <option value="10">10 WC</option>
+                <option value=">10">&gt; 10 WC</option>
+              </select>
+            </div>
+
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">Số tầng</span>
+              </label>
+              <select id="filter-floors" class="select select-sm select-bordered">
+                <option value="">Tất cả</option>
+                <option value="1">1 tầng</option>
+                <option value="2">2 tầng</option>
+                <option value="3">3 tầng</option>
+                <option value="4">4 tầng</option>
+                <option value="5">5 tầng</option>
+                <option value="6">6 tầng</option>
+                <option value="7">7 tầng</option>
+                <option value="8">8 tầng</option>
+                <option value="9">9 tầng</option>
+                <option value="10">10 tầng</option>
+                <option value=">10">&gt; 10 tầng</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Giá / Diện tích -->
           <div class="grid grid-cols-2 gap-2 mb-3">
             <div class="form-control">
               <label class="label">
@@ -200,16 +266,20 @@
             </div>
           </div>
 
+          <!-- Mặt tiền / Hẻm -->
           <div class="form-control mb-3">
             <label class="label">
-              <span class="label-text text-xs">Mặt tiền</span>
+              <span class="label-text text-xs">Vị trí</span>
             </label>
-            <select id="filter-frontage" class="select select-sm select-bordered">
+            <select id="filter-frontage-type" class="select select-sm select-bordered">
               <option value="">Tất cả</option>
-              <option value="1">Chỉ mặt tiền</option>
+              <option value="hem">Nhà hẻm</option>
+              <option value="hxh">Hẻm xe hơi</option>
+              <option value="mt">Mặt tiền</option>
             </select>
           </div>
 
+          <!-- Trạng thái -->
           <div class="form-control mb-4">
             <label class="label">
               <span class="label-text text-xs">Tình trạng</span>
@@ -222,6 +292,7 @@
             </select>
           </div>
 
+          <!-- Buttons -->
           <div class="flex gap-2">
             <button id="btn-apply" class="btn btn-sm btn-primary flex-1">
               Lọc
@@ -527,7 +598,10 @@
         priceMax: Number(document.getElementById("filter-price-max").value) || null,
         areaMin: Number(document.getElementById("filter-area-min").value) || null,
         areaMax: Number(document.getElementById("filter-area-max").value) || null,
-        frontage: document.getElementById("filter-frontage").value,
+        pn: document.getElementById("filter-pn").value,
+        wc: document.getElementById("filter-wc").value,
+        floors: document.getElementById("filter-floors").value,
+        frontageType: document.getElementById("filter-frontage-type").value,
         status: document.getElementById("filter-status").value,
       };
     }
@@ -535,7 +609,20 @@
     async function applyFilters(resetPage = false) {
       if (resetPage) PAGE = 0;
 
-      const { keyword, district, ward, priceMin, priceMax, areaMin, areaMax, frontage, status } = getFilterValues();
+      const {
+        keyword,
+        district,
+        ward,
+        priceMin,
+        priceMax,
+        areaMin,
+        areaMax,
+        pn,
+        wc,
+        floors,
+        frontageType,
+        status,
+      } = getFilterValues();
 
       let query = supabase
         .from("premises")
@@ -556,11 +643,46 @@
       if (district) query = query.eq("district", district);
       if (ward) query = query.eq("ward", ward);
       if (status) query = query.eq("status", status);
-      if (frontage === "1") query = query.eq("frontage", true);
+
       if (priceMin != null) query = query.gte("price", priceMin);
       if (priceMax != null) query = query.lte("price", priceMax);
       if (areaMin != null) query = query.gte("area", areaMin);
       if (areaMax != null) query = query.lte("area", areaMax);
+
+      // PN
+      if (pn) {
+        if (pn === ">10") {
+          query = query.gt("pn", 10);
+        } else {
+          const n = parseInt(pn, 10);
+          if (!isNaN(n)) query = query.eq("pn", n);
+        }
+      }
+
+      // WC
+      if (wc) {
+        if (wc === ">10") {
+          query = query.gt("wc", 10);
+        } else {
+          const n = parseInt(wc, 10);
+          if (!isNaN(n)) query = query.eq("wc", n);
+        }
+      }
+
+      // Floors
+      if (floors) {
+        if (floors === ">10") {
+          query = query.gt("floors", 10);
+        } else {
+          const n = parseInt(floors, 10);
+          if (!isNaN(n)) query = query.eq("floors", n);
+        }
+      }
+
+      // Mặt tiền (chỉ lọc ngay trên DB với nhà mặt tiền)
+      if (frontageType === "mt") {
+        query = query.eq("frontage", true);
+      }
 
       const from = PAGE * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
@@ -577,8 +699,31 @@
         return;
       }
 
-      LAST_ROWS = data || [];
-      TOTAL_COUNT = count || 0;
+      let rows = data || [];
+
+      // Lọc thêm theo Hẻm / HXH trên client
+      if (frontageType === "hem" || frontageType === "hxh") {
+        rows = rows.filter((row) => {
+          const isFront = row.frontage === true;
+          const txt = ((row.address || "") + " " + (row.detail || "")).toLowerCase();
+
+          if (frontageType === "hxh") {
+            if (isFront) return false;
+            return txt.includes("hxh") || txt.includes("hẻm xe hơi");
+          }
+
+          if (frontageType === "hem") {
+            if (isFront) return false;
+            if (txt.includes("hxh") || txt.includes("hẻm xe hơi")) return false;
+            return true;
+          }
+
+          return true;
+        });
+      }
+
+      LAST_ROWS = rows;
+      TOTAL_COUNT = count || rows.length;
 
       if (PAGE === 0) {
         renderCards(LAST_ROWS, true);
@@ -1089,7 +1234,10 @@
         document.getElementById("filter-price-max").value = "";
         document.getElementById("filter-area-min").value = "";
         document.getElementById("filter-area-max").value = "";
-        document.getElementById("filter-frontage").value = "";
+        document.getElementById("filter-pn").value = "";
+        document.getElementById("filter-wc").value = "";
+        document.getElementById("filter-floors").value = "";
+        document.getElementById("filter-frontage-type").value = "";
         document.getElementById("filter-status").value = "";
         applyFilters(true);
       });
