@@ -1164,35 +1164,79 @@
     }
 
     async function saveEditPremise() {
-      if (!isAdmin() || !EDITING_ID) return;
+      // 1. Kiểm tra quyền và ID đang sửa
+      if (!isAdmin() || !EDITING_ID) {
+        toast("Lỗi: Không có quyền hoặc chưa chọn mặt bằng!");
+        return;
+      }
 
-      // Lấy giá trị từ đúng ID trong HTML
-      const getVal = (id) => document.getElementById(id).value.trim();
-      const getNum = (id) => Number(document.getElementById(id).value.replace(/[^\d.]/g, "")) || 0;
+      // Helper để lấy value an toàn (tránh lỗi null)
+      const getVal = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.value.trim() : "";
+      };
+      
+      // Helper để lấy số (nếu rỗng thì trả về 0 hoặc null)
+      const getNum = (id) => {
+        const val = getVal(id).replace(/[^\d.]/g, "");
+        return val ? Number(val) : 0;
+      };
 
+      // 2. Thu thập dữ liệu từ form (Đã sửa lại ID cho khớp với HTML)
       const payload = {
-        code: getVal("edit-code"),
-        address: getVal("edit-address"),
+        code: getVal("edit-code"),           // Sửa từ editCode -> edit-code
+        address: getVal("edit-address"),     // Sửa từ editAddress -> edit-address
         city: getVal("edit-city"),
         district: getVal("edit-district"),
         ward: getVal("edit-ward"),
         street: getVal("edit-street"),
+        
         price: getNum("edit-price"),
         area: getNum("edit-area"),
         width: getNum("edit-width"),
         length: getNum("edit-length"),
         floors: getNum("edit-floors"),
-        pn: getNum("edit-bedrooms"), // Map edit-bedrooms -> pn
-        wc: getNum("edit-wc"),
-        ket_cau: getVal("edit-ket-cau"),
-        frontage: document.getElementById("edit-frontage").checked,
+        
+        pn: getNum("edit-bedrooms"),         // HTML id là edit-bedrooms
+        wc: getNum("edit-wc"),               // HTML id là edit-wc
+        ket_cau: getVal("edit-ket-cau"),     // Sửa từ editStructure -> edit-ket-cau
+        
+        frontage: document.getElementById("edit-frontage").checked, // Checkbox
         status: getVal("edit-status"),
         commission_note: getVal("edit-commission"),
-        // Tách dòng thành mảng ảnh
+        
+        // Xử lý danh sách ảnh
         images: getVal("edit-images").split("\n").map(s => s.trim()).filter(Boolean),
-        detail: getVal("edit-detail"),
+        
+        detail: getVal("edit-detail"),       // Sửa từ editMore -> edit-detail
+        
         updated_at: new Date().toISOString(),
       };
+
+      // Lưu ý: Bỏ qua contact_phone vì trong HTML editDlg không có ô nhập liệu này.
+      // Nếu muốn sửa sđt, bạn cần thêm <input id="edit-contact"> vào HTML trước.
+
+      // 3. Gửi lệnh Update lên Supabase
+      // Sửa lỗi logic cũ: Dùng trực tiếp EDITING_ID thay vì biến currentDetail không tồn tại
+      const { error } = await supabase
+        .from("premises")
+        .update(payload)
+        .eq("id", EDITING_ID);
+
+      // 4. Kiểm tra kết quả
+      if (error) {
+        console.error("Lỗi Supabase:", error);
+        toast("Lỗi khi lưu: " + error.message);
+        return;
+      }
+
+      // 5. Thành công
+      toast("Đã lưu thay đổi thành công!");
+      document.getElementById("editDlg").close();
+      
+      // Tải lại danh sách để thấy dữ liệu mới
+      await applyFilters(false); 
+    }
 
       // Update dựa trên ID (chắc chắn nhất)
       const { error } = await supabase
