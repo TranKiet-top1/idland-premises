@@ -738,20 +738,41 @@ MB0001/2.jpg"></textarea>
         const floorsVal = pickField(row, ["floors"]);
         const updatedLabel = formatDateVN(row.updated_at || row.created_at);
 
+        // --- LOGIC MỚI: TẠO BADGE VỊ TRÍ ---
+        let locationBadge = "";
+        if (row.frontage === true) {
+            // Màu đỏ cho Mặt tiền
+            locationBadge = `<span class="badge badge-xs badge-error text-white border-none">Mặt tiền</span>`;
+        } else {
+            // Kiểm tra text để xem có phải HXH không
+            const fullText = ((row.address || "") + " " + (row.detail || "") + " " + (row.ket_cau || "")).toLowerCase();
+            if (fullText.includes("hxh") || fullText.includes("hẻm xe hơi") || fullText.includes("xe tải")) {
+                // Màu xanh dương cho Hẻm xe hơi
+                locationBadge = `<span class="badge badge-xs badge-info text-white border-none">Hẻm xe hơi</span>`;
+            } else {
+                // Màu xám cho Hẻm thường (hoặc bạn có thể để trống nếu không muốn hiện hẻm thường)
+                locationBadge = `<span class="badge badge-xs badge-ghost border-none opacity-70">Nhà hẻm</span>`;
+            }
+        }
+        // -----------------------------------
+
         return `
           <article class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden" data-id="${row.id}">
-            <figure class="h-52 bg-base-200 flex items-center justify-center">
+            <figure class="h-52 bg-base-200 flex items-center justify-center relative">
               ${
                 imgUrl
                   ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
                   : `<div class="text-xs opacity-60">(Không có ảnh)</div>`
               }
-            </figure>
+              </figure>
             <div class="card-body p-4 gap-2">
               <h3 class="font-semibold text-sm line-clamp-2">${maskAddress(row)}</h3>
-              <div class="text-[11px] opacity-70">
-                ${[row.ward, row.district].filter(Boolean).join(" • ")}
+              
+              <div class="flex items-center flex-wrap gap-2 text-[11px] opacity-70">
+                <span>${[row.ward, row.district].filter(Boolean).join(" • ")}</span>
+                ${locationBadge} 
               </div>
+
               <div class="flex flex-wrap items-center gap-2 text-[11px] mt-1">
                 ${row.area ? `<span>${row.area} m²</span>` : ""}
                 ${
