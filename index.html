@@ -5,14 +5,12 @@
   <title>ID-Land Premises</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Tailwind + DaisyUI -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link
     href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css"
     rel="stylesheet"
   />
 
-  <!-- Supabase JS v2 -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
@@ -27,12 +25,11 @@
 </head>
 <body class="bg-base-200">
 
-  <!-- ======== AUTH SECTION (LOGIN) ======== -->
   <section id="auth-section" class="min-h-screen flex items-center justify-center">
     <div class="card w-full max-w-md bg-base-100 shadow-xl">
       <div class="card-body">
         <div class="flex items-center gap-2 mb-4">
-          <img src="logo.png" class="h-10 w-auto rounded-xl" alt="ID-Land" />
+          <div class="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white font-bold">ID</div>
           <div>
             <h2 class="card-title">ID-Land Premises</h2>
             <p class="text-xs opacity-70">Đăng nhập để xem kho mặt bằng</p>
@@ -65,12 +62,10 @@
     </div>
   </section>
 
-  <!-- ======== APP SECTION ======== -->
   <div id="app-root" class="hidden min-h-screen flex flex-col">
-    <!-- NAVBAR -->
     <div class="navbar bg-base-100 shadow-sm px-4">
       <div class="flex-1 flex items-center gap-2">
-        <img src="logo.png" class="h-9 w-auto rounded-xl" alt="ID-Land" />
+        <div class="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xs">ID</div>
         <div>
           <div class="font-bold text-lg leading-tight">ID-Land Premises</div>
           <div class="text-xs opacity-60">Kho mặt bằng cho thuê • TP.HCM</div>
@@ -82,9 +77,7 @@
       </div>
     </div>
 
-    <!-- CONTENT -->
     <main class="flex-1 max-w-6xl mx-auto w-full px-2 sm:px-4 py-4">
-      <!-- Header + actions -->
       <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h1 class="text-xl sm:text-2xl font-bold">
@@ -92,7 +85,7 @@
           </h1>
           <p class="text-xs sm:text-sm opacity-70">
             Nhân sự chỉ cần nhập yêu cầu của khách: <b>giá – diện tích – khu vực – mặt tiền – số PN/WC/tầng</b>,
-            bộ lọc sẽ trả về danh sách mặt bằng phù hợp kèm hình ảnh &amp; Google Maps.
+            bộ lọc sẽ trả về danh sách mặt bằng phù hợp kèm hình ảnh & Google Maps.
           </p>
         </div>
 
@@ -103,7 +96,6 @@
         </div>
       </div>
 
-      <!-- Quick filters -->
       <div class="flex flex-wrap items-center gap-2 mb-3">
         <span class="text-xs opacity-70">Lọc nhanh:</span>
         <button class="btn btn-xs" data-quick="available">Còn trống</button>
@@ -115,16 +107,13 @@
         </button>
       </div>
 
-      <!-- Filters & list -->
       <div class="grid md:grid-cols-[260px,1fr] gap-4">
-        <!-- FILTER PANEL -->
         <aside class="bg-base-100 rounded-2xl shadow-sm p-4">
           <div class="flex items-center gap-2 mb-3">
             <span class="w-2 h-2 rounded-full bg-success"></span>
             <h2 class="font-semibold text-sm">Bộ lọc</h2>
           </div>
 
-          <!-- Từ khoá -->
           <div class="form-control mb-3">
             <label class="label">
               <span class="label-text text-xs">Từ khoá</span>
@@ -137,7 +126,6 @@
             />
           </div>
 
-          <!-- Quận / Phường -->
           <div class="form-control mb-3">
             <label class="label">
               <span class="label-text text-xs">Quận</span>
@@ -156,7 +144,6 @@
             </select>
           </div>
 
-          <!-- PN / WC / Tầng -->
           <div class="grid grid-cols-1 gap-2 mb-3">
             <div class="form-control">
               <label class="label">
@@ -170,11 +157,7 @@
                 <option value="4">4 PN</option>
                 <option value="5">5 PN</option>
                 <option value="6">6 PN</option>
-                <option value="7">7 PN</option>
-                <option value="8">8 PN</option>
-                <option value="9">9 PN</option>
-                <option value="10">10 PN</option>
-                <option value=">10">&gt; 10 PN</option>
+                <option value=">6">> 6 PN</option>
               </select>
             </div>
 
@@ -189,12 +172,7 @@
                 <option value="3">3 WC</option>
                 <option value="4">4 WC</option>
                 <option value="5">5 WC</option>
-                <option value="6">6 WC</option>
-                <option value="7">7 WC</option>
-                <option value="8">8 WC</option>
-                <option value="9">9 WC</option>
-                <option value="10">10 WC</option>
-                <option value=">10">&gt; 10 WC</option>
+                <option value=">5">> 5 WC</option>
               </select>
             </div>
 
@@ -209,17 +187,11 @@
                 <option value="3">3 tầng</option>
                 <option value="4">4 tầng</option>
                 <option value="5">5 tầng</option>
-                <option value="6">6 tầng</option>
-                <option value="7">7 tầng</option>
-                <option value="8">8 tầng</option>
-                <option value="9">9 tầng</option>
-                <option value="10">10 tầng</option>
-                <option value=">10">&gt; 10 tầng</option>
+                <option value=">5">> 5 tầng</option>
               </select>
             </div>
           </div>
 
-          <!-- Giá / Diện tích -->
           <div class="grid grid-cols-2 gap-2 mb-3">
             <div class="form-control">
               <label class="label">
@@ -266,7 +238,6 @@
             </div>
           </div>
 
-          <!-- Mặt tiền / Hẻm -->
           <div class="form-control mb-3">
             <label class="label">
               <span class="label-text text-xs">Vị trí</span>
@@ -279,7 +250,6 @@
             </select>
           </div>
 
-          <!-- Trạng thái -->
           <div class="form-control mb-4">
             <label class="label">
               <span class="label-text text-xs">Tình trạng</span>
@@ -292,7 +262,6 @@
             </select>
           </div>
 
-          <!-- Buttons -->
           <div class="flex gap-2">
             <button id="btn-apply" class="btn btn-sm btn-primary flex-1">
               Lọc
@@ -303,23 +272,18 @@
           </div>
         </aside>
 
-        <!-- LIST PANEL -->
         <section class="flex flex-col gap-3">
           <div class="flex items-center justify-between mb-1 text-xs opacity-70">
             <span>
               Hiển thị <span id="count-show">0</span> / <span id="count-total">0</span>
             </span>
-            <button
-              id="btn-download-csv"
-              class="btn btn-xs btn-ghost"
-            >
+            <button id="btn-download-csv" class="btn btn-xs btn-ghost">
               Tải CSV trên Supabase
             </button>
           </div>
 
           <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- cards here -->
-          </div>
+            </div>
 
           <div class="mt-4 flex justify-center">
             <button id="btn-load-more" class="btn btn-sm btn-ghost">
@@ -331,7 +295,6 @@
     </main>
   </div>
 
-  <!-- ===== DETAIL DIALOG ===== -->
   <dialog id="detailDlg" class="modal">
     <div class="modal-box max-w-5xl p-4">
       <form method="dialog" class="modal-backdrop absolute inset-0" onclick="document.getElementById('detailDlg').close()"></form>
@@ -339,7 +302,6 @@
     </div>
   </dialog>
 
-  <!-- ===== EDIT DIALOG (ADMIN) ===== -->
   <dialog id="editDlg" class="modal">
     <div class="modal-box max-w-4xl">
       <form method="dialog" class="modal-backdrop absolute inset-0" onclick="document.getElementById('editDlg').close()"></form>
@@ -417,6 +379,11 @@
           <label class="label"><span class="label-text">Kết cấu</span></label>
           <input id="edit-ket-cau" type="text" class="input input-bordered w-full" placeholder="VD: Trệt 3 lầu, trống suốt…" />
         </div>
+        
+        <div class="form-control md:col-span-2">
+            <label class="label"><span class="label-text">SĐT Chủ nhà (Chỉ Admin thấy)</span></label>
+            <input id="edit-contact-phone" type="text" class="input input-bordered w-full" placeholder="090..." />
+        </div>
 
         <div class="form-control flex items-center gap-2 mt-2">
           <input id="edit-frontage" type="checkbox" class="checkbox" />
@@ -439,7 +406,8 @@
 
         <div class="form-control md:col-span-2">
           <label class="label"><span class="label-text">Danh sách ảnh (mỗi dòng 1 path)</span></label>
-          <textarea id="edit-images" class="textarea textarea-bordered w-full min-h-[80px]" placeholder="VD: MB0001/1.jpg&#10;MB0001/2.jpg"></textarea>
+          <textarea id="edit-images" class="textarea textarea-bordered w-full min-h-[80px]" placeholder="VD: MB0001/1.jpg
+MB0001/2.jpg"></textarea>
           <label class="label">
             <span class="label-text-alt text-xs opacity-70">
               Path bắt đầu từ bucket storage, ví dụ: <code>MB0001/1.jpg</code>
@@ -460,7 +428,6 @@
     </div>
   </dialog>
 
-  <!-- ===== TOAST ===== -->
   <div id="toast" class="toast toast-end z-50 hidden">
     <div class="alert alert-info text-sm" id="toast-text"></div>
   </div>
@@ -651,8 +618,8 @@
 
       // PN
       if (pn) {
-        if (pn === ">10") {
-          query = query.gt("pn", 10);
+        if (pn.includes(">")) {
+          query = query.gt("pn", parseInt(pn.replace(">","")));
         } else {
           const n = parseInt(pn, 10);
           if (!isNaN(n)) query = query.eq("pn", n);
@@ -661,8 +628,8 @@
 
       // WC
       if (wc) {
-        if (wc === ">10") {
-          query = query.gt("wc", 10);
+        if (wc.includes(">")) {
+          query = query.gt("wc", parseInt(wc.replace(">","")));
         } else {
           const n = parseInt(wc, 10);
           if (!isNaN(n)) query = query.eq("wc", n);
@@ -671,8 +638,8 @@
 
       // Floors
       if (floors) {
-        if (floors === ">10") {
-          query = query.gt("floors", 10);
+        if (floors.includes(">")) {
+          query = query.gt("floors", parseInt(floors.replace(">","")));
         } else {
           const n = parseInt(floors, 10);
           if (!isNaN(n)) query = query.eq("floors", n);
@@ -1140,6 +1107,9 @@
       const wcVal = pickField(item, ["wc", "bathrooms"]);
       document.getElementById("edit-bedrooms").value = pnVal || "";
       document.getElementById("edit-wc").value = wcVal || "";
+      
+      // ĐIỀN SĐT Chủ nhà (MỚI THÊM)
+      document.getElementById("edit-contact-phone").value = item.contact_phone || "";
 
       document.getElementById("edit-ket-cau").value = item.ket_cau || "";
 
@@ -1163,29 +1133,26 @@
       document.getElementById("editDlg").showModal();
     }
 
+    // ===== HÀM SAVE ĐÃ ĐƯỢC SỬA LỖI =====
     async function saveEditPremise() {
-      // 1. Kiểm tra quyền và ID đang sửa
       if (!isAdmin() || !EDITING_ID) {
         toast("Lỗi: Không có quyền hoặc chưa chọn mặt bằng!");
         return;
       }
 
-      // Helper để lấy value an toàn (tránh lỗi null)
       const getVal = (id) => {
         const el = document.getElementById(id);
         return el ? el.value.trim() : "";
       };
       
-      // Helper để lấy số (nếu rỗng thì trả về 0 hoặc null)
       const getNum = (id) => {
         const val = getVal(id).replace(/[^\d.]/g, "");
         return val ? Number(val) : 0;
       };
 
-      // 2. Thu thập dữ liệu từ form (Đã sửa lại ID cho khớp với HTML)
       const payload = {
-        code: getVal("edit-code"),           // Sửa từ editCode -> edit-code
-        address: getVal("edit-address"),     // Sửa từ editAddress -> edit-address
+        code: getVal("edit-code"),
+        address: getVal("edit-address"),
         city: getVal("edit-city"),
         district: getVal("edit-district"),
         ward: getVal("edit-ward"),
@@ -1197,64 +1164,39 @@
         length: getNum("edit-length"),
         floors: getNum("edit-floors"),
         
-        pn: getNum("edit-bedrooms"),         // HTML id là edit-bedrooms
-        wc: getNum("edit-wc"),               // HTML id là edit-wc
-        ket_cau: getVal("edit-ket-cau"),     // Sửa từ editStructure -> edit-ket-cau
+        pn: getNum("edit-bedrooms"),
+        wc: getNum("edit-wc"),
+        ket_cau: getVal("edit-ket-cau"),
         
-        frontage: document.getElementById("edit-frontage").checked, // Checkbox
+        // Lấy SĐT chủ nhà từ ô input mới thêm
+        contact_phone: getVal("edit-contact-phone"),
+        
+        frontage: document.getElementById("edit-frontage").checked,
         status: getVal("edit-status"),
         commission_note: getVal("edit-commission"),
         
-        // Xử lý danh sách ảnh
         images: getVal("edit-images").split("\n").map(s => s.trim()).filter(Boolean),
         
-        detail: getVal("edit-detail"),       // Sửa từ editMore -> edit-detail
-        
+        detail: getVal("edit-detail"),
         updated_at: new Date().toISOString(),
       };
 
-      // Lưu ý: Bỏ qua contact_phone vì trong HTML editDlg không có ô nhập liệu này.
-      // Nếu muốn sửa sđt, bạn cần thêm <input id="edit-contact"> vào HTML trước.
-
-      // 3. Gửi lệnh Update lên Supabase
-      // Sửa lỗi logic cũ: Dùng trực tiếp EDITING_ID thay vì biến currentDetail không tồn tại
       const { error } = await supabase
         .from("premises")
         .update(payload)
         .eq("id", EDITING_ID);
 
-      // 4. Kiểm tra kết quả
       if (error) {
         console.error("Lỗi Supabase:", error);
         toast("Lỗi khi lưu: " + error.message);
         return;
       }
 
-      // 5. Thành công
       toast("Đã lưu thay đổi thành công!");
       document.getElementById("editDlg").close();
       
-      // Tải lại danh sách để thấy dữ liệu mới
+      // Refresh lại list
       await applyFilters(false); 
-    }
-
-      // Update dựa trên ID (chắc chắn nhất)
-      const { error } = await supabase
-        .from("premises")
-        .update(payload)
-        .eq("id", EDITING_ID);
-
-      if (error) {
-        console.error(error);
-        toast("Lỗi khi lưu: " + error.message);
-        return;
-      }
-
-      toast("Đã lưu thay đổi!");
-      document.getElementById("editDlg").close();
-      
-      // Refresh lại list để thấy thay đổi
-      await applyFilters(false);
     }
 
     // ===== EVENTS =====
