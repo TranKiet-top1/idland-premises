@@ -1166,50 +1166,52 @@
     async function saveEditPremise() {
       if (!isAdmin() || !EDITING_ID) return;
 
-        const payload = {
-          code: document.getElementById("editCode").value.trim(),
-          address: document.getElementById("editAddress").value.trim(),
-          ward: document.getElementById("editWard").value.trim(),
-          district: document.getElementById("editDistrict").value.trim(),
-          structure: document.getElementById("editStructure").value.trim(),
-          pn: Number(document.getElementById("editPN").value || 0),
-          wc: Number(document.getElementById("editWC").value || 0),
-          floors: Number(document.getElementById("editFloors").value || 0),
-          area: Number(document.getElementById("editArea").value || 0),
-          frontage: document.getElementById("editFrontage").value.trim(),
-          price: Number(
-            document.getElementById("editPrice").value.toString().replace(/[^\d]/g, "")
-            || 0
-          ),
-          contact_phone: document.getElementById("editContact").value.trim(),
-          detail: document.getElementById("editMore").value,
-          updated_at: new Date().toISOString(),
-        };
+      // Lấy giá trị từ đúng ID trong HTML
+      const getVal = (id) => document.getElementById(id).value.trim();
+      const getNum = (id) => Number(document.getElementById(id).value.replace(/[^\d.]/g, "")) || 0;
 
-        const matchCode = currentDetail.code;
-        const matchId   = currentDetail.id;
+      const payload = {
+        code: getVal("edit-code"),
+        address: getVal("edit-address"),
+        city: getVal("edit-city"),
+        district: getVal("edit-district"),
+        ward: getVal("edit-ward"),
+        street: getVal("edit-street"),
+        price: getNum("edit-price"),
+        area: getNum("edit-area"),
+        width: getNum("edit-width"),
+        length: getNum("edit-length"),
+        floors: getNum("edit-floors"),
+        pn: getNum("edit-bedrooms"), // Map edit-bedrooms -> pn
+        wc: getNum("edit-wc"),
+        ket_cau: getVal("edit-ket-cau"),
+        frontage: document.getElementById("edit-frontage").checked,
+        status: getVal("edit-status"),
+        commission_note: getVal("edit-commission"),
+        // Tách dòng thành mảng ảnh
+        images: getVal("edit-images").split("\n").map(s => s.trim()).filter(Boolean),
+        detail: getVal("edit-detail"),
+        updated_at: new Date().toISOString(),
+      };
 
-        let query = supabase.from("premises").update(payload);
+      // Update dựa trên ID (chắc chắn nhất)
+      const { error } = await supabase
+        .from("premises")
+        .update(payload)
+        .eq("id", EDITING_ID);
 
-        if (matchCode) {
-          query = query.eq("code", matchCode);
-        } else if (matchId) {
-          query = query.eq("id", matchId);
-        }
-
-        const { error } = await query;
-
-        if (error) {
-          console.error(error);
-          alert("Lỗi khi lưu: " + error.message);
-          return;
-        }
-
-        alert("Đã lưu thay đổi!");
-        closeEditModal();
-        closeDetailModal();
-        loadPremises();
+      if (error) {
+        console.error(error);
+        toast("Lỗi khi lưu: " + error.message);
+        return;
       }
+
+      toast("Đã lưu thay đổi!");
+      document.getElementById("editDlg").close();
+      
+      // Refresh lại list để thấy thay đổi
+      await applyFilters(false);
+    }
 
     // ===== EVENTS =====
     document.addEventListener("DOMContentLoaded", () => {
