@@ -983,103 +983,247 @@ async function handleLogin() {
       wrap.innerHTML = `<div class="py-10 text-center text-sm opacity-70">Đang tải...</div>`;
       dlg.showModal();
 
-      const { data, error } = await supabase.from("premises").select("*").eq("id", id).single();
+      const { data, error } = await supabase
+        .from("premises")
+        .select("*")
+        .eq("id", id)
+        .single();
+
       if (error || !data) {
+        console.error(error);
         wrap.innerHTML = `<div class="py-10 text-center text-sm text-error">Không tải được dữ liệu.</div>`;
         return;
       }
+
       const item = data;
+
+      // ===== LẤY THÔNG TIN CƠ BẢN =====
       const pnVal = pickField(item, ["pn", "so_pn", "bedrooms", "rooms"]);
       const wcVal = pickField(item, ["wc", "bathrooms"]);
       const floorsVal = pickField(item, ["floors"]);
-      const detailText = pickField(item, ["detail", "thong_tin_chi_tiet", "chi_tiet", "description", "info_detail"]) || "";
-      const imgs = Array.isArray(item.images) ? item.images : [];
-      const imgUrls = imgs.map(buildImageUrl).filter(Boolean);
-      const firstImg = imgUrls[0] || null;
+      const detailText =
+        pickField(item, [
+          "detail",
+          "thong_tin_chi_tiet",
+          "chi_tiet",
+          "description",
+          "info_detail",
+        ]) || "";
+
       const updatedLabel = formatDateVN(item.updated_at || item.created_at);
+      const price =
+        typeof item.price === "number"
+          ? new Intl.NumberFormat("vi-VN").format(item.price) + " đ/tháng"
+          : "";
+      const area =
+        typeof item.area === "number" ? item.area + " m²" : "";
+      const address =
+        item.address ||
+        [item.street, item.ward, item.district, item.city]
+          .filter(Boolean)
+          .join(", ");
 
-      // Map Embed
-      const mapsQuery = encodeURIComponent([item.address, item.ward, item.district, item.city].filter(Boolean).join(", "));
-      const mapEmbed = `<iframe class="w-full h-64 border-0 rounded-xl" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=${mapsQuery}&output=embed"></iframe>`;
+      // ===== XỬ LÝ HÌNH ẢNH: ARRAY / JSON / CHUỖI NGĂN CÁCH ; , \n =====
+      let rawImgs = item.images;
+      let imgPaths = [];
 
+      if (Array.isArray(rawImgs)) {
+        imgPaths = rawImgs;
+      } else if (typeof rawImgs === "string" && rawImgs.trim()) {
+        const s = rawImgs.trim();
+        try {
+          if (s.startsWith("[") && s.endsWith("]")) {
+            const parsed = JSON.parse(s);
+            if (Array.isArray(parsed)) imgPaths = parsed;
+          } else {
+            imgPaths = s.split(/[\n;,]+/);
+          }
+        } catch (e) {
+          console.warn("parse images error", e);
+          imgPaths = s.split(/[\n;,]+/);
+        }
+      }
+
+      const imgUrls = imgPaths
+        .map((p) => buildImageUrl(p))
+        .filter(Boolean);
+
+      // ===== MAP EMBED =====
+      const mapsQuery = encodeURIComponent(
+        [item.address, item.ward, item.district, item.city]
+          .filter(Boolean)
+          .join(", ")
+      );
+      const mapEmbed = `
+        <iframe
+          class="w-full h-64 border-0 rounded-xl"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          src="https://www.google.com/maps?q=${mapsQuery}&output=embed">
+        </iframe>
+      `;
+
+      // ===== ACTION BUTTONS =====
       const actions = `
-        <div class="join join-horizontal">
-          ${item.contact_phone && !isStaff() ? `<a class="btn btn-primary btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>` : ""}
-          ${item.contact_phone && !isStaff() ? `<a class="btn btn-sm join-item" target="_blank" href="https://zalo.me/${(item.contact_phone || "").replace(/[^0-9]/g, "")}">Zalo</a>` : ""}
-          <a class="btn btn-sm join-item" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Mở Map</a>
-          <button class="btn btn-sm join-item" onclick="navigator.clipboard.writeText(location.origin + location.pathname + '#'+encodeURIComponent('${id}'));toast('Đã copy link')">Copy Link</button>
-          ${isAdmin() ? `<button class="btn btn-outline btn-sm join-item" onclick="openEditPremise('${id}')">Sửa</button>` : ""}
-        </div>`;
+        <div class="join join-horizontal flex flex-wrap gap-2">
+          ${
+            item.contact_phone && !isStaff()
+              ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>`
+              : ""
+          }
+          ${
+            item.contact_phone && !isStaff()
+              ? `<a class="btn btn-sm join-item" target="_blank"
+                     href="https://zalo.me/${(item.contact_phone || "")
+                       .replace(/[^0-9]/g, "")}">
+                    Zalo
+                 </a>`
+              : ""
+          }
+          <a class="btn btn-sm join-item" target="_blank"
+             href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">
+            Mở Map
+          </a>
+          <button
+            class="btn btn-sm join-item"
+            onclick="navigator.clipboard.writeText(window.location.origin + window.location.pathname + '?id=${encodeURIComponent(
+              id
+            )}');toast('Đã copy link')">
+            Copy link
+          </button>
+          ${
+            isAdmin()
+              ? `<button class="btn btn-outline btn-sm join-item"
+                         onclick="openEditPremise('${id}')">
+                   Sửa
+                 </button>`
+              : ""
+          }
+        </div>
+      `;
 
+      // ===== HTML HIỂN THỊ CHI TIẾT + GALLERY =====
       const html = `
         <div class="grid md:grid-cols-2 gap-6">
-          <div class="space-y-4">
-            <div class="w-full h-[340px] bg-base-200 flex items-center justify-center rounded-xl overflow-hidden">
-                 ${firstImg ? `<img src="${firstImg}" class="w-full h-full object-cover" />` : `<div class="text-xs opacity-60">Không có ảnh</div>`}
-            </div>
-            <div>${mapEmbed}</div>
-          </div>
+          <!-- CỘT HÌNH ẢNH -->
           <div class="space-y-3">
-            <h2 class="text-xl font-bold">${maskAddress(item)}</h2>
-            <div class="text-sm opacity-70">${[item.ward, item.district].filter(Boolean).join(" • ")}</div>
-            <div class="text-xs opacity-60">Mã: <b>${item.code || "—"}</b> | Cập nhật: ${updatedLabel}</div>
-            <div class="text-3xl font-extrabold text-primary mt-2">${money(item.price)}</div>
-            
-            <div class="grid grid-cols-2 gap-2 text-sm mt-4">
-                <div>DT: <b>${item.area||'-'} m²</b></div>
-                <div>Ngang: <b>${item.width||'-'} m</b></div>
-                <div>Dài: <b>${item.length||'-'} m</b></div>
-                <div>Kết cấu: <b>${item.ket_cau||'-'}</b></div>
-                <div>PN/WC: <b>${pnVal||0} / ${wcVal||0}</b></div>
-                <div>Hướng: <b>${item.frontage ? 'Mặt tiền' : 'Hẻm'}</b></div>
+            <div class="w-full h-[340px] bg-base-200 flex items-center justify-center rounded-xl overflow-hidden">
+              ${
+                imgUrls.length
+                  ? `<img id="detail-main-img" src="${imgUrls[0]}" class="w-full h-full object-cover" />`
+                  : `<div class="text-xs text-gray-500 italic">Chưa có hình ảnh</div>`
+              }
             </div>
 
-            <div class="mt-4 text-sm">
-              <div class="font-semibold mb-1">Chi tiết:</div>
-              <p class="whitespace-pre-line text-gray-600">${detailText}</p>
-            </div>
+            ${
+              imgUrls.length > 1
+                ? `
+                  <div class="grid grid-cols-4 gap-2">
+                    ${imgUrls
+                      .slice(0, 8)
+                      .map(
+                        (url) => `
+                      <div
+                        class="cursor-pointer border border-base-200 rounded-lg overflow-hidden hover:border-primary"
+                        onclick="(function(){
+                          const m = document.getElementById('detail-main-img');
+                          if (m) m.src='${url.replace(/'/g, "\\'")}';
+                        })()">
+                        <img src="${url}" class="w-full h-16 object-cover" />
+                      </div>
+                    `
+                      )
+                      .join("")}
+                  </div>
+                `
+                : ""
+            }
 
-            ${(item.contact_phone && !isStaff()) ? `<div class="mt-4 text-sm font-bold text-error">Liên hệ: ${item.contact_name||''} - ${item.contact_phone}</div>` : ""}
-            
-            <div class="mt-6">${actions}</div>
+            ${mapEmbed}
           </div>
-        </div>`;
+
+          <!-- CỘT THÔNG TIN -->
+          <div class="space-y-3 text-sm">
+            <div>
+              <h3 class="font-semibold text-lg mb-1">
+                ${item.street || "(Không có tiêu đề)"}
+              </h3>
+              <p class="text-gray-600">${address || ""}</p>
+            </div>
+
+            <div class="flex flex-wrap gap-2 text-xs">
+              ${
+                price
+                  ? `<span class="badge badge-primary badge-outline">Giá: ${price}</span>`
+                  : ""
+              }
+              ${
+                area
+                  ? `<span class="badge badge-outline">Diện tích: ${area}</span>`
+                  : ""
+              }
+              ${
+                floorsVal
+                  ? `<span class="badge badge-outline">Tầng: ${floorsVal}</span>`
+                  : ""
+              }
+              ${
+                pnVal
+                  ? `<span class="badge badge-outline">PN: ${pnVal}</span>`
+                  : ""
+              }
+              ${
+                wcVal
+                  ? `<span class="badge badge-outline">WC: ${wcVal}</span>`
+                  : ""
+              }
+              ${
+                item.status
+                  ? `<span class="badge badge-outline">Trạng thái: ${item.status}</span>`
+                  : ""
+              }
+            </div>
+
+            <div class="text-xs text-gray-500">
+              ${
+                item.code
+                  ? `Mã: <span class="font-mono">${item.code}</span><br/>`
+                  : ""
+              }
+              ${updatedLabel ? `Cập nhật: ${updatedLabel}` : ""}
+            </div>
+
+            ${
+              item.contact_phone && !isStaff()
+                ? `
+                <div class="mt-2 text-sm">
+                  Liên hệ: ${
+                    item.contact_name
+                      ? `<b>${item.contact_name}</b> - `
+                      : ""
+                  }${item.contact_phone}
+                </div>
+              `
+                : ""
+            }
+
+            <div class="mt-4">
+              <div class="font-semibold mb-1">Chi tiết:</div>
+              <p class="whitespace-pre-line text-gray-700">
+                ${detailText || "(Chưa có mô tả chi tiết)"}
+              </p>
+            </div>
+
+            <div class="mt-4">
+              ${actions}
+            </div>
+          </div>
+        </div>
+      `;
+
       wrap.innerHTML = html;
     }
 
-    // Hàm Sửa cũ của bạn
-    async function openEditPremise(id) {
-      if (!isAdmin()) return;
-      EDITING_ID = id;
-      document.getElementById("detailDlg").close(); // Đóng detail trước
-      const { data } = await supabase.from("premises").select("*").eq("id", id).single();
-      if (!data) return;
-
-      const item = data;
-      const getEl = (id) => document.getElementById(id);
-      getEl("edit-code").value = item.code || "";
-      getEl("edit-address").value = item.address || "";
-      getEl("edit-city").value = item.city || "";
-      getEl("edit-district").value = item.district || "";
-      getEl("edit-ward").value = item.ward || "";
-      getEl("edit-street").value = item.street || "";
-      getEl("edit-price").value = item.price || "";
-      getEl("edit-area").value = item.area || "";
-      getEl("edit-width").value = item.width || "";
-      getEl("edit-length").value = item.length || "";
-      getEl("edit-floors").value = item.floors || "";
-      getEl("edit-bedrooms").value = pickField(item, ["pn", "so_pn", "bedrooms"]) || "";
-      getEl("edit-wc").value = pickField(item, ["wc", "bathrooms"]) || "";
-      getEl("edit-ket-cau").value = item.ket_cau || "";
-      getEl("edit-contact-phone").value = item.contact_phone || "";
-      getEl("edit-frontage").checked = !!item.frontage;
-      getEl("edit-status").value = item.status || "available";
-      getEl("edit-commission").value = item.commission_note || "";
-      getEl("edit-images").value = (Array.isArray(item.images) ? item.images.join("\n") : "");
-      getEl("edit-detail").value = pickField(item, ["detail", "chi_tiet"]) || "";
-
-      document.getElementById("editDlg").showModal();
-    }
 
     async function saveEditPremise() {
       if (!isAdmin() || !EDITING_ID) return;
