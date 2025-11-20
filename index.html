@@ -541,6 +541,25 @@ MB0001/2.jpg"></textarea>
         "Quận 6": ["Phường 1", "Phường 2", "Phường 3", "Phường 4", "Phường 5", "Phường 6", "Phường 7", "Phường 8", "Phường 9", "Phường 10", "Phường 11", "Phường 12", "Phường 13", "Phường 14"],
         "Quận 7": ["Bình Thuận", "Phú Mỹ", "Phú Thuận", "Tân Hưng", "Tân Kiểng", "Tân Phong", "Tân Phú", "Tân Quy", "Tân Thuận Đông", "Tân Thuận Tây"],
         "Quận 8": ["Phường 1", "Phường 2", "Phường 3", "Phường 4", "Phường 5", "Phường 6", "Phường 7", "Phường 8", "Phường 9", "Phường 10", "Phường 11", "Phường 12", "Phường 13", "Phường 14", "Phường 15", "Phường 16"],
+        "Quận 9": [
+            "Hiệp Phú",
+            "Linh Trung",
+            "Linh Chiểu",
+            "Linh Tây",
+            "Linh Đông",
+            "Linh Xuân",
+            "Tăng Nhơn Phú A",
+            "Tăng Nhơn Phú B",
+            "Phước Long A",
+            "Phước Long B",
+            "Tân Phú",
+            "Phước Bình",
+            "Long Thạnh Mỹ",
+            "Trường Thạnh",
+            "Long Phước",
+            "Long Bình",
+            "Phú Hữu"
+        ],
         "Quận 10": ["Phường 1", "Phường 2", "Phường 4", "Phường 5", "Phường 6", "Phường 7", "Phường 8", "Phường 9", "Phường 10", "Phường 11", "Phường 12", "Phường 13", "Phường 14", "Phường 15"],
         "Quận 11": ["Phường 1", "Phường 2", "Phường 3", "Phường 4", "Phường 5", "Phường 6", "Phường 7", "Phường 8", "Phường 9", "Phường 10", "Phường 11", "Phường 12", "Phường 13", "Phường 14", "Phường 15", "Phường 16"],
         "Quận 12": ["An Phú Đông", "Đông Hưng Thuận", "Hiệp Thành", "Tân Chánh Hiệp", "Tân Hưng Thuận", "Tân Thới Hiệp", "Tân Thới Nhất", "Thạnh Lộc", "Thạnh Xuân", "Thới An", "Trung Mỹ Tây"],
@@ -679,7 +698,7 @@ MB0001/2.jpg"></textarea>
       }
     }
 
-async function handleLogin() {
+    async function handleLogin() {
       const email = document.getElementById("login-email").value.trim();
       const password = document.getElementById("login-password").value.trim();
       if (!email || !password) {
@@ -940,40 +959,47 @@ async function handleLogin() {
       });
     }
 
+    // === HÀM MỚI: LẤY QUẬN TỪ HCM_DATA ===
     async function buildDistrictWardOptions() {
-      // Logic cũ của bạn: Lấy list Quận/Phường có sẵn trong DB để đưa vào Filter
-      const { data, error } = await supabase
-        .from("premises")
-        .select("district, ward");
-      if (error || !data) return;
-
-      const districts = Array.from(new Set(data.map((r) => r.district).filter(Boolean))).sort();
+      // Lấy danh sách quận chuẩn từ HCM_DATA (không trùng, không quận ảo)
       const selectDistrict = document.getElementById("filter-district");
       const current = selectDistrict.value;
+
+      const districts = Object.keys(HCM_DATA).sort((a, b) =>
+        a.localeCompare(b, "vi")
+      );
+
       selectDistrict.innerHTML = '<option value="">Tất cả</option>';
       districts.forEach((d) => {
         const opt = document.createElement("option");
-        opt.value = d; opt.textContent = d; selectDistrict.appendChild(opt);
+        opt.value = d;
+        opt.textContent = d;
+        selectDistrict.appendChild(opt);
       });
-      if (current) selectDistrict.value = current;
+
+      // Giữ lại quận đang chọn nếu còn tồn tại
+      if (current && districts.includes(current)) {
+        selectDistrict.value = current;
+      }
 
       updateWardOptions();
     }
 
+    // === HÀM MỚI: LỌC PHƯỜNG THEO QUẬN TỪ HCM_DATA ===
     function updateWardOptions() {
       const district = document.getElementById("filter-district").value;
       const selectWard = document.getElementById("filter-ward");
       selectWard.innerHTML = '<option value="">Tất cả</option>';
-      if (!district) return;
-      supabase.from("premises").select("ward, district").eq("district", district)
-        .then(({ data }) => {
-          if (!data) return;
-          const wards = Array.from(new Set(data.map((r) => r.ward).filter(Boolean))).sort();
-          wards.forEach((w) => {
-            const opt = document.createElement("option");
-            opt.value = w; opt.textContent = w; selectWard.appendChild(opt);
-          });
-        });
+
+      if (!district || !HCM_DATA[district]) return;
+
+      const wards = HCM_DATA[district];
+      wards.forEach((w) => {
+        const opt = document.createElement("option");
+        opt.value = w;
+        opt.textContent = w;
+        selectWard.appendChild(opt);
+      });
     }
 
     // ===== CHI TIẾT & SỬA =====
