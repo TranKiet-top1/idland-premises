@@ -510,10 +510,10 @@ MB0001/2.jpg"></textarea>
       </p>
       <div class="mt-4 flex justify-end gap-2">
         <button id="btn-demo-disagree" class="btn btn-outline btn-sm">
-          Tôi không đồng ý
+          toi khong dong tinh
         </button>
         <button id="btn-demo-agree" class="btn btn-primary btn-sm">
-          Tôi đồng ý
+          toi dong tinh
         </button>
       </div>
     </div>
@@ -570,13 +570,6 @@ MB0001/2.jpg"></textarea>
       textEl.textContent = msg;
       toastEl.classList.remove("hidden");
       setTimeout(() => toastEl.classList.add("hidden"), 2500);
-    }
-
-    function showDemoNotice() {
-      const dlg = document.getElementById("demoNoticeDlg");
-      if (dlg && typeof dlg.showModal === "function") {
-        dlg.showModal();
-      }
     }
 
     function money(v) {
@@ -678,7 +671,15 @@ MB0001/2.jpg"></textarea>
       initAddFormDropdowns(); // Khởi tạo dropdown cho form thêm mới
     }
 
-    async function handleLogin() {
+    
+    function showDemoNotice() {
+      const dlg = document.getElementById("demoNoticeDlg");
+      if (dlg && typeof dlg.showModal === "function") {
+        dlg.showModal();
+      }
+    }
+
+async function handleLogin() {
       const email = document.getElementById("login-email").value.trim();
       const password = document.getElementById("login-password").value.trim();
       if (!email || !password) {
@@ -692,10 +693,11 @@ MB0001/2.jpg"></textarea>
         return;
       }
       toast("Đăng nhập thành công");
-      showDemoNotice(); // ⬅️ Hiện popup DEMO sau khi đăng nhập
+      showDemoNotice();
       await initAuth();
     }
 
+    
     async function handleLogout() {
       await supabase.auth.signOut();
       location.reload();
@@ -1240,26 +1242,6 @@ MB0001/2.jpg"></textarea>
       document.getElementById("btn-toggle-pending").onclick = togglePendingMode;
       document.getElementById("btn-approve-all").onclick = approveAll;
 
-      // ===== DEMO NOTICE BUTTONS =====
-      const demoAgreeBtn = document.getElementById("btn-demo-agree");
-      const demoDisagreeBtn = document.getElementById("btn-demo-disagree");
-      const demoDlg = document.getElementById("demoNoticeDlg");
-
-      if (demoAgreeBtn && demoDlg) {
-        demoAgreeBtn.addEventListener("click", () => {
-          demoDlg.close(); // cho dùng web bình thường
-        });
-      }
-
-      if (demoDisagreeBtn && demoDlg) {
-        demoDisagreeBtn.addEventListener("click", async () => {
-          demoDlg.close();
-          // Không đồng ý thì đăng xuất và quay lại màn login
-          await supabase.auth.signOut();
-          location.reload();
-        });
-      }
-
       // Quick filters
       document.querySelectorAll("[data-quick]").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -1279,6 +1261,25 @@ MB0001/2.jpg"></textarea>
           document.getElementById("filter-ward").value = "";
           applyFilters(true);
       });
+
+      // ===== DEMO NOTICE BUTTONS =====
+      const demoAgreeBtn = document.getElementById("btn-demo-agree");
+      const demoDisagreeBtn = document.getElementById("btn-demo-disagree");
+      const demoDlg = document.getElementById("demoNoticeDlg");
+
+      if (demoAgreeBtn && demoDlg) {
+        demoAgreeBtn.addEventListener("click", () => {
+          demoDlg.close();
+        });
+      }
+
+      if (demoDisagreeBtn && demoDlg) {
+        demoDisagreeBtn.addEventListener("click", async () => {
+          demoDlg.close();
+          await supabase.auth.signOut();
+          location.reload();
+        });
+      }
 
       initAuth();
     });
