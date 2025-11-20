@@ -698,6 +698,12 @@ MB0001/2.jpg"></textarea>
       await applyFilters(true);
       await buildDistrictWardOptions();
       initAddFormDropdowns(); // Khởi tạo dropdown cho form thêm mới
+      if (!sessionStorage.getItem("demo_agreed")) {
+        // Chặn không cho đóng bằng nút Esc (bắt buộc chọn)
+        document.getElementById("demoDisclaimerDlg").addEventListener('cancel', (event) => {
+            event.preventDefault();
+        });
+        document.getElementById("demoDisclaimerDlg").showModal();
     }
 
     async function handleLogin() {
@@ -1342,9 +1348,34 @@ MB0001/2.jpg"></textarea>
           document.getElementById("filter-ward").value = "";
           applyFilters(true);
       });
+    // --- LOGIC NÚT ĐỒNG TÌNH / KHÔNG ĐỒNG TÌNH ---
+      document.getElementById("btn-agree").onclick = () => {
+          // Lưu trạng thái đã đồng ý vào Session (tắt trình duyệt mở lại sẽ hỏi lại)
+          sessionStorage.setItem("demo_agreed", "true");
+          document.getElementById("demoDisclaimerDlg").close();
+      };
 
+      document.getElementById("btn-disagree").onclick = async () => {
+          // Nếu không đồng tình -> Đăng xuất ngay lập tức
+          await supabase.auth.signOut();
+          location.reload();
+      };
       initAuth();
     });
   </script>
+  <dialog id="demoDisclaimerDlg" class="modal">
+    <div class="modal-box border-2 border-warning">
+      <h3 class="font-bold text-xl text-warning flex items-center gap-2">
+        ⚠️ THÔNG BÁO QUAN TRỌNG
+      </h3>
+      <p class="py-4 text-base leading-relaxed">
+        Đây là bản <b>DEMO</b> nên còn nhiều lỗi lầm. Nếu có lỗi hoặc góp ý cải tiến sản phẩm xin vui lòng liên hệ đến team <b>"Văn Hóa"</b> để được hỗ trợ.
+      </p>
+      <div class="modal-action flex justify-center gap-4">
+        <button id="btn-disagree" class="btn btn-outline btn-error">Tôi không đồng tình</button>
+        <button id="btn-agree" class="btn btn-primary px-8">Tôi đồng tình</button>
+      </div>
+    </div>
+  </dialog>
 </body>
 </html>
