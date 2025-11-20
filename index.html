@@ -1082,9 +1082,17 @@ MB0001/2.jpg"></textarea>
         }
       }
 
+      // làm sạch path + log ra để debug
+      imgPaths = (imgPaths || [])
+        .map((p) => (p || "").trim())
+        .filter(Boolean);
+
       const imgUrls = imgPaths
         .map((p) => buildImageUrl(p))
         .filter(Boolean);
+
+      console.log("IMAGES for", item.code || item.id, { imgPaths, imgUrls });
+
 
       // ===== MAP EMBED =====
       const mapsQuery = encodeURIComponent(
