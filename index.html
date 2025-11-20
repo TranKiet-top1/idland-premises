@@ -1150,6 +1150,11 @@ MB0001/2.jpg"></textarea>
 
       // ===== HTML HIỂN THỊ CHI TIẾT + GALLERY =====
       const html = `
+          <button onclick="document.getElementById('detail-modal').classList.add('hidden')"
+            class="absolute top-3 right-3 z-50 w-9 h-9 flex items-center justify-center 
+                   bg-white rounded-full shadow hover:bg-gray-200 transition">
+              ✕
+        </button>
         <div class="grid md:grid-cols-2 gap-6">
           <!-- CỘT HÌNH ẢNH -->
           <div class="space-y-3">
@@ -1238,7 +1243,7 @@ MB0001/2.jpg"></textarea>
               }
               ${updatedLabel ? `Cập nhật: ${updatedLabel}` : ""}
             </div>
-              
+
             <div class="grid grid-cols-2 gap-2 text-sm mt-2">
               <div>Diện tích: <b>${item.area ?? '-'} m²</b></div>
               <div>Tầng: <b>${floorsVal ?? '-'}</b></div>
