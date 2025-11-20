@@ -1161,22 +1161,6 @@ MB0001/2.jpg"></textarea>
               }
             </div>
 
-            <div class="grid grid-cols-2 gap-2 text-sm mt-4">
-              <div>Diện tích: <b>${item.area ?? '-'} m²</b></div>
-              <div>Tầng: <b>${floorsVal ?? '-'}</b></div>
-
-              <div>Ngang: <b>${item.width ?? '-'} m</b></div>
-              <div>Dài: <b>${item.length ?? '-'} m</b></div>
-
-              <div>PN: <b>${pnVal ?? '-'}</b></div>
-              <div>WC: <b>${wcVal ?? '-'}</b></div>
-
-              <div>Kết cấu: <b>${item.ket_cau || '-'}</b></div>
-              <div>Hoa hồng: <b>${item.commission_note || '-'}</b></div>
-
-              <div>Hướng: <b>${item.frontage ? 'Mặt tiền' : 'Hẻm'}</b></div>
-            </div>
-
 
             ${mapEmbed}
           </div>
@@ -1221,6 +1205,22 @@ MB0001/2.jpg"></textarea>
                   ? `<span class="badge badge-outline">Trạng thái: ${item.status}</span>`
                   : ""
               }
+            </div>
+                  
+            <div class="grid grid-cols-2 gap-2 text-sm mt-2">
+              <div>Diện tích: <b>${item.area ?? '-'} m²</b></div>
+              <div>Tầng: <b>${floorsVal ?? '-'}</b></div>
+
+              <div>Ngang: <b>${item.width ?? '-'} m</b></div>
+              <div>Dài: <b>${item.length ?? '-'} m</b></div>
+
+              <div>PN: <b>${pnVal ?? '-'}</b></div>
+              <div>WC: <b>${wcVal ?? '-'}</b></div>
+
+              <div>Kết cấu: <b>${item.ket_cau || '-'}</b></div>
+              <div>Hoa hồng: <b>${item.commission_note || '-'}</b></div>
+
+              <div>Hướng: <b>${item.frontage ? 'Mặt tiền' : 'Hẻm'}</b></div>
             </div>
 
             <div class="text-xs text-gray-500">
