@@ -1262,7 +1262,95 @@ MB0001/2.jpg"></textarea>
       wrap.innerHTML = html;
     }
 
+    async function openEditPremise(id) {
+      if (!isAdmin()) {
+        toast("Chỉ admin mới được sửa mặt bằng");
+        return;
+      }
 
+      EDITING_ID = id;
+      const dlg = document.getElementById("editDlg");
+
+      const { data, error } = await supabase
+        .from("premises")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error || !data) {
+        console.error(error);
+        toast("Không tải được dữ liệu để sửa");
+        return;
+      }
+
+      const item = data;
+      const setVal = (elId, val) => {
+        const el = document.getElementById(elId);
+        if (el) el.value = val == null ? "" : String(val);
+      };
+
+      // điền dữ liệu vào form edit
+      setVal("edit-code", item.code || "");
+      setVal("edit-address", item.address || "");
+      setVal("edit-city", item.city || "TP.HCM");
+      setVal("edit-district", item.district || "");
+      setVal("edit-ward", item.ward || "");
+      setVal("edit-street", item.street || "");
+
+      setVal("edit-price", item.price ?? "");
+      setVal("edit-area", item.area ?? "");
+      setVal("edit-width", item.width ?? "");
+      setVal("edit-length", item.length ?? "");
+      setVal("edit-floors", item.floors ?? "");
+      setVal("edit-bedrooms", item.pn ?? item.bedrooms ?? "");
+      setVal("edit-wc", item.wc ?? "");
+      setVal("edit-ket-cau", item.ket_cau || "");
+      setVal("edit-contact-phone", item.contact_phone || "");
+      setVal("edit-commission", item.commission_note || "");
+      setVal("edit-detail", item.detail || "");
+
+      const statusSelect = document.getElementById("edit-status");
+      if (statusSelect) {
+        statusSelect.value = item.status || "available";
+      }
+
+      const frontageCheckbox = document.getElementById("edit-frontage");
+      if (frontageCheckbox) {
+        frontageCheckbox.checked = !!item.frontage;
+      }
+
+      // xử lý field images: array / json / string
+      let rawImgs = item.images;
+      let imgPaths = [];
+
+      if (Array.isArray(rawImgs)) {
+        imgPaths = rawImgs;
+      } else if (typeof rawImgs === "string" && rawImgs.trim()) {
+        const s = rawImgs.trim();
+        try {
+          if (s.startsWith("[") && s.endsWith("]")) {
+            const parsed = JSON.parse(s);
+            if (Array.isArray(parsed)) imgPaths = parsed;
+          } else {
+            imgPaths = s.split(/[\n;,]+/);
+          }
+        } catch (e) {
+          console.warn("parse images error in edit", e);
+          imgPaths = s.split(/[\n;,]+/);
+        }
+      }
+
+      const imagesTextarea = document.getElementById("edit-images");
+      if (imagesTextarea) {
+        imagesTextarea.value = (imgPaths || [])
+          .map((p) => (p || "").trim())
+          .filter(Boolean)
+          .join("\n");
+      }
+
+      dlg.showModal();
+    }
+    
     async function saveEditPremise() {
       if (!isAdmin() || !EDITING_ID) return;
       const getVal = (id) => document.getElementById(id).value.trim();
