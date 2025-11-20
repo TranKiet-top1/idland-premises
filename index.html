@@ -535,6 +535,18 @@ MB0001/2.jpg"></textarea>
     // --- DỮ LIỆU QUẬN/PHƯỜNG CHO FORM THÊM MỚI (Cần dữ liệu để chọn) ---
     const HCM_DATA = {
         "Quận 1": ["Bến Nghé", "Bến Thành", "Cô Giang", "Cầu Kho", "Cầu Ông Lãnh", "Đa Kao", "Nguyễn Cư Trinh", "Nguyễn Thái Bình", "Phạm Ngũ Lão", "Tân Định"],
+        "Quận 2": [
+          "Thảo Điền",
+          "An Phú",
+          "Bình An",
+          "Bình Trưng Đông",
+          "Bình Trưng Tây",
+          "An Khánh",
+          "Cát Lái",
+          "Thạnh Mỹ Lợi",
+          "Thủ Thiêm"
+        ],
+
         "Quận 3": ["Phường 1", "Phường 2", "Phường 3", "Phường 4", "Phường 5", "Phường 9", "Phường 10", "Phường 11", "Phường 12", "Phường 13", "Phường 14", "Võ Thị Sáu"],
         "Quận 4": ["Phường 1", "Phường 2", "Phường 3", "Phường 4", "Phường 6", "Phường 8", "Phường 9", "Phường 10", "Phường 13", "Phường 14", "Phường 15", "Phường 16", "Phường 18"],
         "Quận 5": ["Phường 1", "Phường 2", "Phường 3", "Phường 4", "Phường 5", "Phường 6", "Phường 7", "Phường 8", "Phường 9", "Phường 10", "Phường 11", "Phường 12", "Phường 13", "Phường 14"],
@@ -1070,9 +1082,17 @@ MB0001/2.jpg"></textarea>
         }
       }
 
+      // làm sạch path + log ra để debug
+      imgPaths = (imgPaths || [])
+        .map((p) => (p || "").trim())
+        .filter(Boolean);
+
       const imgUrls = imgPaths
         .map((p) => buildImageUrl(p))
         .filter(Boolean);
+
+      console.log("IMAGES for", item.code || item.id, { imgPaths, imgUrls });
+
 
       // ===== MAP EMBED =====
       const mapsQuery = encodeURIComponent(
@@ -1091,41 +1111,42 @@ MB0001/2.jpg"></textarea>
 
       // ===== ACTION BUTTONS =====
       const actions = `
-        <div class="join join-horizontal">
-          ${item.contact_phone && !isStaff()
-            ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>`
-            : ""}
-
-          ${item.contact_phone && !isStaff()
-            ? `<a class="btn btn-sm join-item"
-                  href="https://zalo.me/${(item.contact_phone || "").replace(/[^0-9]/g, "")}"
-                  target="_blank" rel="noopener">
-                 Zalo
-               </a>`
-            : ""}
-
+        <div class="join join-horizontal flex flex-wrap gap-2">
+          ${
+            item.contact_phone && !isStaff()
+              ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>`
+              : ""
+          }
+          ${
+            item.contact_phone && !isStaff()
+              ? `<a class="btn btn-sm join-item" target="_blank"
+                     href="https://zalo.me/${(item.contact_phone || "")
+                       .replace(/[^0-9]/g, "")}">
+                    Zalo
+                 </a>`
+              : ""
+          }
           <a class="btn btn-sm join-item" target="_blank"
              href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">
             Mở Map
           </a>
-
-          <button class="btn btn-sm join-item"
-                  onclick="navigator.clipboard.writeText(window.location.origin + window.location.pathname + '?id=' + encodeURIComponent('${id}'));toast('Đã copy link');return false;">
+          <button
+            class="btn btn-sm join-item"
+            onclick="navigator.clipboard.writeText(window.location.origin + window.location.pathname + '?id=${encodeURIComponent(
+              id
+            )}');toast('Đã copy link')">
             Copy link
           </button>
-
-          ${isAdmin()
-            ? `<button class="btn btn-outline btn-sm join-item"
-                       onclick="openEditPremise('${id}')">
-                 Sửa
-               </button>`
-            : ""}
-
-          <button class="btn btn-sm btn-ghost join-item"
-                  onclick="document.getElementById('detailDlg').close();return false;">
-            Đóng
-          </button>
-        </div>`;
+          ${
+            isAdmin()
+              ? `<button class="btn btn-outline btn-sm join-item"
+                         onclick="openEditPremise('${id}')">
+                   Sửa
+                 </button>`
+              : ""
+          }
+        </div>
+      `;
 
       // ===== HTML HIỂN THỊ CHI TIẾT + GALLERY =====
       const html = `
@@ -1208,22 +1229,6 @@ MB0001/2.jpg"></textarea>
                   : ""
               }
             </div>
-            <div class="grid grid-cols-2 gap-2 text-sm mt-4">
-              <div>Diện tích: <b>${item.area ?? '-'} m²</b></div>
-              <div>Tầng: <b>${floorsVal ?? '-'}</b></div>
-
-              <div>Ngang: <b>${item.width ?? '-'} m</b></div>
-              <div>Dài: <b>${item.length ?? '-'} m</b></div>
-
-              <div>PN: <b>${pnVal ?? '-'}</b></div>
-              <div>WC: <b>${wcVal ?? '-'}</b></div>
-
-              <div>Kết cấu: <b>${item.ket_cau || '-'}</b></div>
-              <div>Hoa hồng: <b>${item.commission_note || '-'}</b></div>
-
-              <div>Hướng: <b>${item.frontage ? 'Mặt tiền' : 'Hẻm'}</b></div>
-            </div>
-
 
             <div class="text-xs text-gray-500">
               ${
@@ -1265,7 +1270,95 @@ MB0001/2.jpg"></textarea>
       wrap.innerHTML = html;
     }
 
+    async function openEditPremise(id) {
+      if (!isAdmin()) {
+        toast("Chỉ admin mới được sửa mặt bằng");
+        return;
+      }
 
+      EDITING_ID = id;
+      const dlg = document.getElementById("editDlg");
+
+      const { data, error } = await supabase
+        .from("premises")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error || !data) {
+        console.error(error);
+        toast("Không tải được dữ liệu để sửa");
+        return;
+      }
+
+      const item = data;
+      const setVal = (elId, val) => {
+        const el = document.getElementById(elId);
+        if (el) el.value = val == null ? "" : String(val);
+      };
+
+      // điền dữ liệu vào form edit
+      setVal("edit-code", item.code || "");
+      setVal("edit-address", item.address || "");
+      setVal("edit-city", item.city || "TP.HCM");
+      setVal("edit-district", item.district || "");
+      setVal("edit-ward", item.ward || "");
+      setVal("edit-street", item.street || "");
+
+      setVal("edit-price", item.price ?? "");
+      setVal("edit-area", item.area ?? "");
+      setVal("edit-width", item.width ?? "");
+      setVal("edit-length", item.length ?? "");
+      setVal("edit-floors", item.floors ?? "");
+      setVal("edit-bedrooms", item.pn ?? item.bedrooms ?? "");
+      setVal("edit-wc", item.wc ?? "");
+      setVal("edit-ket-cau", item.ket_cau || "");
+      setVal("edit-contact-phone", item.contact_phone || "");
+      setVal("edit-commission", item.commission_note || "");
+      setVal("edit-detail", item.detail || "");
+
+      const statusSelect = document.getElementById("edit-status");
+      if (statusSelect) {
+        statusSelect.value = item.status || "available";
+      }
+
+      const frontageCheckbox = document.getElementById("edit-frontage");
+      if (frontageCheckbox) {
+        frontageCheckbox.checked = !!item.frontage;
+      }
+
+      // xử lý field images: array / json / string
+      let rawImgs = item.images;
+      let imgPaths = [];
+
+      if (Array.isArray(rawImgs)) {
+        imgPaths = rawImgs;
+      } else if (typeof rawImgs === "string" && rawImgs.trim()) {
+        const s = rawImgs.trim();
+        try {
+          if (s.startsWith("[") && s.endsWith("]")) {
+            const parsed = JSON.parse(s);
+            if (Array.isArray(parsed)) imgPaths = parsed;
+          } else {
+            imgPaths = s.split(/[\n;,]+/);
+          }
+        } catch (e) {
+          console.warn("parse images error in edit", e);
+          imgPaths = s.split(/[\n;,]+/);
+        }
+      }
+
+      const imagesTextarea = document.getElementById("edit-images");
+      if (imagesTextarea) {
+        imagesTextarea.value = (imgPaths || [])
+          .map((p) => (p || "").trim())
+          .filter(Boolean)
+          .join("\n");
+      }
+
+      dlg.showModal();
+    }
+    
     async function saveEditPremise() {
       if (!isAdmin() || !EDITING_ID) return;
       const getVal = (id) => document.getElementById(id).value.trim();
