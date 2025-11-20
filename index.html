@@ -21,40 +21,6 @@
     .premise-card:hover {
       transform: translateY(-2px);
     }
-    /* CSS cho phần xem trước ảnh upload */
-    .img-preview-box {
-        position: relative;
-        width: 80px;
-        height: 80px;
-        border-radius: 8px;
-        overflow: hidden;
-        border: 1px solid #e5e7eb;
-    }
-    .img-preview-box img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .img-preview-box .btn-remove {
-        position: absolute;
-        top: 2px;
-        right: 2px;
-        background: rgba(239, 68, 68, 0.9);
-        color: white;
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        cursor: pointer;
-        border: none;
-        z-index: 10;
-    }
-    .img-preview-box .btn-remove:hover {
-        background: #dc2626;
-    }
   </style>
 </head>
 <body class="bg-base-200">
@@ -520,19 +486,9 @@ MB0001/2.jpg"></textarea>
                  <input id="add-contact-phone" type="text" class="input input-sm input-bordered input-error" placeholder="090..."/>
              </div>
           </div>
-          
-          <div class="md:col-span-2 border rounded-lg p-3 bg-base-50">
-              <div class="flex justify-between items-center mb-2">
-                  <span class="label-text text-xs font-bold">Hình ảnh (Tự động upload)</span>
-                  <span id="upload-status" class="text-xs text-primary loading hidden"></span>
-              </div>
-              <input type="file" id="inp-upload-img" class="file-input file-input-sm file-input-bordered w-full mb-3" multiple accept="image/*" onchange="handleImageUpload(this)" />
-              
-              <div id="preview-container" class="flex flex-wrap gap-2">
-                  </div>
-          </div>
-
           <div class="md:col-span-2">
+              <span class="text-xs">Link ảnh (Mỗi dòng 1 link)</span>
+              <textarea id="add-images" class="textarea textarea-bordered w-full h-16 text-xs mb-2" placeholder="http://..."></textarea>
               <span class="text-xs">Mô tả chi tiết</span>
               <textarea id="add-detail" class="textarea textarea-bordered w-full h-20 text-sm"></textarea>
           </div>
@@ -557,17 +513,15 @@ MB0001/2.jpg"></textarea>
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // --- DỮ LIỆU QUẬN/PHƯỜNG (ĐÃ CẬP NHẬT Q2, Q9) ---
+    // --- DỮ LIỆU QUẬN/PHƯỜNG CHO FORM THÊM MỚI (Cần dữ liệu để chọn) ---
     const HCM_DATA = {
         "Quận 1": ["Bến Nghé", "Bến Thành", "Cô Giang", "Cầu Kho", "Cầu Ông Lãnh", "Đa Kao", "Nguyễn Cư Trinh", "Nguyễn Thái Bình", "Phạm Ngũ Lão", "Tân Định"],
-        "Quận 2": ["Thảo Điền", "An Phú", "Bình An", "Bình Trưng Đông", "Bình Trưng Tây", "Bình Khánh", "An Khánh", "Cát Lái", "Thạnh Mỹ Lợi", "An Lợi Đông", "Thủ Thiêm"],
         "Quận 3": ["Phường 1", "Phường 2", "Phường 3", "Phường 4", "Phường 5", "Phường 9", "Phường 10", "Phường 11", "Phường 12", "Phường 13", "Phường 14", "Võ Thị Sáu"],
         "Quận 4": ["Phường 1", "Phường 2", "Phường 3", "Phường 4", "Phường 6", "Phường 8", "Phường 9", "Phường 10", "Phường 13", "Phường 14", "Phường 15", "Phường 16", "Phường 18"],
         "Quận 5": ["Phường 1", "Phường 2", "Phường 3", "Phường 4", "Phường 5", "Phường 6", "Phường 7", "Phường 8", "Phường 9", "Phường 10", "Phường 11", "Phường 12", "Phường 13", "Phường 14"],
         "Quận 6": ["Phường 1", "Phường 2", "Phường 3", "Phường 4", "Phường 5", "Phường 6", "Phường 7", "Phường 8", "Phường 9", "Phường 10", "Phường 11", "Phường 12", "Phường 13", "Phường 14"],
         "Quận 7": ["Bình Thuận", "Phú Mỹ", "Phú Thuận", "Tân Hưng", "Tân Kiểng", "Tân Phong", "Tân Phú", "Tân Quy", "Tân Thuận Đông", "Tân Thuận Tây"],
         "Quận 8": ["Phường 1", "Phường 2", "Phường 3", "Phường 4", "Phường 5", "Phường 6", "Phường 7", "Phường 8", "Phường 9", "Phường 10", "Phường 11", "Phường 12", "Phường 13", "Phường 14", "Phường 15", "Phường 16"],
-        "Quận 9": ["Hiệp Phú", "Long Bình", "Long Phước", "Long Thạnh Mỹ", "Long Trường", "Phú Hữu", "Phước Bình", "Phước Long A", "Phước Long B", "Tân Phú", "Tăng Nhơn Phú A", "Tăng Nhơn Phú B", "Trường Thạnh"],
         "Quận 10": ["Phường 1", "Phường 2", "Phường 4", "Phường 5", "Phường 6", "Phường 7", "Phường 8", "Phường 9", "Phường 10", "Phường 11", "Phường 12", "Phường 13", "Phường 14", "Phường 15"],
         "Quận 11": ["Phường 1", "Phường 2", "Phường 3", "Phường 4", "Phường 5", "Phường 6", "Phường 7", "Phường 8", "Phường 9", "Phường 10", "Phường 11", "Phường 12", "Phường 13", "Phường 14", "Phường 15", "Phường 16"],
         "Quận 12": ["An Phú Đông", "Đông Hưng Thuận", "Hiệp Thành", "Tân Chánh Hiệp", "Tân Hưng Thuận", "Tân Thới Hiệp", "Tân Thới Nhất", "Thạnh Lộc", "Thạnh Xuân", "Thới An", "Trung Mỹ Tây"],
@@ -589,8 +543,6 @@ MB0001/2.jpg"></textarea>
     
     // BIẾN MỚI CHO ADMIN DUYỆT BÀI
     let SHOW_PENDING = false;
-    // BIẾN QUẢN LÝ ẢNH UPLOAD
-    let UPLOADED_IMAGES = []; 
 
     // ===== HELPERS =====
     function toast(msg) {
@@ -698,12 +650,6 @@ MB0001/2.jpg"></textarea>
       await applyFilters(true);
       await buildDistrictWardOptions();
       initAddFormDropdowns(); // Khởi tạo dropdown cho form thêm mới
-      if (!sessionStorage.getItem("demo_agreed")) {
-        // Chặn không cho đóng bằng nút Esc (bắt buộc chọn)
-        document.getElementById("demoDisclaimerDlg").addEventListener('cancel', (event) => {
-            event.preventDefault();
-        });
-        document.getElementById("demoDisclaimerDlg").showModal();
     }
 
     async function handleLogin() {
@@ -1164,54 +1110,6 @@ MB0001/2.jpg"></textarea>
         });
     }
 
-    // ================== XỬ LÝ UPLOAD ẢNH (MỚI) ==================
-    async function handleImageUpload(input) {
-        const files = input.files;
-        if(!files.length) return;
-        
-        const statusEl = document.getElementById("upload-status");
-        statusEl.classList.remove("hidden");
-        statusEl.innerHTML = `<span class="loading loading-spinner loading-xs"></span> Đang tải ${files.length} ảnh...`;
-
-        for(const file of files) {
-            // Tạo tên file unique: timestamp-random-tênfile
-            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
-            const { data, error } = await supabase.storage.from(STORAGE_BUCKET).upload(`public/${fileName}`, file);
-            
-            if(error) { 
-                console.error(error); 
-                toast(`Lỗi upload: ${file.name}`); 
-                continue; 
-            }
-            
-            // Lưu path vào mảng
-            UPLOADED_IMAGES.push(data.path);
-        }
-        
-        statusEl.classList.add("hidden");
-        input.value = ""; // Reset input để chọn tiếp được
-        renderImagePreview();
-    }
-
-    function renderImagePreview() {
-        const container = document.getElementById("preview-container");
-        container.innerHTML = "";
-        UPLOADED_IMAGES.forEach((path, index) => {
-            const url = buildImageUrl(path);
-            container.innerHTML += `
-                <div class="img-preview-box">
-                    <img src="${url}" />
-                    <button class="btn-remove" onclick="removeImage(${index})">✕</button>
-                </div>
-            `;
-        });
-    }
-
-    window.removeImage = function(index) {
-        UPLOADED_IMAGES.splice(index, 1);
-        renderImagePreview();
-    }
-
     async function saveNewPremise() {
         const getVal = (id) => document.getElementById(id).value.trim();
         // Lấy giá tiền từ input đã format (xóa dấu chấm/phẩy đi)
@@ -1238,8 +1136,7 @@ MB0001/2.jpg"></textarea>
             ket_cau: getVal("add-ket-cau"),
             contact_phone: getVal("add-contact-phone"),
             frontage: document.getElementById("add-frontage").checked,
-            // Lấy ảnh từ mảng đã upload
-            images: UPLOADED_IMAGES,
+            images: getVal("add-images").split('\n').map(s=>s.trim()).filter(Boolean),
             detail: getVal("add-detail"),
             status: 'available'
             // code, created_by, is_approved SẼ ĐƯỢC DB TỰ ĐỘNG XỬ LÝ (NẾU ĐÃ CHẠY SQL)
@@ -1250,13 +1147,7 @@ MB0001/2.jpg"></textarea>
             toast("Lỗi: " + error.message);
         } else {
             toast(isAdmin() ? "Đã thêm thành công!" : "Đã gửi duyệt!");
-            // Đóng modal và Reset form
             document.getElementById("addDlg").close();
-            document.getElementById("add-form-reset-btn")?.click(); // Hoặc reset thủ công
-            // Reset ảnh
-            UPLOADED_IMAGES = [];
-            renderImagePreview();
-            
             applyFilters(true);
             if(isAdmin()) checkPendingCount();
         }
@@ -1318,14 +1209,7 @@ MB0001/2.jpg"></textarea>
       });
 
       // Admin / Add Events
-      document.getElementById("btn-open-add").onclick = () => {
-          // Reset form khi mở
-          document.querySelectorAll("#addDlg input").forEach(i => { if(i.type!=='checkbox' && i.type!=='file') i.value=""; else if(i.type==='checkbox') i.checked=false; });
-          document.querySelectorAll("#addDlg textarea").forEach(i => i.value="");
-          document.getElementById("add-ward").disabled=true;
-          UPLOADED_IMAGES = []; renderImagePreview();
-          document.getElementById("addDlg").showModal();
-      };
+      document.getElementById("btn-open-add").onclick = () => document.getElementById("addDlg").showModal();
       document.getElementById("btn-toggle-pending").onclick = togglePendingMode;
       document.getElementById("btn-approve-all").onclick = approveAll;
 
@@ -1348,34 +1232,9 @@ MB0001/2.jpg"></textarea>
           document.getElementById("filter-ward").value = "";
           applyFilters(true);
       });
-    // --- LOGIC NÚT ĐỒNG TÌNH / KHÔNG ĐỒNG TÌNH ---
-      document.getElementById("btn-agree").onclick = () => {
-          // Lưu trạng thái đã đồng ý vào Session (tắt trình duyệt mở lại sẽ hỏi lại)
-          sessionStorage.setItem("demo_agreed", "true");
-          document.getElementById("demoDisclaimerDlg").close();
-      };
 
-      document.getElementById("btn-disagree").onclick = async () => {
-          // Nếu không đồng tình -> Đăng xuất ngay lập tức
-          await supabase.auth.signOut();
-          location.reload();
-      };
       initAuth();
     });
   </script>
-  <dialog id="demoDisclaimerDlg" class="modal">
-    <div class="modal-box border-2 border-warning">
-      <h3 class="font-bold text-xl text-warning flex items-center gap-2">
-        ⚠️ THÔNG BÁO QUAN TRỌNG
-      </h3>
-      <p class="py-4 text-base leading-relaxed">
-        Đây là bản <b>DEMO</b> nên còn nhiều lỗi lầm. Nếu có lỗi hoặc góp ý cải tiến sản phẩm xin vui lòng liên hệ đến team <b>"Văn Hóa"</b> để được hỗ trợ.
-      </p>
-      <div class="modal-action flex justify-center gap-4">
-        <button id="btn-disagree" class="btn btn-outline btn-error">Tôi không đồng tình</button>
-        <button id="btn-agree" class="btn btn-primary px-8">Tôi đồng tình</button>
-      </div>
-    </div>
-  </dialog>
 </body>
 </html>
