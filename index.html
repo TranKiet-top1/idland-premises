@@ -2,480 +2,562 @@
 <html lang="vi" data-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <title>ID-Land Premises - Quản lý mặt bằng</title>
+  <title>ID-Land Premises</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" />
-  
+  <link
+    href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css"
+    rel="stylesheet"
+  />
+
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
     }
-
-    /* Hiệu ứng hover cho thẻ card */
     .premise-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-      transition: all 0.3s ease;
+      transform: translateY(-2px);
     }
-
     /* CSS cho phần xem trước ảnh upload */
     .img-preview-box {
         position: relative;
-        width: 100px;
-        height: 100px;
+        width: 80px;
+        height: 80px;
         border-radius: 8px;
         overflow: hidden;
         border: 1px solid #e5e7eb;
-        background-color: #f9fafb;
     }
-
     .img-preview-box img {
         width: 100%;
         height: 100%;
         object-fit: cover;
     }
-
     .img-preview-box .btn-remove {
         position: absolute;
-        top: 4px;
-        right: 4px;
-        background: rgba(220, 38, 38, 0.9);
+        top: 2px;
+        right: 2px;
+        background: rgba(239, 68, 68, 0.9);
         color: white;
         border-radius: 50%;
-        width: 24px;
-        height: 24px;
+        width: 20px;
+        height: 20px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
+        font-size: 12px;
         cursor: pointer;
         border: none;
         z-index: 10;
-        transition: background 0.2s;
     }
-
     .img-preview-box .btn-remove:hover {
-        background: #b91c1c;
+        background: #dc2626;
     }
   </style>
 </head>
-<body class="bg-base-200 min-h-screen flex flex-col">
+<body class="bg-base-200">
 
-  <section id="auth-section" class="flex-1 flex items-center justify-center p-4">
+  <section id="auth-section" class="min-h-screen flex items-center justify-center">
     <div class="card w-full max-w-md bg-base-100 shadow-xl">
       <div class="card-body">
-        <div class="flex items-center gap-3 mb-6">
-          <div class="h-12 w-12 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-2xl">ID</div>
+        <div class="flex items-center gap-2 mb-4">
+          <div class="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white font-bold">ID</div>
           <div>
-            <h2 class="card-title text-2xl font-bold">ID-Land</h2>
-            <p class="text-sm opacity-70">Hệ thống kho mặt bằng nội bộ</p>
+            <h2 class="card-title">ID-Land Premises</h2>
+            <p class="text-xs opacity-70">Đăng nhập để xem kho mặt bằng</p>
           </div>
         </div>
 
-        <div class="form-control w-full">
+        <div class="form-control">
           <label class="label">
-            <span class="label-text font-semibold">Email đăng nhập</span>
+            <span class="label-text">Email</span>
           </label>
-          <input id="login-email" type="email" placeholder="admin@idland.vn" class="input input-bordered w-full" />
+          <input id="login-email" type="email" placeholder="you@idland.vn" class="input input-bordered" />
         </div>
 
-        <div class="form-control w-full mt-4">
+        <div class="form-control mt-2">
           <label class="label">
-            <span class="label-text font-semibold">Mật khẩu</span>
+            <span class="label-text">Mật khẩu</span>
           </label>
-          <input id="login-password" type="password" placeholder="••••••••" class="input input-bordered w-full" />
-        </div>
-        
-        <div class="form-control mt-8">
-          <button id="btn-login" class="btn btn-primary w-full text-lg text-white shadow-lg">
-            Đăng nhập hệ thống
-          </button>
+          <input id="login-password" type="password" placeholder="••••••••" class="input input-bordered" />
         </div>
 
-        <div id="login-msg" class="alert alert-error mt-4 hidden text-sm py-2">
-            <span id="login-msg-text">Thông báo lỗi</span>
+        <div class="form-control mt-4">
+          <button id="btn-login" class="btn btn-primary w-full">Đăng nhập</button>
         </div>
+
+        <p class="mt-3 text-xs opacity-70">
+          Quyền <b>admin</b>: xem & chỉnh sửa full thông tin, số nhà & số chủ.<br/>
+          Quyền <b>nhân sự</b>: bị ẩn số nhà & số điện thoại chủ nhà.
+        </p>
       </div>
     </div>
   </section>
 
-  <div id="app-root" class="hidden flex-col min-h-screen">
-    
-    <div class="navbar bg-base-100 shadow-md px-4 sticky top-0 z-40">
-      <div class="flex-1 flex items-center gap-3">
-        <div class="h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-lg shadow">ID</div>
-        <div class="leading-tight hidden sm:block">
-          <div class="font-bold text-lg text-gray-800">ID-Land Premises</div>
-          <div class="text-[11px] opacity-60 uppercase tracking-wider font-semibold">Kho dữ liệu TP.HCM</div>
+  <div id="app-root" class="hidden min-h-screen flex flex-col">
+    <div class="navbar bg-base-100 shadow-sm px-4 sticky top-0 z-50">
+      <div class="flex-1 flex items-center gap-2">
+        <div class="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xs">ID</div>
+        <div>
+          <div class="font-bold text-lg leading-tight">ID-Land Premises</div>
+          <div class="text-xs opacity-60">Kho mặt bằng cho thuê • TP.HCM</div>
         </div>
       </div>
-      <div class="flex-none flex items-center gap-4">
-        <div class="text-right hidden sm:block">
-          <div id="user-email-display" class="text-xs font-bold text-gray-700">Đang tải...</div>
-          <div id="role-badge" class="badge badge-xs badge-outline uppercase font-semibold mt-1">Staff</div>
+      <div class="flex-none flex items-center gap-2 text-sm">
+        <div class="text-right hidden sm:block mr-2">
+             <div id="user-email-display" class="text-xs font-bold"></div>
+             <span id="role-badge" class="badge badge-outline"></span>
         </div>
-        <button id="btn-logout" class="btn btn-ghost btn-sm text-error hover:bg-error/10">
-          Đăng xuất
-        </button>
+        <button id="btn-logout" class="btn btn-ghost btn-sm">Đăng xuất</button>
       </div>
     </div>
 
-    <main class="flex-1 max-w-[1600px] mx-auto w-full px-3 sm:px-6 py-6">
-      
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <main class="flex-1 max-w-6xl mx-auto w-full px-2 sm:px-4 py-4">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
-          <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Danh sách mặt bằng</h1>
-          <p class="text-sm text-gray-500 mt-1">Quản lý, tìm kiếm và kiểm duyệt tin đăng.</p>
+          <h1 class="text-xl sm:text-2xl font-bold">
+            Bộ lọc mặt bằng <span class="text-primary">ID-Land</span>
+          </h1>
+          <p class="text-xs sm:text-sm opacity-70">
+            Nhân sự chỉ cần nhập yêu cầu của khách: <b>giá – diện tích – khu vực...</b>
+          </p>
         </div>
-        
-        <div class="flex flex-wrap gap-3">
-          <div id="admin-controls" class="hidden flex gap-2">
-            <button id="btn-toggle-pending" class="btn btn-warning btn-sm text-white shadow-md gap-2">
-              Cần duyệt <span class="badge badge-sm bg-white text-warning border-none font-bold" id="count-pending">0</span>
-            </button>
-            <button id="btn-approve-all" class="btn btn-success btn-sm text-white shadow-md hidden gap-2">
-              Duyệt tất cả
-            </button>
+
+        <div class="flex flex-wrap gap-2 justify-end">
+          <div id="admin-pending-controls" class="hidden flex gap-2">
+               <button id="btn-toggle-pending" class="btn btn-warning btn-sm text-white">
+                   Cần duyệt <span class="badge badge-sm bg-white text-warning ml-1 border-none" id="count-pending">0</span>
+               </button>
+               <button id="btn-approve-all" class="btn btn-success btn-sm text-white hidden">✔ Duyệt tất cả</button>
           </div>
-          
-          <button id="btn-open-add" class="btn btn-primary btn-sm shadow-lg text-white gap-2">
-            + Đăng tin mới
+
+          <button id="btn-open-add" class="btn btn-primary btn-sm">
+            + Thêm mặt bằng
           </button>
         </div>
       </div>
 
-      <div class="grid md:grid-cols-[280px,1fr] gap-6">
-        
-        <aside class="bg-base-100 rounded-2xl shadow-sm border border-base-200 p-5 h-fit sticky top-20">
-          <div class="flex items-center gap-2 mb-4 border-b pb-2">
-            <span class="w-3 h-3 rounded-full bg-success animate-pulse"></span>
-            <h2 class="font-bold text-gray-700">Bộ lọc tìm kiếm</h2>
-          </div>
-          
-          <div class="form-control mb-3">
-            <label class="label py-1"><span class="label-text text-xs font-bold text-gray-500">Từ khoá / Mã MB</span></label>
-            <input id="filter-keyword" type="text" placeholder="VD: Nguyễn Trãi, Q1..." class="input input-sm input-bordered w-full" />
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <span class="text-xs opacity-70">Lọc nhanh:</span>
+        <button class="btn btn-xs" data-quick="available">Còn trống</button>
+        <button class="btn btn-xs" data-quick="deposited">Giữ cọc</button>
+        <button class="btn btn-xs" data-quick-district="Quận 1">Quận 1</button>
+        <button class="btn btn-xs" data-quick-district="Quận 10">Quận 10</button>
+        <button class="btn btn-xs btn-ghost btn-outline" id="btn-clear-quick">
+          Xoá lọc nhanh
+        </button>
+      </div>
+
+      <div class="grid md:grid-cols-[260px,1fr] gap-4">
+        <aside class="bg-base-100 rounded-2xl shadow-sm p-4">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-2 h-2 rounded-full bg-success"></span>
+            <h2 class="font-semibold text-sm">Bộ lọc</h2>
           </div>
 
           <div class="form-control mb-3">
-            <label class="label py-1"><span class="label-text text-xs font-bold text-gray-500">Khu vực</span></label>
-            <select id="filter-district" class="select select-sm select-bordered w-full mb-2">
-                <option value="">Tất cả Quận</option>
+            <label class="label">
+              <span class="label-text text-xs">Từ khoá</span>
+            </label>
+            <input
+              id="filter-keyword"
+              type="text"
+              placeholder="VD: Trần Hưng Đạo, Q5..."
+              class="input input-sm input-bordered"
+            />
+          </div>
+
+          <div class="form-control mb-3">
+            <label class="label">
+              <span class="label-text text-xs">Quận</span>
+            </label>
+            <select id="filter-district" class="select select-sm select-bordered">
+              <option value="">Tất cả</option>
             </select>
-            <select id="filter-ward" class="select select-sm select-bordered w-full" disabled>
-                <option value="">Tất cả Phường</option>
+          </div>
+
+          <div class="form-control mb-3">
+            <label class="label">
+              <span class="label-text text-xs">Phường</span>
+            </label>
+            <select id="filter-ward" class="select select-sm select-bordered">
+              <option value="">Tất cả</option>
             </select>
           </div>
 
-          <div class="form-control mb-3">
-             <label class="label py-1"><span class="label-text text-xs font-bold text-gray-500">Mức giá (Triệu đồng)</span></label>
-             <div class="grid grid-cols-2 gap-2">
-               <input id="filter-price-min" type="number" placeholder="Từ" class="input input-sm input-bordered" />
-               <input id="filter-price-max" type="number" placeholder="Đến" class="input input-sm input-bordered" />
-             </div>
-          </div>
-
-          <div class="form-control mb-3">
-             <label class="label py-1"><span class="label-text text-xs font-bold text-gray-500">Diện tích (m²)</span></label>
-             <div class="grid grid-cols-2 gap-2">
-               <input id="filter-area-min" type="number" placeholder="Từ" class="input input-sm input-bordered" />
-               <input id="filter-area-max" type="number" placeholder="Đến" class="input input-sm input-bordered" />
-             </div>
-          </div>
-
-          <div class="form-control mb-3">
-             <label class="label py-1"><span class="label-text text-xs font-bold text-gray-500">Kết cấu</span></label>
-             <div class="grid grid-cols-3 gap-2">
-                 <select id="filter-pn" class="select select-sm select-bordered text-[11px] px-1">
-                    <option value="">PN</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5+">5+</option>
-                 </select>
-                 <select id="filter-wc" class="select select-sm select-bordered text-[11px] px-1">
-                    <option value="">WC</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5+">5+</option>
-                 </select>
-                 <select id="filter-floors" class="select select-sm select-bordered text-[11px] px-1">
-                    <option value="">Tầng</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5+">5+</option>
-                 </select>
-             </div>
-          </div>
-
-          <div class="form-control mb-3">
-             <label class="label py-1"><span class="label-text text-xs font-bold text-gray-500">Loại hình</span></label>
-             <select id="filter-frontage-type" class="select select-sm select-bordered w-full">
+          <div class="grid grid-cols-1 gap-2 mb-3">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">Số PN</span>
+              </label>
+              <select id="filter-pn" class="select select-sm select-bordered">
                 <option value="">Tất cả</option>
-                <option value="mt">Mặt tiền</option>
-                <option value="hxh">Hẻm xe hơi</option>
-                <option value="hem">Hẻm thường</option>
-             </select>
+                <option value="1">1 PN</option>
+                <option value="2">2 PN</option>
+                <option value="3">3 PN</option>
+                <option value="4">4 PN</option>
+                <option value="5">5 PN</option>
+                <option value="6">6 PN</option>
+                <option value=">6">> 6 PN</option>
+              </select>
+            </div>
+
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">Số WC</span>
+              </label>
+              <select id="filter-wc" class="select select-sm select-bordered">
+                <option value="">Tất cả</option>
+                <option value="1">1 WC</option>
+                <option value="2">2 WC</option>
+                <option value="3">3 WC</option>
+                <option value="4">4 WC</option>
+                <option value="5">5 WC</option>
+                <option value=">5">> 5 WC</option>
+              </select>
+            </div>
+
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">Số tầng</span>
+              </label>
+              <select id="filter-floors" class="select select-sm select-bordered">
+                <option value="">Tất cả</option>
+                <option value="1">1 tầng</option>
+                <option value="2">2 tầng</option>
+                <option value="3">3 tầng</option>
+                <option value="4">4 tầng</option>
+                <option value="5">5 tầng</option>
+                <option value=">5">> 5 tầng</option>
+              </select>
+            </div>
           </div>
 
-          <div class="form-control mb-5">
-             <label class="label py-1"><span class="label-text text-xs font-bold text-gray-500">Trạng thái</span></label>
-             <select id="filter-status" class="select select-sm select-bordered w-full">
-                <option value="">Tất cả</option>
-                <option value="available">Còn trống</option>
-                <option value="deposited">Giữ cọc</option>
-                <option value="rented">Đã thuê</option>
-             </select>
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">Giá tối thiểu</span>
+              </label>
+              <input
+                id="filter-price-min"
+                type="number"
+                class="input input-sm input-bordered"
+              />
+            </div>
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">Giá tối đa</span>
+              </label>
+              <input
+                id="filter-price-max"
+                type="number"
+                class="input input-sm input-bordered"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">DT tối thiểu (m²)</span>
+              </label>
+              <input
+                id="filter-area-min"
+                type="number"
+                class="input input-sm input-bordered"
+              />
+            </div>
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">DT tối đa (m²)</span>
+              </label>
+              <input
+                id="filter-area-max"
+                type="number"
+                class="input input-sm input-bordered"
+              />
+            </div>
+          </div>
+
+          <div class="form-control mb-3">
+            <label class="label">
+              <span class="label-text text-xs">Vị trí</span>
+            </label>
+            <select id="filter-frontage-type" class="select select-sm select-bordered">
+              <option value="">Tất cả</option>
+              <option value="hem">Nhà hẻm</option>
+              <option value="hxh">Hẻm xe hơi</option>
+              <option value="mt">Mặt tiền</option>
+            </select>
+          </div>
+
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text text-xs">Tình trạng</span>
+            </label>
+            <select id="filter-status" class="select select-sm select-bordered">
+              <option value="">Tất cả</option>
+              <option value="available">Còn trống</option>
+              <option value="deposited">Giữ cọc</option>
+              <option value="rented">Đã thuê</option>
+            </select>
           </div>
 
           <div class="flex gap-2">
-             <button id="btn-apply" class="btn btn-sm btn-primary flex-1 text-white">Áp dụng</button>
-             <button id="btn-reset" class="btn btn-sm btn-outline">Xoá lọc</button>
+            <button id="btn-apply" class="btn btn-sm btn-primary flex-1">
+              Lọc
+            </button>
+            <button id="btn-reset" class="btn btn-sm btn-ghost">
+              Xoá lọc
+            </button>
           </div>
         </aside>
 
-        <section class="flex flex-col gap-4">
-           <div class="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-base-200 text-sm">
-              <span class="opacity-70">Kết quả hiển thị: <b id="result-count">Đang tải...</b></span>
-           </div>
-           
-           <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
-              </div>
+        <section class="flex flex-col gap-3">
+          <div class="flex items-center justify-between mb-1 text-xs opacity-70">
+            <span>
+              Hiển thị <span id="count-show">0</span> / <span id="count-total">0</span>
+            </span>
+            <button id="btn-download-csv" class="btn btn-xs btn-ghost">
+              Tải CSV trên Supabase
+            </button>
+          </div>
 
-           <div class="text-center mt-6 mb-10">
-              <button id="btn-load-more" class="btn btn-outline btn-sm px-6">Tải thêm dữ liệu</button>
-           </div>
+          <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            </div>
+
+          <div class="mt-4 flex justify-center">
+            <button id="btn-load-more" class="btn btn-sm btn-ghost">
+              Hết dữ liệu
+            </button>
+          </div>
         </section>
       </div>
     </main>
   </div>
 
-  <dialog id="addDlg" class="modal">
-    <div class="modal-box max-w-5xl">
-      <form method="dialog">
-        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 text-lg">✕</button>
-      </form>
-      
-      <h3 class="font-bold text-2xl text-primary mb-1">Đăng mặt bằng mới</h3>
-      <p class="text-xs opacity-60 mb-6 italic">Mã mặt bằng (MB-xxxx) sẽ được hệ thống tự động khởi tạo.</p>
-      
-      <div class="grid md:grid-cols-12 gap-6">
-        
-        <div class="md:col-span-7 space-y-4">
-            <div class="form-control">
-                <label class="label pt-0"><span class="label-text font-bold">Địa chỉ (Số nhà + Tên đường) <span class="text-error">*</span></span></label>
-                <input id="add-address" type="text" placeholder="VD: 123 Nguyễn Trãi" class="input input-bordered" />
-            </div>
-            
-            <div class="grid grid-cols-2 gap-3">
-                <div class="form-control">
-                    <label class="label pt-0"><span class="label-text font-bold">Quận <span class="text-error">*</span></span></label>
-                    <select id="add-district" class="select select-bordered w-full">
-                        <option value="">-- Chọn Quận --</option>
-                    </select>
-                </div>
-                <div class="form-control">
-                    <label class="label pt-0"><span class="label-text font-bold">Phường <span class="text-error">*</span></span></label>
-                    <select id="add-ward" class="select select-bordered w-full" disabled>
-                        <option value="">-- Chọn Quận trước --</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-control">
-                <label class="label pt-0"><span class="label-text font-bold">Tên đường (để lọc)</span></label>
-                <input id="add-street" type="text" class="input input-bordered" placeholder="VD: Nguyễn Trãi" />
-            </div>
-            
-            <div class="form-control">
-                <label class="label pt-0"><span class="label-text font-bold text-primary">Giá thuê (VNĐ) <span class="text-error">*</span></span></label>
-                <input id="add-price" type="text" class="input input-bordered font-bold text-lg text-primary" onkeyup="formatCurrencyInput(this)" placeholder="0" />
-            </div>
-
-            <div class="form-control mt-2">
-                 <label class="cursor-pointer flex items-center gap-3 border p-3 rounded-lg bg-base-100 hover:bg-base-200 transition">
-                    <input id="add-frontage" type="checkbox" class="checkbox checkbox-primary" /> 
-                    <span class="font-medium">Đánh dấu là Nhà mặt tiền</span>
-                 </label>
-            </div>
-
-            <div class="form-control border border-dashed border-primary/50 rounded-xl p-4 bg-blue-50/30 mt-4">
-                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm font-bold flex items-center gap-2">
-                        Hình ảnh
-                    </span>
-                    <span id="upload-status" class="text-xs text-primary hidden flex items-center gap-1">
-                        <span class="loading loading-spinner loading-xs"></span> Đang tải lên...
-                    </span>
-                 </div>
-                 
-                 <input type="file" id="inp-upload-img" class="file-input file-input-sm file-input-primary w-full mb-3" multiple accept="image/*" onchange="handleImageUpload(this)" />
-                 
-                 <div id="preview-container" class="flex flex-wrap gap-3 min-h-[80px]">
-                     <div class="text-xs opacity-50 w-full text-center py-4">Chưa có ảnh nào được chọn.</div>
-                 </div>
-            </div>
-        </div>
-
-        <div class="md:col-span-5 space-y-4">
-            <div class="grid grid-cols-2 gap-3">
-                <div class="form-control">
-                    <label class="label pt-0"><span class="label-text text-xs">Diện tích (m²)</span></label>
-                    <input id="add-area" type="number" class="input input-bordered input-sm" />
-                </div>
-                <div class="form-control">
-                    <label class="label pt-0"><span class="label-text text-xs">Số tầng</span></label>
-                    <input id="add-floors" type="number" class="input input-bordered input-sm" />
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div class="form-control">
-                    <label class="label pt-0"><span class="label-text text-xs">Ngang (m)</span></label>
-                    <input id="add-width" type="number" step="0.1" class="input input-bordered input-sm" />
-                </div>
-                <div class="form-control">
-                    <label class="label pt-0"><span class="label-text text-xs">Dài (m)</span></label>
-                    <input id="add-length" type="number" step="0.1" class="input input-bordered input-sm" />
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div class="form-control">
-                    <label class="label pt-0"><span class="label-text text-xs">Phòng ngủ</span></label>
-                    <input id="add-bedrooms" type="number" class="input input-bordered input-sm" />
-                </div>
-                <div class="form-control">
-                    <label class="label pt-0"><span class="label-text text-xs">Toilet</span></label>
-                    <input id="add-wc" type="number" class="input input-bordered input-sm" />
-                </div>
-            </div>
-
-            <div class="form-control">
-                <label class="label pt-0"><span class="label-text text-xs">Kết cấu (VD: Trệt 3 lầu)</span></label>
-                <input id="add-ket-cau" type="text" class="input input-bordered input-sm" />
-            </div>
-
-            <div class="form-control">
-                <label class="label pt-0"><span class="label-text text-xs font-bold text-error">SĐT Chủ nhà (Bảo mật)</span></label>
-                <input id="add-contact-phone" type="text" class="input input-bordered input-sm input-error" placeholder="Chỉ Admin thấy..." />
-            </div>
-
-            <div class="form-control">
-                <label class="label pt-0"><span class="label-text text-xs">Mô tả chi tiết</span></label>
-                <textarea id="add-detail" class="textarea textarea-bordered h-32 text-sm"></textarea>
-            </div>
-        </div>
-
-      </div>
-
-      <div class="modal-action pt-4 border-t mt-4">
-        <button class="btn" onclick="document.getElementById('addDlg').close()">Đóng</button>
-        <button class="btn btn-primary px-8 text-white" onclick="saveNewPremise()">
-           Lưu tin đăng
-        </button>
-      </div>
+  <dialog id="detailDlg" class="modal">
+    <div class="modal-box max-w-5xl p-4">
+      <form method="dialog" class="modal-backdrop absolute inset-0" onclick="document.getElementById('detailDlg').close()"></form>
+      <div id="detail-content"></div>
     </div>
   </dialog>
 
   <dialog id="editDlg" class="modal">
     <div class="modal-box max-w-4xl">
-      <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button></form>
-      <h3 class="font-bold text-lg mb-3 text-primary">Chỉnh sửa thông tin mặt bằng</h3>
+      <form method="dialog" class="modal-backdrop absolute inset-0" onclick="document.getElementById('editDlg').close()"></form>
+      <h3 class="font-bold text-lg mb-3">Chỉnh sửa mặt bằng</h3>
 
       <div class="grid md:grid-cols-2 gap-3">
         <div class="form-control md:col-span-2">
-          <label class="label"><span class="label-text font-bold">Mã mặt bằng</span></label>
-          <input id="edit-code" type="text" class="input input-bordered w-full bg-base-200" readonly />
-        </div>
-        <div class="form-control md:col-span-2">
-          <label class="label"><span class="label-text">Địa chỉ hiển thị</span></label>
-          <input id="edit-address" type="text" class="input input-bordered w-full" />
-        </div>
-        
-        <div class="form-control"><label class="label"><span class="label-text">Thành phố</span></label><input id="edit-city" type="text" class="input input-bordered w-full" /></div>
-        <div class="form-control"><label class="label"><span class="label-text">Quận</span></label><input id="edit-district" type="text" class="input input-bordered w-full" /></div>
-        <div class="form-control"><label class="label"><span class="label-text">Phường</span></label><input id="edit-ward" type="text" class="input input-bordered w-full" /></div>
-        <div class="form-control"><label class="label"><span class="label-text">Tên đường</span></label><input id="edit-street" type="text" class="input input-bordered w-full" /></div>
-        
-        <div class="form-control"><label class="label"><span class="label-text font-bold text-primary">Giá thuê</span></label><input id="edit-price" type="number" class="input input-bordered w-full font-bold" /></div>
-        
-        <div class="form-control"><label class="label"><span class="label-text">Diện tích</span></label><input id="edit-area" type="number" class="input input-bordered w-full" /></div>
-        <div class="form-control"><label class="label"><span class="label-text">Ngang</span></label><input id="edit-width" type="number" class="input input-bordered w-full" /></div>
-        <div class="form-control"><label class="label"><span class="label-text">Dài</span></label><input id="edit-length" type="number" class="input input-bordered w-full" /></div>
-        <div class="form-control"><label class="label"><span class="label-text">Số tầng</span></label><input id="edit-floors" type="number" class="input input-bordered w-full" /></div>
-        <div class="form-control"><label class="label"><span class="label-text">Số PN</span></label><input id="edit-bedrooms" type="number" class="input input-bordered w-full" /></div>
-        <div class="form-control"><label class="label"><span class="label-text">Số WC</span></label><input id="edit-wc" type="number" class="input input-bordered w-full" /></div>
-        
-        <div class="form-control md:col-span-2"><label class="label"><span class="label-text">Kết cấu</span></label><input id="edit-ket-cau" type="text" class="input input-bordered w-full" /></div>
-        <div class="form-control md:col-span-2"><label class="label"><span class="label-text font-bold text-error">SĐT Chủ nhà</span></label><input id="edit-contact-phone" type="text" class="input input-bordered w-full input-error" /></div>
-        
-        <div class="form-control flex flex-row items-center gap-2 mt-2">
-            <input id="edit-frontage" type="checkbox" class="checkbox checkbox-primary" />
-            <span class="label-text font-bold">Là nhà mặt tiền</span>
+          <label class="label">
+            <span class="label-text">Mã mặt bằng (code)</span>
+          </label>
+          <input id="edit-code" type="text" class="input input-bordered w-full" />
         </div>
 
-        <div class="form-control"><label class="label"><span class="label-text">Trạng thái</span></label>
-            <select id="edit-status" class="select select-bordered w-full">
-                <option value="available">Còn trống</option>
-                <option value="deposited">Giữ cọc</option>
-                <option value="rented">Đã thuê</option>
-            </select>
+        <div class="form-control md:col-span-2">
+          <label class="label">
+            <span class="label-text">Tiêu đề / Địa chỉ hiển thị</span>
+          </label>
+          <input id="edit-address" type="text" class="input input-bordered w-full" />
         </div>
-        <div class="form-control md:col-span-2"><label class="label"><span class="label-text">Hoa hồng / Ghi chú</span></label><input id="edit-commission" type="text" class="input input-bordered w-full" /></div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text">Thành phố</span></label>
+          <input id="edit-city" type="text" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Quận</span></label>
+          <input id="edit-district" type="text" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Phường</span></label>
+          <input id="edit-ward" type="text" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Tên đường</span></label>
+          <input id="edit-street" type="text" class="input input-bordered w-full" />
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text">Giá thuê (đ)</span></label>
+          <input id="edit-price" type="number" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Diện tích (m²)</span></label>
+          <input id="edit-area" type="number" class="input input-bordered w-full" />
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text">Chiều ngang (m)</span></label>
+          <input id="edit-width" type="number" step="0.1" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Chiều dài (m)</span></label>
+          <input id="edit-length" type="number" step="0.1" class="input input-bordered w-full" />
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text">Số tầng</span></label>
+          <input id="edit-floors" type="number" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Số PN</span></label>
+          <input id="edit-bedrooms" type="number" class="input input-bordered w-full" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Số WC</span></label>
+          <input id="edit-wc" type="number" class="input input-bordered w-full" />
+        </div>
+
+        <div class="form-control md:col-span-2">
+          <label class="label"><span class="label-text">Kết cấu</span></label>
+          <input id="edit-ket-cau" type="text" class="input input-bordered w-full" placeholder="VD: Trệt 3 lầu, trống suốt…" />
+        </div>
         
         <div class="form-control md:col-span-2">
-            <label class="label"><span class="label-text">Link Ảnh (Mỗi dòng 1 link/path)</span></label>
-            <textarea id="edit-images" class="textarea textarea-bordered w-full min-h-[100px]"></textarea>
+            <label class="label"><span class="label-text">SĐT Chủ nhà (Chỉ Admin thấy)</span></label>
+            <input id="edit-contact-phone" type="text" class="input input-bordered w-full" placeholder="090..." />
         </div>
-        <div class="form-control md:col-span-2"><label class="label"><span class="label-text">Mô tả chi tiết</span></label><textarea id="edit-detail" class="textarea textarea-bordered w-full min-h-[140px]"></textarea></div>
-        
-        <input id="edit-city" type="hidden" />
+
+        <div class="form-control flex items-center gap-2 mt-2">
+          <input id="edit-frontage" type="checkbox" class="checkbox" />
+          <span class="label-text">Nhà mặt tiền</span>
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text">Trạng thái</span></label>
+          <select id="edit-status" class="select select-bordered w-full">
+            <option value="available">Còn trống</option>
+            <option value="deposited">Giữ cọc</option>
+            <option value="rented">Đã thuê</option>
+          </select>
+        </div>
+
+        <div class="form-control md:col-span-2">
+          <label class="label"><span class="label-text">Hoa hồng / ghi chú HH</span></label>
+          <input id="edit-commission" type="text" class="input input-bordered w-full" />
+        </div>
+
+        <div class="form-control md:col-span-2">
+          <label class="label"><span class="label-text">Danh sách ảnh (mỗi dòng 1 path)</span></label>
+          <textarea id="edit-images" class="textarea textarea-bordered w-full min-h-[80px]" placeholder="VD: MB0001/1.jpg
+MB0001/2.jpg"></textarea>
+        </div>
+
+        <div class="form-control md:col-span-2">
+          <label class="label"><span class="label-text">Thông tin chi tiết mặt bằng</span></label>
+          <textarea id="edit-detail" class="textarea textarea-bordered w-full min-h-[140px]"></textarea>
+        </div>
       </div>
-      
+
       <div class="modal-action">
-        <button class="btn" onclick="document.getElementById('editDlg').close()">Huỷ bỏ</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('editDlg').close()">Huỷ</button>
         <button class="btn btn-primary" onclick="saveEditPremise()">Lưu thay đổi</button>
       </div>
     </div>
   </dialog>
 
-  <dialog id="detailDlg" class="modal">
-    <div class="modal-box max-w-6xl p-0 overflow-hidden relative bg-white h-[90vh]">
-        <form method="dialog">
-            <button class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4 z-20 bg-white/80 hover:bg-white">✕</button>
-        </form>
-        <div id="detail-content" class="h-full flex flex-col justify-center items-center">
-            <span class="loading loading-spinner loading-lg text-primary"></span>
-        </div>
-    </div>
-    <form method="dialog" class="modal-backdrop"><button>close</button></form>
-  </dialog>
+  <dialog id="addDlg" class="modal">
+    <div class="modal-box max-w-4xl">
+      <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button></form>
+      <h3 class="font-bold text-lg text-primary mb-4">Đăng mặt bằng mới</h3>
+      <div class="grid md:grid-cols-2 gap-4">
+          <div>
+             <div class="form-control mb-2">
+                 <span class="label-text text-xs font-bold">Địa chỉ (Số nhà + Đường) *</span>
+                 <input id="add-address" type="text" class="input input-sm input-bordered" placeholder="VD: 123 Nguyễn Trãi"/>
+             </div>
+             <div class="grid grid-cols-2 gap-2 mb-2">
+                 <div class="form-control">
+                     <span class="label-text text-xs">Quận *</span>
+                     <select id="add-district" class="select select-sm select-bordered">
+                        <option value="">-- Chọn --</option>
+                     </select>
+                 </div>
+                 <div class="form-control">
+                     <span class="label-text text-xs">Phường *</span>
+                     <select id="add-ward" class="select select-sm select-bordered" disabled>
+                        <option value="">-- Chọn Quận trước --</option>
+                     </select>
+                 </div>
+             </div>
+             <div class="form-control mb-2">
+                 <span class="label-text text-xs">Tên đường (để lọc)</span>
+                 <input id="add-street" type="text" class="input input-sm input-bordered"/>
+             </div>
+             <div class="form-control mt-3">
+                 <span class="label-text text-xs font-bold text-primary">Giá thuê (VNĐ) *</span>
+                 <input id="add-price" type="text" class="input input-sm input-bordered font-bold" onkeyup="formatCurrencyInput(this)" placeholder="0"/>
+             </div>
+             <div class="mt-3">
+                 <label class="flex items-center gap-2 cursor-pointer border p-2 rounded">
+                     <input id="add-frontage" type="checkbox" class="checkbox checkbox-sm checkbox-primary" />
+                     <span class="text-sm font-medium">Nhà mặt tiền</span>
+                 </label>
+             </div>
+          </div>
+          <div>
+             <div class="grid grid-cols-3 gap-2 mb-2">
+                 <div><span class="text-xs">DT (m²)</span><input id="add-area" type="number" class="input input-sm input-bordered w-full"/></div>
+                 <div><span class="text-xs">Ngang</span><input id="add-width" type="number" class="input input-sm input-bordered w-full"/></div>
+                 <div><span class="text-xs">Dài</span><input id="add-length" type="number" class="input input-sm input-bordered w-full"/></div>
+             </div>
+             <div class="grid grid-cols-3 gap-2 mb-2">
+                 <div><span class="text-xs">Tầng</span><input id="add-floors" type="number" class="input input-sm input-bordered w-full"/></div>
+                 <div><span class="text-xs">PN</span><input id="add-bedrooms" type="number" class="input input-sm input-bordered w-full"/></div>
+                 <div><span class="text-xs">WC</span><input id="add-wc" type="number" class="input input-sm input-bordered w-full"/></div>
+             </div>
+             <div class="form-control mb-2">
+                 <span class="text-xs">Kết cấu</span>
+                 <input id="add-ket-cau" type="text" class="input input-sm input-bordered" placeholder="VD: Trệt 3 lầu..."/>
+             </div>
+             <div class="form-control mb-2">
+                 <span class="text-xs font-bold text-error">SĐT Chủ (Admin xem)</span>
+                 <input id="add-contact-phone" type="text" class="input input-sm input-bordered input-error" placeholder="090..."/>
+             </div>
+          </div>
+          
+          <div class="md:col-span-2 border rounded-lg p-3 bg-base-50">
+              <div class="flex justify-between items-center mb-2">
+                  <span class="label-text text-xs font-bold">Hình ảnh (Tự động upload)</span>
+                  <span id="upload-status" class="text-xs text-primary loading hidden"></span>
+              </div>
+              <input type="file" id="inp-upload-img" class="file-input file-input-sm file-input-bordered w-full mb-3" multiple accept="image/*" onchange="handleImageUpload(this)" />
+              
+              <div id="preview-container" class="flex flex-wrap gap-2">
+                  </div>
+          </div>
 
-  <dialog id="demoDisclaimerDlg" class="modal">
-    <div class="modal-box border-2 border-warning">
-      <h3 class="font-bold text-xl text-warning flex items-center gap-2">
-        ⚠️ THÔNG BÁO QUAN TRỌNG
-      </h3>
-      <p class="py-4 text-base leading-relaxed">
-        Đây là bản <b>DEMO</b> nên còn nhiều lỗi lầm. Nếu có lỗi hoặc góp ý cải tiến sản phẩm xin vui lòng liên hệ đến team <b>"Văn Hóa"</b> để được hỗ trợ.
-      </p>
-      <div class="modal-action flex justify-center gap-4">
-        <button id="btn-disagree" class="btn btn-outline btn-error">Tôi không đồng tình</button>
-        <button id="btn-agree" class="btn btn-primary px-8">Tôi đồng tình</button>
+          <div class="md:col-span-2">
+              <span class="text-xs">Mô tả chi tiết</span>
+              <textarea id="add-detail" class="textarea textarea-bordered w-full h-20 text-sm"></textarea>
+          </div>
+      </div>
+      <div class="modal-action">
+        <button class="btn" onclick="document.getElementById('addDlg').close()">Huỷ</button>
+        <button class="btn btn-primary" onclick="saveNewPremise()">Lưu tin</button>
       </div>
     </div>
   </dialog>
 
-  <div id="toast" class="toast toast-top toast-end z-[100] hidden">
-    <div class="alert alert-info shadow-lg" id="toast-text">
-      <span>Message here</span>
-    </div>
+  <div id="toast" class="toast toast-end z-50 hidden">
+    <div class="alert alert-info text-sm" id="toast-text"></div>
   </div>
 
   <script>
-    // --- CẤU HÌNH KẾT NỐI SUPABASE ---
+    // ===== 1. CONFIG =====
     const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjbG5jb3drb2Vkd3F6Y2VtaGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzcwOTUsImV4cCI6MjA3Nzg1MzA5NX0.jfNM46UgXIq9LrwSXcERJJULeKB7bl_c9R9LaVhRy1A";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjbG5jb3drb2Vkd3F6Y2VtaGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzcwOTUsImV4cCI6MjA3Nzg1MzA5NX0.jfNM46UgXIq9LrwSXcERJJULeKB7bl_c9R9LaVhRy1A";
     const STORAGE_BUCKET = "premise-images";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const PAGE_SIZE = 24;
-    
-    // --- DỮ LIỆU QUẬN/PHƯỜNG TP.HCM (ĐẦY ĐỦ + Q2, Q9) ---
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // --- DỮ LIỆU QUẬN/PHƯỜNG (ĐÃ CẬP NHẬT Q2, Q9) ---
     const HCM_DATA = {
         "Quận 1": ["Bến Nghé", "Bến Thành", "Cô Giang", "Cầu Kho", "Cầu Ông Lãnh", "Đa Kao", "Nguyễn Cư Trinh", "Nguyễn Thái Bình", "Phạm Ngũ Lão", "Tân Định"],
         "Quận 2": ["Thảo Điền", "An Phú", "Bình An", "Bình Trưng Đông", "Bình Trưng Tây", "Bình Khánh", "An Khánh", "Cát Lái", "Thạnh Mỹ Lợi", "An Lợi Đông", "Thủ Thiêm"],
@@ -498,740 +580,802 @@
         "Thủ Đức": ["An Khánh", "An Lợi Đông", "An Phú", "Bình Chiểu", "Bình Thọ", "Bình Trưng Đông", "Bình Trưng Tây", "Cát Lái", "Hiệp Bình Chánh", "Hiệp Bình Phước", "Linh Chiểu", "Linh Đông", "Linh Tây", "Linh Trung", "Linh Xuân", "Long Bình", "Long Phước", "Long Thạnh Mỹ", "Long Trường", "Phú Hữu", "Phước Bình", "Phước Long A", "Phước Long B", "Tam Bình", "Tam Phú", "Tân Phú", "Tăng Nhơn Phú A", "Tăng Nhơn Phú B", "Thảo Điền", "Thạnh Mỹ Lợi", "Thủ Thiêm", "Trường Thạnh", "Trường Thọ"]
     };
 
-    // Biến trạng thái toàn cục
     let CURRENT_USER = null;
     let CURRENT_ROLE = "staff";
     let PAGE = 0;
     let TOTAL_COUNT = 0;
-    let SHOW_PENDING = false; 
-    let EDITING_ID = null; 
-    let UPLOADED_IMAGES = []; // Danh sách ảnh upload
+    let LAST_ROWS = [];
+    let EDITING_ID = null;
+    
+    // BIẾN MỚI CHO ADMIN DUYỆT BÀI
+    let SHOW_PENDING = false;
+    // BIẾN QUẢN LÝ ẢNH UPLOAD
+    let UPLOADED_IMAGES = []; 
 
-    // ================== KHỞI TẠO (INIT) ==================
-    document.addEventListener("DOMContentLoaded", () => {
-        // Setup Dropdown cho các form
-        initAddFormDropdowns();
-        initFilterDropdowns();
-        
-        // Kiểm tra đăng nhập
-        checkSession();
+    // ===== HELPERS =====
+    function toast(msg) {
+      const toastEl = document.getElementById("toast");
+      const textEl = document.getElementById("toast-text");
+      textEl.textContent = msg;
+      toastEl.classList.remove("hidden");
+      setTimeout(() => toastEl.classList.add("hidden"), 2500);
+    }
 
-        // Sự kiện nút Đăng nhập / Đăng xuất
-        document.getElementById("btn-login").onclick = handleLogin;
-        document.getElementById("btn-logout").onclick = async () => { 
-            await supabase.auth.signOut(); 
-            location.reload(); 
-        };
+    function money(v) {
+      if (v == null || isNaN(v)) return "";
+      return new Intl.NumberFormat("vi-VN").format(v) + " đ";
+    }
 
-        // Sự kiện nút Chức năng
-        document.getElementById("btn-open-add").onclick = openAddModal;
-        document.getElementById("btn-apply").onclick = () => loadData(true);
-        document.getElementById("btn-reset").onclick = resetFilters;
-        document.getElementById("btn-load-more").onclick = () => { PAGE++; loadData(false); };
+    function formatDateVN(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleDateString("vi-VN");
+    }
 
-        // Sự kiện Admin
-        document.getElementById("btn-toggle-pending").onclick = togglePendingMode;
-        document.getElementById("btn-approve-all").onclick = approveAll;
-
-        // Sự kiện thay đổi Quận -> Load Phường
-        document.getElementById("filter-district").onchange = (e) => updateWards("filter-ward", e.target.value);
-        document.getElementById("add-district").onchange = (e) => updateWards("add-ward", e.target.value);
-        
-        // LOGIC DISCLAIMER (MỚI)
-        document.getElementById("btn-agree").onclick = () => {
-            sessionStorage.setItem("demo_agreed", "true");
-            document.getElementById("demoDisclaimerDlg").close();
-        };
-        document.getElementById("btn-disagree").onclick = async () => {
-            await supabase.auth.signOut();
-            location.reload();
-        };
-    });
-
-    // ================== XỬ LÝ AUTH (ĐĂNG NHẬP/QUYỀN) ==================
-    async function checkSession() {
-        const { data } = await supabase.auth.getUser();
-        if (data.user) {
-            CURRENT_USER = data.user;
-            
-            // Lấy thông tin Role từ bảng profiles
-            const { data: profile } = await supabase
-                .from("profiles")
-                .select("role, email")
-                .eq("id", CURRENT_USER.id)
-                .maybeSingle();
-            
-            CURRENT_ROLE = profile?.role || "staff";
-            const displayEmail = profile?.email || CURRENT_USER.email;
-
-            // Cập nhật giao diện
-            document.getElementById("user-email-display").textContent = displayEmail;
-            document.getElementById("role-badge").textContent = CURRENT_ROLE === 'admin' ? "Admin" : "Nhân sự";
-            
-            if (CURRENT_ROLE === 'admin') {
-                document.getElementById("role-badge").classList.remove("badge-outline");
-                document.getElementById("role-badge").classList.add("badge-error", "text-white");
-                document.getElementById("admin-controls").classList.remove("hidden");
-                checkPendingCount();
-            }
-
-            // Ẩn màn hình login, hiện màn hình chính
-            document.getElementById("auth-section").classList.add("hidden");
-            document.getElementById("app-root").classList.remove("hidden");
-            document.getElementById("app-root").classList.add("flex");
-
-            // CHECK DISCLAIMER (MỚI)
-            if (!sessionStorage.getItem("demo_agreed")) {
-                const dlg = document.getElementById("demoDisclaimerDlg");
-                dlg.addEventListener('cancel', (event) => { event.preventDefault(); });
-                dlg.showModal();
-            }
-
-            // Tải dữ liệu
-            loadData(true);
-        } else {
-            document.getElementById("auth-section").classList.remove("hidden");
-            document.getElementById("app-root").classList.remove("flex");
-            document.getElementById("app-root").classList.add("hidden");
+    function pickField(obj, names) {
+      for (const n of names) {
+        if (obj && obj[n] !== undefined && obj[n] !== null && obj[n] !== "") {
+          return obj[n];
         }
+      }
+      return null;
+    }
+
+    function isAdmin() { return CURRENT_ROLE === "admin"; }
+    function isStaff() { return CURRENT_ROLE === "staff"; }
+
+    function maskAddress(row) {
+      const full = row.address || "";
+      // NẾU LÀ ADMIN THÌ HIỆN HẾT
+      if (isAdmin()) return full || row.street; 
+
+      if (!isStaff()) return full || [row.street, row.ward, row.district].filter(Boolean).join(", ");
+
+      if (full) {
+        const parts = full.split(" ");
+        if (parts.length > 1) {
+          parts.shift();
+          return parts.join(" ");
+        }
+        return full;
+      }
+      return [row.street, row.ward, row.district].filter(Boolean).join(", ");
+    }
+
+    function buildImageUrl(path) {
+      if (!path) return null;
+      if (path.startsWith('http')) return path; // Hỗ trợ link đầy đủ
+      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      return data?.publicUrl || null;
+    }
+
+    function formatCurrencyInput(el) {
+        let val = el.value.replace(/\D/g, '');
+        if(val) el.value = new Intl.NumberFormat('vi-VN').format(val);
+    }
+
+    // ===== AUTH =====
+    async function initAuth() {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        document.getElementById("auth-section").classList.remove("hidden");
+        document.getElementById("app-root").classList.add("hidden");
+        return;
+      }
+      CURRENT_USER = data.user;
+
+      // --- LẤY ROLE TỪ BẢNG PROFILES ---
+      let role = "staff";
+      let userEmail = CURRENT_USER.email;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role, email")
+        .eq("id", CURRENT_USER.id)
+        .maybeSingle();
+      
+      if (profile) {
+          if (profile.role) role = profile.role;
+          if (profile.email) userEmail = profile.email;
+      }
+      CURRENT_ROLE = role;
+
+      document.getElementById("auth-section").classList.add("hidden");
+      document.getElementById("app-root").classList.remove("hidden");
+      
+      // Hiển thị tên/role
+      document.getElementById("user-email-display").textContent = userEmail;
+      document.getElementById("role-badge").textContent = (role === "admin" ? "Admin" : "Nhân sự");
+      if (isAdmin()) document.getElementById("role-badge").className = "badge badge-error text-white";
+
+      // Nút chức năng
+      // Nếu là Admin -> hiện nút duyệt bài
+      if (isAdmin()) {
+        document.getElementById("admin-pending-controls").classList.remove("hidden");
+        checkPendingCount();
+      }
+
+      await applyFilters(true);
+      await buildDistrictWardOptions();
+      initAddFormDropdowns(); // Khởi tạo dropdown cho form thêm mới
+      if (!sessionStorage.getItem("demo_agreed")) {
+        // Chặn không cho đóng bằng nút Esc (bắt buộc chọn)
+        document.getElementById("demoDisclaimerDlg").addEventListener('cancel', (event) => {
+            event.preventDefault();
+        });
+        document.getElementById("demoDisclaimerDlg").showModal();
     }
 
     async function handleLogin() {
-        const email = document.getElementById("login-email").value.trim();
-        const password = document.getElementById("login-password").value.trim();
-        const msgEl = document.getElementById("login-msg");
-        const msgText = document.getElementById("login-msg-text");
-
-        msgEl.classList.add("hidden");
-
-        if (!email || !password) {
-            msgText.textContent = "Vui lòng nhập đầy đủ email và mật khẩu";
-            msgEl.classList.remove("hidden");
-            return;
-        }
-
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        
-        if (error) {
-            msgText.textContent = "Đăng nhập thất bại: " + error.message;
-            msgEl.classList.remove("hidden");
-        } else {
-            checkSession();
-        }
+      const email = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-password").value.trim();
+      if (!email || !password) {
+        toast("Vui lòng nhập email & mật khẩu");
+        return;
+      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        console.error(error);
+        toast("Đăng nhập thất bại: " + error.message);
+        return;
+      }
+      toast("Đăng nhập thành công");
+      await initAuth();
     }
 
-    // ================== XỬ LÝ UPLOAD ẢNH (MỚI & QUAN TRỌNG) ==================
+    async function handleLogout() {
+      await supabase.auth.signOut();
+      location.reload();
+    }
+
+    // ===== FILTERS =====
+    function getFilterValues() {
+      return {
+        keyword: document.getElementById("filter-keyword").value.trim(),
+        district: document.getElementById("filter-district").value,
+        ward: document.getElementById("filter-ward").value,
+        priceMin: Number(document.getElementById("filter-price-min").value) || null,
+        priceMax: Number(document.getElementById("filter-price-max").value) || null,
+        areaMin: Number(document.getElementById("filter-area-min").value) || null,
+        areaMax: Number(document.getElementById("filter-area-max").value) || null,
+        pn: document.getElementById("filter-pn").value,
+        wc: document.getElementById("filter-wc").value,
+        floors: document.getElementById("filter-floors").value,
+        frontageType: document.getElementById("filter-frontage-type").value,
+        status: document.getElementById("filter-status").value,
+      };
+    }
+
+    // --- HÀM TẢI DỮ LIỆU CHÍNH (Đã sửa lỗi JOIN) ---
+    async function applyFilters(resetPage = false) {
+      if (resetPage) PAGE = 0;
+
+      const f = getFilterValues();
+
+      // THỬ LẤY DỮ LIỆU + JOIN PROFILES (Lấy email người tạo)
+      let query = supabase
+        .from("premises")
+        .select("*, profiles(email)", { count: "exact" });
+
+      // --- LOGIC DUYỆT BÀI ---
+      if (SHOW_PENDING && isAdmin()) {
+          query = query.eq("is_approved", false);
+      } else {
+          query = query.eq("is_approved", true);
+      }
+
+      // --- ÁP DỤNG FILTER ---
+      if (f.keyword) {
+        const kw = "%" + f.keyword + "%";
+        query = query.or(`address.ilike.${kw},street.ilike.${kw},ward.ilike.${kw},district.ilike.${kw},code.ilike.${kw}`);
+      }
+      if (f.district) query = query.eq("district", f.district);
+      if (f.ward) query = query.eq("ward", f.ward);
+      if (f.status) query = query.eq("status", f.status);
+
+      if (f.priceMin != null) query = query.gte("price", f.priceMin * 1000000); // Nhân 1tr vì input là đơn vị triệu
+      if (f.priceMax != null) query = query.lte("price", f.priceMax * 1000000);
+      if (f.areaMin != null) query = query.gte("area", f.areaMin);
+      if (f.areaMax != null) query = query.lte("area", f.areaMax);
+
+      if (f.pn) {
+        if (f.pn.includes(">")) query = query.gt("pn", parseInt(f.pn.replace(">","")));
+        else query = query.eq("pn", parseInt(f.pn));
+      }
+      if (f.wc) {
+        if (f.wc.includes(">")) query = query.gt("wc", parseInt(f.wc.replace(">","")));
+        else query = query.eq("wc", parseInt(f.wc));
+      }
+      if (f.floors) {
+        if (f.floors.includes(">")) query = query.gt("floors", parseInt(f.floors.replace(">","")));
+        else query = query.eq("floors", parseInt(f.floors));
+      }
+      if (f.frontageType === "mt") {
+        query = query.eq("frontage", true);
+      }
+
+      const from = PAGE * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      query = query
+        .order("updated_at", { ascending: false })
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      let { data, error, count } = await query;
+
+      // --- CƠ CHẾ TỰ SỬA LỖI (NẾU DB CHƯA FIX JOIN) ---
+      if (error && error.message.includes("profiles")) {
+         console.warn("Lỗi lấy tên người đăng (Join Profiles). Đang tải lại chế độ an toàn...");
+         // Thử tải lại KHÔNG join profiles
+         let safeQuery = supabase.from("premises").select("*", { count: "exact" });
+         // (Lặp lại filter logic ngắn gọn để code chạy được)
+         if (SHOW_PENDING && isAdmin()) safeQuery = safeQuery.eq("is_approved", false);
+         else safeQuery = safeQuery.eq("is_approved", true);
+         
+         safeQuery = safeQuery.order("created_at", { ascending: false }).range(from, to);
+         const res = await safeQuery;
+         data = res.data;
+         error = res.error;
+         count = res.count;
+      }
+
+      if (error) {
+        console.error(error);
+        toast("Không tải được dữ liệu: " + error.message);
+        return;
+      }
+
+      let rows = data || [];
+
+      // Client filter: Hẻm / HXH
+      if (f.frontageType === "hem" || f.frontageType === "hxh") {
+        rows = rows.filter((row) => {
+          const isFront = row.frontage === true;
+          const txt = ((row.address || "") + " " + (row.detail || "")).toLowerCase();
+          if (f.frontageType === "hxh") {
+            if (isFront) return false;
+            return txt.includes("hxh") || txt.includes("xe hơi");
+          }
+          if (f.frontageType === "hem") {
+            if (isFront) return false;
+            if (txt.includes("hxh") || txt.includes("hẻm xe hơi")) return false;
+            return true;
+          }
+          return true;
+        });
+      }
+
+      LAST_ROWS = rows;
+      TOTAL_COUNT = count || rows.length;
+
+      if (PAGE === 0) {
+        renderCards(LAST_ROWS, true);
+      } else {
+        renderCards(LAST_ROWS, false);
+      }
+
+      document.getElementById("count-total").textContent = TOTAL_COUNT;
+      document.getElementById("count-show").textContent = Math.min(
+        (PAGE + 1) * PAGE_SIZE,
+        TOTAL_COUNT
+      );
+
+      const btnMore = document.getElementById("btn-load-more");
+      if ((PAGE + 1) * PAGE_SIZE >= TOTAL_COUNT) {
+        btnMore.textContent = "Hết dữ liệu";
+        btnMore.classList.add("btn-disabled");
+      } else {
+        btnMore.textContent = "Tải thêm";
+        btnMore.classList.remove("btn-disabled");
+      }
+    }
+
+    function renderCards(rows, replace) {
+      const grid = document.getElementById("grid");
+      if (replace) grid.innerHTML = "";
+
+      if (!rows || rows.length === 0) {
+        if (PAGE === 0) {
+          grid.innerHTML =
+            `<div class="col-span-full text-center text-sm opacity-70 py-10">
+              Chưa có mặt bằng nào khớp bộ lọc hiện tại.
+            </div>`;
+        }
+        return;
+      }
+
+      const html = rows.map((row) => {
+        const hasImages = Array.isArray(row.images) && row.images.length > 0;
+        const firstPath = hasImages ? row.images[0] : null;
+        const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
+
+        const pnVal = pickField(row, ["pn", "so_pn", "bedrooms", "rooms"]);
+        const wcVal = pickField(row, ["wc", "bathrooms"]);
+        const floorsVal = pickField(row, ["floors"]);
+        const updatedLabel = formatDateVN(row.updated_at || row.created_at);
+        
+        // Lấy tên người đăng (nếu có)
+        const creatorEmail = row.profiles?.email || "";
+        const shortName = creatorEmail.split("@")[0];
+
+        // --- BADGE VỊ TRÍ ---
+        let locationBadge = "";
+        if (row.frontage === true) {
+            locationBadge = `<span class="badge badge-xs badge-error text-white border-none">Mặt tiền</span>`;
+        } else {
+            const fullText = ((row.address || "") + " " + (row.detail || "") + " " + (row.ket_cau || "")).toLowerCase();
+            if (fullText.includes("hxh") || fullText.includes("hẻm xe hơi") || fullText.includes("xe tải")) {
+                locationBadge = `<span class="badge badge-xs badge-info text-white border-none">Hẻm xe hơi</span>`;
+            } else {
+                locationBadge = `<span class="badge badge-xs badge-ghost border-none opacity-70">Nhà hẻm</span>`;
+            }
+        }
+        
+        // --- NÚT DUYỆT (NẾU ADMIN ĐANG Ở CHẾ ĐỘ PENDING) ---
+        let approveBtn = "";
+        if (SHOW_PENDING && isAdmin()) {
+            approveBtn = `<button onclick="approveOne('${row.id}', event)" class="btn btn-xs btn-success w-full mt-2 text-white">✔ Duyệt ngay</button>`;
+        }
+
+        return `
+          <article class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden" data-id="${row.id}">
+            <figure class="h-52 bg-base-200 flex items-center justify-center relative">
+              ${
+                imgUrl
+                  ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
+                  : `<div class="text-xs opacity-60">(Không có ảnh)</div>`
+              }
+               <div class="absolute top-2 right-2 shadow-sm">${locationBadge}</div>
+               
+               <div class="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[10px] p-1 px-2 truncate">
+                  Đăng bởi: <b>${shortName || 'Ẩn danh'}</b>
+               </div>
+            </figure>
+            <div class="card-body p-4 gap-2">
+              <h3 class="font-semibold text-sm line-clamp-2">${maskAddress(row)}</h3>
+              
+              <div class="flex items-center flex-wrap gap-2 text-[11px] opacity-70">
+                <span>${[row.ward, row.district].filter(Boolean).join(" • ")}</span>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2 text-[11px] mt-1">
+                ${row.area ? `<span>${row.area} m²</span>` : ""}
+                ${row.width && row.length ? `<span>${row.width}×${row.length} m</span>` : ""}
+                ${pnVal ? `<span>${pnVal} PN</span>` : ""}
+                ${wcVal ? `<span>${wcVal} WC</span>` : ""}
+                ${floorsVal ? `<span>${floorsVal} tầng</span>` : ""}
+              </div>
+              
+              <div class="flex items-center justify-between mt-1">
+                <div class="text-primary font-extrabold text-lg">${money(row.price)}</div>
+                <div class="text-[10px] opacity-60">${updatedLabel}</div>
+              </div>
+              
+              ${approveBtn}
+            </div>
+          </article>
+        `;
+      });
+
+      grid.insertAdjacentHTML("beforeend", html.join(""));
+
+      grid.querySelectorAll("[data-id]").forEach((el) => {
+        el.onclick = () => openDetail(el.getAttribute("data-id"));
+      });
+    }
+
+    async function buildDistrictWardOptions() {
+      // Logic cũ của bạn: Lấy list Quận/Phường có sẵn trong DB để đưa vào Filter
+      const { data, error } = await supabase
+        .from("premises")
+        .select("district, ward");
+      if (error || !data) return;
+
+      const districts = Array.from(new Set(data.map((r) => r.district).filter(Boolean))).sort();
+      const selectDistrict = document.getElementById("filter-district");
+      const current = selectDistrict.value;
+      selectDistrict.innerHTML = '<option value="">Tất cả</option>';
+      districts.forEach((d) => {
+        const opt = document.createElement("option");
+        opt.value = d; opt.textContent = d; selectDistrict.appendChild(opt);
+      });
+      if (current) selectDistrict.value = current;
+
+      updateWardOptions();
+    }
+
+    function updateWardOptions() {
+      const district = document.getElementById("filter-district").value;
+      const selectWard = document.getElementById("filter-ward");
+      selectWard.innerHTML = '<option value="">Tất cả</option>';
+      if (!district) return;
+      supabase.from("premises").select("ward, district").eq("district", district)
+        .then(({ data }) => {
+          if (!data) return;
+          const wards = Array.from(new Set(data.map((r) => r.ward).filter(Boolean))).sort();
+          wards.forEach((w) => {
+            const opt = document.createElement("option");
+            opt.value = w; opt.textContent = w; selectWard.appendChild(opt);
+          });
+        });
+    }
+
+    // ===== CHI TIẾT & SỬA =====
+    async function openDetail(id) {
+      const dlg = document.getElementById("detailDlg");
+      const wrap = document.getElementById("detail-content");
+      wrap.innerHTML = `<div class="py-10 text-center text-sm opacity-70">Đang tải...</div>`;
+      dlg.showModal();
+
+      const { data, error } = await supabase.from("premises").select("*").eq("id", id).single();
+      if (error || !data) {
+        wrap.innerHTML = `<div class="py-10 text-center text-sm text-error">Không tải được dữ liệu.</div>`;
+        return;
+      }
+      const item = data;
+      const pnVal = pickField(item, ["pn", "so_pn", "bedrooms", "rooms"]);
+      const wcVal = pickField(item, ["wc", "bathrooms"]);
+      const floorsVal = pickField(item, ["floors"]);
+      const detailText = pickField(item, ["detail", "thong_tin_chi_tiet", "chi_tiet", "description", "info_detail"]) || "";
+      const imgs = Array.isArray(item.images) ? item.images : [];
+      const imgUrls = imgs.map(buildImageUrl).filter(Boolean);
+      const firstImg = imgUrls[0] || null;
+      const updatedLabel = formatDateVN(item.updated_at || item.created_at);
+
+      // Map Embed
+      const mapsQuery = encodeURIComponent([item.address, item.ward, item.district, item.city].filter(Boolean).join(", "));
+      const mapEmbed = `<iframe class="w-full h-64 border-0 rounded-xl" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=${mapsQuery}&output=embed"></iframe>`;
+
+      const actions = `
+        <div class="join join-horizontal">
+          ${item.contact_phone && !isStaff() ? `<a class="btn btn-primary btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>` : ""}
+          ${item.contact_phone && !isStaff() ? `<a class="btn btn-sm join-item" target="_blank" href="https://zalo.me/${(item.contact_phone || "").replace(/[^0-9]/g, "")}">Zalo</a>` : ""}
+          <a class="btn btn-sm join-item" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Mở Map</a>
+          <button class="btn btn-sm join-item" onclick="navigator.clipboard.writeText(location.origin + location.pathname + '#'+encodeURIComponent('${id}'));toast('Đã copy link')">Copy Link</button>
+          ${isAdmin() ? `<button class="btn btn-outline btn-sm join-item" onclick="openEditPremise('${id}')">Sửa</button>` : ""}
+        </div>`;
+
+      const html = `
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="space-y-4">
+            <div class="w-full h-[340px] bg-base-200 flex items-center justify-center rounded-xl overflow-hidden">
+                 ${firstImg ? `<img src="${firstImg}" class="w-full h-full object-cover" />` : `<div class="text-xs opacity-60">Không có ảnh</div>`}
+            </div>
+            <div>${mapEmbed}</div>
+          </div>
+          <div class="space-y-3">
+            <h2 class="text-xl font-bold">${maskAddress(item)}</h2>
+            <div class="text-sm opacity-70">${[item.ward, item.district].filter(Boolean).join(" • ")}</div>
+            <div class="text-xs opacity-60">Mã: <b>${item.code || "—"}</b> | Cập nhật: ${updatedLabel}</div>
+            <div class="text-3xl font-extrabold text-primary mt-2">${money(item.price)}</div>
+            
+            <div class="grid grid-cols-2 gap-2 text-sm mt-4">
+                <div>DT: <b>${item.area||'-'} m²</b></div>
+                <div>Ngang: <b>${item.width||'-'} m</b></div>
+                <div>Dài: <b>${item.length||'-'} m</b></div>
+                <div>Kết cấu: <b>${item.ket_cau||'-'}</b></div>
+                <div>PN/WC: <b>${pnVal||0} / ${wcVal||0}</b></div>
+                <div>Hướng: <b>${item.frontage ? 'Mặt tiền' : 'Hẻm'}</b></div>
+            </div>
+
+            <div class="mt-4 text-sm">
+              <div class="font-semibold mb-1">Chi tiết:</div>
+              <p class="whitespace-pre-line text-gray-600">${detailText}</p>
+            </div>
+
+            ${(item.contact_phone && !isStaff()) ? `<div class="mt-4 text-sm font-bold text-error">Liên hệ: ${item.contact_name||''} - ${item.contact_phone}</div>` : ""}
+            
+            <div class="mt-6">${actions}</div>
+          </div>
+        </div>`;
+      wrap.innerHTML = html;
+    }
+
+    // Hàm Sửa cũ của bạn
+    async function openEditPremise(id) {
+      if (!isAdmin()) return;
+      EDITING_ID = id;
+      document.getElementById("detailDlg").close(); // Đóng detail trước
+      const { data } = await supabase.from("premises").select("*").eq("id", id).single();
+      if (!data) return;
+
+      const item = data;
+      const getEl = (id) => document.getElementById(id);
+      getEl("edit-code").value = item.code || "";
+      getEl("edit-address").value = item.address || "";
+      getEl("edit-city").value = item.city || "";
+      getEl("edit-district").value = item.district || "";
+      getEl("edit-ward").value = item.ward || "";
+      getEl("edit-street").value = item.street || "";
+      getEl("edit-price").value = item.price || "";
+      getEl("edit-area").value = item.area || "";
+      getEl("edit-width").value = item.width || "";
+      getEl("edit-length").value = item.length || "";
+      getEl("edit-floors").value = item.floors || "";
+      getEl("edit-bedrooms").value = pickField(item, ["pn", "so_pn", "bedrooms"]) || "";
+      getEl("edit-wc").value = pickField(item, ["wc", "bathrooms"]) || "";
+      getEl("edit-ket-cau").value = item.ket_cau || "";
+      getEl("edit-contact-phone").value = item.contact_phone || "";
+      getEl("edit-frontage").checked = !!item.frontage;
+      getEl("edit-status").value = item.status || "available";
+      getEl("edit-commission").value = item.commission_note || "";
+      getEl("edit-images").value = (Array.isArray(item.images) ? item.images.join("\n") : "");
+      getEl("edit-detail").value = pickField(item, ["detail", "chi_tiet"]) || "";
+
+      document.getElementById("editDlg").showModal();
+    }
+
+    async function saveEditPremise() {
+      if (!isAdmin() || !EDITING_ID) return;
+      const getVal = (id) => document.getElementById(id).value.trim();
+      const getNum = (id) => { const v = getVal(id).replace(/[^\d.]/g, ""); return v ? Number(v) : 0; };
+
+      const payload = {
+        code: getVal("edit-code"),
+        address: getVal("edit-address"),
+        city: getVal("edit-city"),
+        district: getVal("edit-district"),
+        ward: getVal("edit-ward"),
+        street: getVal("edit-street"),
+        price: getNum("edit-price"),
+        area: getNum("edit-area"),
+        width: getNum("edit-width"),
+        length: getNum("edit-length"),
+        floors: getNum("edit-floors"),
+        pn: getNum("edit-bedrooms"),
+        wc: getNum("edit-wc"),
+        ket_cau: getVal("edit-ket-cau"),
+        contact_phone: getVal("edit-contact-phone"),
+        frontage: document.getElementById("edit-frontage").checked,
+        status: getVal("edit-status"),
+        commission_note: getVal("edit-commission"),
+        images: getVal("edit-images").split("\n").map(s => s.trim()).filter(Boolean),
+        detail: getVal("edit-detail"),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from("premises").update(payload).eq("id", EDITING_ID);
+      if (error) { toast("Lỗi: " + error.message); return; }
+      toast("Đã lưu thay đổi!");
+      document.getElementById("editDlg").close();
+      await applyFilters(false);
+    }
+
+    // ===== LOGIC THÊM MỚI (MỚI) =====
+    function initAddFormDropdowns() {
+        const distSelect = document.getElementById("add-district");
+        const wardSelect = document.getElementById("add-ward");
+        
+        // Load Districts
+        const dists = Object.keys(HCM_DATA).sort();
+        distSelect.innerHTML = `<option value="">-- Chọn --</option>` + dists.map(d => `<option value="${d}">${d}</option>`).join("");
+        
+        // Event Change
+        distSelect.addEventListener("change", () => {
+            const val = distSelect.value;
+            wardSelect.innerHTML = `<option value="">-- Chọn --</option>`;
+            if(HCM_DATA[val]) {
+                wardSelect.disabled = false;
+                wardSelect.innerHTML += HCM_DATA[val].map(w => `<option value="${w}">${w}</option>`).join("");
+            } else {
+                wardSelect.disabled = true;
+            }
+        });
+    }
+
+    // ================== XỬ LÝ UPLOAD ẢNH (MỚI) ==================
     async function handleImageUpload(input) {
         const files = input.files;
-        if (!files || files.length === 0) return;
+        if(!files.length) return;
         
         const statusEl = document.getElementById("upload-status");
         statusEl.classList.remove("hidden");
+        statusEl.innerHTML = `<span class="loading loading-spinner loading-xs"></span> Đang tải ${files.length} ảnh...`;
 
-        for (const file of files) {
-            // Tạo tên file ngẫu nhiên để tránh trùng: timestamp + random string
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-            const filePath = `public/${fileName}`;
-
-            // Upload lên Supabase Storage
-            const { data, error } = await supabase.storage
-                .from(STORAGE_BUCKET)
-                .upload(filePath, file);
+        for(const file of files) {
+            // Tạo tên file unique: timestamp-random-tênfile
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+            const { data, error } = await supabase.storage.from(STORAGE_BUCKET).upload(`public/${fileName}`, file);
             
-            if (error) {
-                console.error("Lỗi upload:", error);
-                toast(`Lỗi upload ảnh: ${file.name}`, 'error');
-                continue;
+            if(error) { 
+                console.error(error); 
+                toast(`Lỗi upload: ${file.name}`); 
+                continue; 
             }
-
-            // Thành công -> Lưu đường dẫn vào mảng
+            
+            // Lưu path vào mảng
             UPLOADED_IMAGES.push(data.path);
         }
         
-        // Ẩn trạng thái loading và reset input
         statusEl.classList.add("hidden");
-        input.value = ""; 
-        
-        // Render lại danh sách ảnh preview
+        input.value = ""; // Reset input để chọn tiếp được
         renderImagePreview();
     }
 
     function renderImagePreview() {
         const container = document.getElementById("preview-container");
-        container.innerHTML = ""; // Xóa cũ
-
-        if (UPLOADED_IMAGES.length === 0) {
-            container.innerHTML = `<div class="text-xs opacity-50 w-full text-center py-4">Chưa có ảnh nào được chọn.</div>`;
-            return;
-        }
-
+        container.innerHTML = "";
         UPLOADED_IMAGES.forEach((path, index) => {
             const url = buildImageUrl(path);
-            
-            // Tạo HTML cho từng ảnh preview
-            const div = document.createElement("div");
-            div.className = "img-preview-box";
-            div.innerHTML = `
-                <img src="${url}" alt="preview" />
-                <button class="btn-remove" onclick="removeImage(${index})">✕</button>
+            container.innerHTML += `
+                <div class="img-preview-box">
+                    <img src="${url}" />
+                    <button class="btn-remove" onclick="removeImage(${index})">✕</button>
+                </div>
             `;
-            container.appendChild(div);
         });
     }
 
-    // Hàm xóa ảnh khỏi danh sách upload (được gọi từ HTML onclick)
     window.removeImage = function(index) {
-        UPLOADED_IMAGES.splice(index, 1); // Xóa khỏi mảng
-        renderImagePreview(); // Render lại
-    }
-
-    // ================== TÍNH NĂNG: THÊM MỚI MẶT BẰNG ==================
-    function openAddModal() {
-        // Reset toàn bộ form về trắng
-        document.querySelectorAll("#addDlg input").forEach(i => { 
-            if (i.type === 'checkbox') i.checked = false;
-            else if (i.type !== 'file') i.value = ""; 
-        });
-        document.querySelectorAll("#addDlg textarea").forEach(i => i.value = "");
-        
-        // Reset dropdown quận/phường
-        document.getElementById("add-district").value = "";
-        document.getElementById("add-ward").innerHTML = "<option value=''>-- Chọn Quận trước --</option>";
-        document.getElementById("add-ward").disabled = true;
-        
-        // Reset phần ảnh upload
-        UPLOADED_IMAGES = [];
+        UPLOADED_IMAGES.splice(index, 1);
         renderImagePreview();
-        document.getElementById("inp-upload-img").value = "";
-
-        document.getElementById("addDlg").showModal();
     }
 
     async function saveNewPremise() {
-        // Lấy giá trị từ form
         const getVal = (id) => document.getElementById(id).value.trim();
-        const getNum = (id) => {
-            const v = document.getElementById(id).value.replace(/[^\d]/g, ''); // Xóa dấu chấm phẩy
-            return v ? parseInt(v) : null;
-        };
+        // Lấy giá tiền từ input đã format (xóa dấu chấm/phẩy đi)
+        const priceRaw = getVal("add-price").replace(/\D/g,'');
+        const priceNum = priceRaw ? parseInt(priceRaw) : 0;
 
-        const address = getVal("add-address");
-        const district = document.getElementById("add-district").value;
-        const price = getNum("add-price");
-
-        // Validate cơ bản
-        if (!address || !district || !price) {
-            toast("Vui lòng nhập đủ: Địa chỉ, Quận và Giá thuê!", 'error');
+        if (!getVal("add-address") || !getVal("add-district") || !priceNum) {
+            toast("Vui lòng nhập: Địa chỉ, Quận và Giá thuê!");
             return;
         }
 
-        // Tạo object dữ liệu để gửi lên
         const payload = {
-            address: address,
-            district: district,
+            address: getVal("add-address"),
+            district: document.getElementById("add-district").value,
             ward: document.getElementById("add-ward").value,
             street: getVal("add-street"),
-            price: price,
-            area: getNum("add-area"),
-            width: Number(document.getElementById("add-width").value) || null,
-            length: Number(document.getElementById("add-length").value) || null,
-            floors: getNum("add-floors"),
-            pn: getNum("add-bedrooms"),
-            wc: getNum("add-wc"),
+            price: priceNum,
+            area: Number(getVal("add-area")) || null,
+            width: Number(getVal("add-width")) || null,
+            length: Number(getVal("add-length")) || null,
+            floors: Number(getVal("add-floors")) || null,
+            pn: Number(getVal("add-bedrooms")) || null,
+            wc: Number(getVal("add-wc")) || null,
             ket_cau: getVal("add-ket-cau"),
             contact_phone: getVal("add-contact-phone"),
             frontage: document.getElementById("add-frontage").checked,
+            // Lấy ảnh từ mảng đã upload
+            images: UPLOADED_IMAGES,
             detail: getVal("add-detail"),
-            status: 'available', // Mặc định là còn trống
-            images: UPLOADED_IMAGES // Mảng ảnh từ việc upload
+            status: 'available'
+            // code, created_by, is_approved SẼ ĐƯỢC DB TỰ ĐỘNG XỬ LÝ (NẾU ĐÃ CHẠY SQL)
         };
 
-        // Gửi lệnh INSERT lên Supabase
         const { error } = await supabase.from("premises").insert([payload]);
-
         if (error) {
-            console.error(error);
-            toast("Lỗi khi lưu: " + error.message, 'error');
+            toast("Lỗi: " + error.message);
         } else {
-            const successMsg = (CURRENT_ROLE === 'admin') 
-                ? "Đã đăng tin thành công!" 
-                : "Đã gửi tin! Chờ Admin duyệt.";
-            toast(successMsg, 'success');
-            
+            toast(isAdmin() ? "Đã thêm thành công!" : "Đã gửi duyệt!");
+            // Đóng modal và Reset form
             document.getElementById("addDlg").close();
-            loadData(true); // Tải lại danh sách
+            document.getElementById("add-form-reset-btn")?.click(); // Hoặc reset thủ công
+            // Reset ảnh
+            UPLOADED_IMAGES = [];
+            renderImagePreview();
             
-            if(CURRENT_ROLE === 'admin') checkPendingCount(); // Cập nhật số lượng chờ duyệt
+            applyFilters(true);
+            if(isAdmin()) checkPendingCount();
         }
     }
 
-    // ================== TÍNH NĂNG: TẢI DỮ LIỆU & HIỂN THỊ ==================
-    async function loadData(reset = false) {
-        if (reset) PAGE = 0;
-        const grid = document.getElementById("grid");
-        if (reset) grid.innerHTML = "";
-        
-        const btnMore = document.getElementById("btn-load-more");
-        btnMore.innerText = "Đang tải...";
-        btnMore.disabled = true;
-
-        // Tạo query cơ bản
-        let query = supabase.from("premises").select("*, profiles(email)", { count: 'exact' });
-
-        // --- XỬ LÝ LỌC THEO CHẾ ĐỘ ADMIN ---
-        if (SHOW_PENDING && CURRENT_ROLE === 'admin') {
-            query = query.eq("is_approved", false); // Xem bài chưa duyệt
-        } else {
-            query = query.eq("is_approved", true); // Xem bài đã duyệt (mặc định)
-        }
-
-        // --- XỬ LÝ BỘ LỌC TỪ SIDEBAR ---
-        const k = document.getElementById("filter-keyword").value.trim();
-        if (k) query = query.or(`address.ilike.%${k}%,code.ilike.%${k}%`);
-        
-        const dist = document.getElementById("filter-district").value;
-        if (dist) query = query.eq("district", dist);
-        
-        const ward = document.getElementById("filter-ward").value;
-        if (ward) query = query.eq("ward", ward);
-
-        const pMin = document.getElementById("filter-price-min").value;
-        if (pMin) query = query.gte("price", pMin * 1000000);
-        
-        const pMax = document.getElementById("filter-price-max").value;
-        if (pMax) query = query.lte("price", pMax * 1000000);
-
-        const aMin = document.getElementById("filter-area-min").value;
-        if (aMin) query = query.gte("area", aMin);
-        
-        const aMax = document.getElementById("filter-area-max").value;
-        if (aMax) query = query.lte("area", aMax);
-
-        const ft = document.getElementById("filter-frontage-type").value;
-        if (ft === 'mt') query = query.eq("frontage", true);
-
-        const st = document.getElementById("filter-status").value;
-        if (st) query = query.eq("status", st);
-
-        // Phân trang
-        const from = PAGE * PAGE_SIZE;
-        const to = from + PAGE_SIZE - 1;
-        query = query.order("created_at", { ascending: false }).range(from, to);
-
-        // Thực thi Query
-        let { data, error, count } = await query;
-
-        // --- CƠ CHẾ SAFE MODE (Nếu chưa chạy SQL fix profile) ---
-        if (error && error.message.includes("profiles")) {
-             console.warn("Lỗi join profiles. Chuyển sang chế độ safe mode.");
-             // Thử lại mà không join bảng profiles
-             query = supabase.from("premises").select("*", { count: 'exact' });
-             if(SHOW_PENDING) query = query.eq("is_approved", false); else query = query.eq("is_approved", true);
-             query = query.order("created_at", { ascending: false }).range(from, to);
-             const res = await query;
-             data = res.data;
-             count = res.count;
-        }
-
-        if (!data || data.length === 0) {
-            if (PAGE === 0) grid.innerHTML = `<div class="col-span-full text-center opacity-50 py-10 italic">Không tìm thấy dữ liệu phù hợp.</div>`;
-            btnMore.style.display = "none";
-            return;
-        }
-
-        // Client-side filter cho Hẻm / Hẻm xe hơi (vì DB không có cột loại hẻm)
-        if (ft === 'hem' || ft === 'hxh') {
-            data = data.filter(r => {
-                const txt = (r.address + (r.detail || "")).toLowerCase();
-                const isHXH = txt.includes("hxh") || txt.includes("xe hơi");
-                return ft === 'hxh' ? (!r.frontage && isHXH) : (!r.frontage && !isHXH);
-            });
-        }
-
-        // Render thẻ
-        document.getElementById("result-count").innerText = count || data.length;
-        data.forEach(item => {
-            const html = createCardHTML(item);
-            grid.insertAdjacentHTML("beforeend", html);
-        });
-
-        // Trạng thái nút tải thêm
-        btnMore.style.display = "inline-flex";
-        if (data.length < PAGE_SIZE) {
-            btnMore.innerText = "Đã hiển thị hết";
-            btnMore.disabled = true;
-        } else {
-            btnMore.innerText = "Tải thêm";
-            btnMore.disabled = false;
-        }
-    }
-
-    function createCardHTML(item) {
-        // Xử lý ảnh đại diện
-        const imgUrl = buildImageUrl(item.images?.[0]) || "https://placehold.co/400x300?text=No+Image";
-        
-        // Xử lý tên người đăng
-        const creatorEmail = item.profiles?.email || "";
-        const creatorName = creatorEmail.split('@')[0] || "Ẩn danh";
-
-        // Xử lý Badge (Mặt tiền/Hẻm)
-        let badgeHtml = "";
-        if (item.frontage) {
-            badgeHtml = `<span class="badge badge-xs badge-error text-white border-none shadow-sm">Mặt tiền</span>`;
-        } else {
-            const txt = (item.address + (item.detail||"")).toLowerCase();
-            if (txt.includes("hxh") || txt.includes("xe hơi")) {
-                badgeHtml = `<span class="badge badge-xs badge-info text-white border-none shadow-sm">Hẻm xe hơi</span>`;
-            } else {
-                badgeHtml = `<span class="badge badge-xs badge-ghost border-none opacity-80 bg-white/80">Hẻm</span>`;
-            }
-        }
-
-        // Nút Duyệt (chỉ hiện khi Admin đang ở chế độ duyệt)
-        const approveBtn = (SHOW_PENDING && CURRENT_ROLE === 'admin') 
-            ? `<button onclick="approveOne('${item.id}', event)" class="btn btn-xs btn-success w-full mt-2 text-white shadow-md">✔ Duyệt ngay</button>` 
-            : "";
-
-        return `
-        <div class="card bg-base-100 border border-gray-200 shadow-sm hover:shadow-lg transition-all cursor-pointer premise-card flex flex-col h-full group" onclick="openDetail('${item.id}')">
-            <figure class="h-48 bg-gray-100 relative overflow-hidden">
-                <img src="${imgUrl}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy"/>
-                
-                <div class="absolute top-2 right-2 flex gap-1">
-                    ${badgeHtml}
-                </div>
-
-                <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/70 to-transparent text-white text-[10px] px-3 py-2 pt-6">
-                    Đăng bởi: <span class="font-bold">${creatorName}</span>
-                </div>
-            </figure>
-            
-            <div class="card-body p-4 gap-2 flex-1">
-                <div class="flex justify-between items-start">
-                    <div class="text-xs opacity-60 font-bold tracking-wide text-gray-500 uppercase">
-                        ${item.code || 'MB-NEW'} • ${item.district}
-                    </div>
-                </div>
-
-                <h3 class="font-bold text-sm leading-snug line-clamp-2 min-h-[2.5rem] text-gray-800">
-                    ${maskAddress(item)}
-                </h3>
-                
-                <div class="mt-auto pt-2 border-t border-dashed border-gray-200">
-                    <div class="text-lg font-extrabold text-primary flex items-baseline gap-1">
-                        ${money(item.price)}
-                    </div>
-                    
-                    <div class="flex gap-3 text-xs text-gray-500 mt-1 font-medium">
-                        <span class="flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" /></svg> ${item.area || 0}m²</span>
-                        <span>${item.width || 0}x${item.length || 0}</span>
-                        <span>${item.pn || 0} PN</span>
-                    </div>
-                </div>
-                ${approveBtn}
-            </div>
-        </div>`;
-    }
-
-    // ================== TÍNH NĂNG: ADMIN (DUYỆT BÀI & SỬA) ==================
+    // ===== LOGIC ADMIN PENDING (MỚI) =====
     async function checkPendingCount() {
-        // Đếm số bài chưa duyệt
-        const { count } = await supabase
-            .from("premises")
-            .select("*", { count: 'exact', head: true })
-            .eq("is_approved", false);
-            
+        const { count } = await supabase.from("premises").select("*", { count: 'exact', head: true }).eq("is_approved", false);
         const cnt = count || 0;
-        document.getElementById("count-pending").innerText = cnt;
-        
-        // Ẩn hiện nút duyệt tất cả
-        if (cnt > 0 && SHOW_PENDING) {
-            document.getElementById("btn-approve-all").classList.remove("hidden");
-        } else {
-            document.getElementById("btn-approve-all").classList.add("hidden");
-        }
+        document.getElementById("count-pending").textContent = cnt;
+        if (cnt > 0 && SHOW_PENDING) document.getElementById("btn-approve-all").classList.remove("hidden");
+        else document.getElementById("btn-approve-all").classList.add("hidden");
     }
 
     function togglePendingMode() {
         SHOW_PENDING = !SHOW_PENDING;
         const btn = document.getElementById("btn-toggle-pending");
-        
         if (SHOW_PENDING) {
             btn.classList.replace("btn-warning", "btn-active");
-            btn.innerText = "Thoát chế độ duyệt";
+            btn.textContent = "Đang xem Chờ duyệt (Thoát)";
         } else {
             btn.classList.replace("btn-active", "btn-warning");
-            btn.innerHTML = `Cần duyệt <span class="badge badge-sm bg-white text-warning border-none ml-1" id="count-pending">...</span>`;
+            btn.innerHTML = `Cần duyệt <span class="badge badge-sm bg-white text-warning ml-1 border-none" id="count-pending">...</span>`;
             checkPendingCount();
         }
-        loadData(true);
+        applyFilters(true);
     }
 
     async function approveOne(id, e) {
-        e.stopPropagation(); // Ngăn click vào card mở detail
-        if (!confirm("Duyệt bài đăng này?")) return;
-        
+        e.stopPropagation();
+        if(!confirm("Duyệt bài này?")) return;
         await supabase.from("premises").update({ is_approved: true }).eq("id", id);
-        toast("Đã duyệt bài thành công!", 'success');
-        loadData(true);
+        toast("Đã duyệt!");
+        applyFilters(true);
         checkPendingCount();
     }
 
     async function approveAll() {
-        if (!confirm("Bạn chắc chắn muốn duyệt TẤT CẢ bài đang chờ?")) return;
-        
+        if(!confirm("Duyệt tất cả bài đang chờ?")) return;
         await supabase.from("premises").update({ is_approved: true }).eq("is_approved", false);
-        toast("Đã duyệt toàn bộ bài!", 'success');
-        loadData(true);
+        toast("Đã duyệt tất cả!");
+        applyFilters(true);
         checkPendingCount();
     }
 
-    // --- CHỨC NĂNG SỬA (FULL CODE) ---
-    async function openEditPremise(id) {
-        if (!isAdmin()) return;
-        EDITING_ID = id;
-        document.getElementById("detailDlg").close(); // Đóng modal chi tiết
+    // ===== INIT EVENTS =====
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("btn-login").addEventListener("click", handleLogin);
+      document.getElementById("btn-logout").addEventListener("click", handleLogout);
+      
+      document.getElementById("btn-apply").addEventListener("click", () => applyFilters(true));
+      document.getElementById("btn-reset").addEventListener("click", () => {
+         document.querySelectorAll("aside input, aside select").forEach(el => el.value = "");
+         applyFilters(true);
+      });
 
-        // Tải dữ liệu bài cần sửa
-        const { data, error } = await supabase.from("premises").select("*").eq("id", id).single();
-        if (error || !data) { toast("Lỗi tải dữ liệu", 'error'); return; }
+      document.getElementById("btn-load-more").addEventListener("click", () => {
+          PAGE++; applyFilters(false);
+      });
 
-        const item = data;
-        const getEl = (id) => document.getElementById(id);
+      // Admin / Add Events
+      document.getElementById("btn-open-add").onclick = () => {
+          // Reset form khi mở
+          document.querySelectorAll("#addDlg input").forEach(i => { if(i.type!=='checkbox' && i.type!=='file') i.value=""; else if(i.type==='checkbox') i.checked=false; });
+          document.querySelectorAll("#addDlg textarea").forEach(i => i.value="");
+          document.getElementById("add-ward").disabled=true;
+          UPLOADED_IMAGES = []; renderImagePreview();
+          document.getElementById("addDlg").showModal();
+      };
+      document.getElementById("btn-toggle-pending").onclick = togglePendingMode;
+      document.getElementById("btn-approve-all").onclick = approveAll;
 
-        // Đổ dữ liệu vào form sửa
-        getEl("edit-code").value = item.code || "";
-        getEl("edit-address").value = item.address || "";
-        getEl("edit-city").value = item.city || "";
-        getEl("edit-district").value = item.district || "";
-        getEl("edit-ward").value = item.ward || "";
-        getEl("edit-street").value = item.street || "";
-        getEl("edit-price").value = item.price || "";
-        getEl("edit-area").value = item.area || "";
-        getEl("edit-width").value = item.width || "";
-        getEl("edit-length").value = item.length || "";
-        getEl("edit-floors").value = item.floors || "";
-        getEl("edit-bedrooms").value = pickField(item, ["pn", "so_pn", "bedrooms"]) || "";
-        getEl("edit-wc").value = pickField(item, ["wc", "bathrooms"]) || "";
-        getEl("edit-ket-cau").value = item.ket_cau || "";
-        getEl("edit-contact-phone").value = item.contact_phone || "";
-        getEl("edit-frontage").checked = !!item.frontage;
-        getEl("edit-status").value = item.status || "available";
-        getEl("edit-commission").value = item.commission_note || "";
-        
-        // Xử lý ảnh trong form sửa (hiện path dạng text để admin sửa nhanh nếu cần)
-        getEl("edit-images").value = (Array.isArray(item.images) ? item.images.join("\n") : "");
-        
-        getEl("edit-detail").value = pickField(item, ["detail", "chi_tiet"]) || "";
+      // Quick filters
+      document.querySelectorAll("[data-quick]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.getElementById("filter-status").value = btn.getAttribute("data-quick");
+          applyFilters(true);
+        });
+      });
+      document.querySelectorAll("[data-quick-district]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.getElementById("filter-district").value = btn.getAttribute("data-quick-district");
+          updateWardOptions(); applyFilters(true);
+        });
+      });
+      document.getElementById("btn-clear-quick").addEventListener("click", () => {
+          document.getElementById("filter-status").value = "";
+          document.getElementById("filter-district").value = "";
+          document.getElementById("filter-ward").value = "";
+          applyFilters(true);
+      });
+    // --- LOGIC NÚT ĐỒNG TÌNH / KHÔNG ĐỒNG TÌNH ---
+      document.getElementById("btn-agree").onclick = () => {
+          // Lưu trạng thái đã đồng ý vào Session (tắt trình duyệt mở lại sẽ hỏi lại)
+          sessionStorage.setItem("demo_agreed", "true");
+          document.getElementById("demoDisclaimerDlg").close();
+      };
 
-        document.getElementById("editDlg").showModal();
-    }
-
-    async function saveEditPremise() {
-        if (!isAdmin() || !EDITING_ID) return;
-        
-        const getVal = (id) => document.getElementById(id).value.trim();
-        const getNum = (id) => { 
-            const v = getVal(id).replace(/[^\d.]/g, ""); 
-            return v ? Number(v) : 0; 
-        };
-
-        const payload = {
-            code: getVal("edit-code"),
-            address: getVal("edit-address"),
-            city: getVal("edit-city"),
-            district: getVal("edit-district"),
-            ward: getVal("edit-ward"),
-            street: getVal("edit-street"),
-            price: getNum("edit-price"),
-            area: getNum("edit-area"),
-            width: getNum("edit-width"),
-            length: getNum("edit-length"),
-            floors: getNum("edit-floors"),
-            pn: getNum("edit-bedrooms"),
-            wc: getNum("edit-wc"),
-            ket_cau: getVal("edit-ket-cau"),
-            contact_phone: getVal("edit-contact-phone"),
-            frontage: document.getElementById("edit-frontage").checked,
-            status: getVal("edit-status"),
-            commission_note: getVal("edit-commission"),
-            images: getVal("edit-images").split("\n").map(s => s.trim()).filter(Boolean),
-            detail: getVal("edit-detail"),
-            updated_at: new Date().toISOString(),
-        };
-
-        const { error } = await supabase.from("premises").update(payload).eq("id", EDITING_ID);
-        
-        if (error) {
-            console.error("Lỗi Save:", error);
-            toast("Lỗi: " + error.message, 'error');
-        } else {
-            toast("Đã lưu thay đổi thành công!", 'success');
-            document.getElementById("editDlg").close();
-            loadData(false); // Refresh nhưng giữ nguyên trang hiện tại
-        }
-    }
-
-    // ================== UTILS & HELPERS ==================
-    
-    // Khởi tạo Dropdown cho Form Lọc
-    function initFilterDropdowns() {
-         const sel = document.getElementById("filter-district");
-         const dists = Object.keys(HCM_DATA).sort();
-         sel.innerHTML = `<option value="">Tất cả</option>` + dists.map(d => `<option value="${d}">${d}</option>`).join("");
-    }
-
-    // Khởi tạo Dropdown cho Form Thêm Mới
-    function initAddFormDropdowns() {
-        const el = document.getElementById("add-district");
-        const dists = Object.keys(HCM_DATA).sort();
-        el.innerHTML = `<option value="">-- Chọn Quận --</option>` + dists.map(d => `<option value="${d}">${d}</option>`).join("");
-    }
-
-    // Cập nhật Phường khi chọn Quận
-    function updateWards(targetId, distName) {
-         const el = document.getElementById(targetId);
-         const defaultText = targetId.includes("filter") ? "Tất cả" : "-- Chọn --";
-         
-         el.innerHTML = `<option value="">${defaultText}</option>`;
-         
-         if (HCM_DATA[distName]) {
-             el.disabled = false;
-             el.innerHTML += HCM_DATA[distName].map(w => `<option value="${w}">${w}</option>`).join("");
-         } else {
-             el.disabled = true;
-         }
-    }
-    
-    // Mở xem chi tiết
-    async function openDetail(id) {
-         const d = document.getElementById("detailDlg");
-         const c = document.getElementById("detail-content");
-         d.showModal();
-         c.innerHTML = `<div class="h-full flex items-center justify-center"><span class="loading loading-spinner loading-lg text-primary"></span></div>`;
-         
-         const { data } = await supabase.from("premises").select("*, profiles(email)").eq("id", id).single();
-         
-         if(!data) {
-             c.innerHTML = `<div class="p-10 text-center text-error">Không tìm thấy dữ liệu.</div>`;
-             return;
-         }
-
-         const imgs = data.images || [];
-         const carouselHtml = imgs.length 
-            ? `<div class="carousel w-full h-[400px] bg-black rounded-xl">
-                ${imgs.map((src, i) => `
-                    <div id="slide${i}" class="carousel-item relative w-full justify-center">
-                        <img src="${buildImageUrl(src)}" class="h-full object-contain" />
-                        <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
-                            <a href="#slide${i===0 ? imgs.length-1 : i-1}" class="btn btn-circle btn-sm bg-white/20 border-none text-white">❮</a> 
-                            <a href="#slide${i===imgs.length-1 ? 0 : i+1}" class="btn btn-circle btn-sm bg-white/20 border-none text-white">❯</a>
-                        </div>
-                        <div class="absolute bottom-4 right-4 bg-black/50 text-white px-2 py-1 text-xs rounded">${i+1}/${imgs.length}</div>
-                    </div>
-                `).join('')}
-               </div>` 
-            : `<div class="h-[300px] bg-gray-100 flex items-center justify-center text-gray-400 rounded-xl">Không có hình ảnh</div>`;
-
-         const editBtn = isAdmin() ? `<button class="btn btn-outline btn-sm" onclick="openEditPremise('${data.id}')">✏️ Sửa tin</button>` : '';
-         
-         const creatorName = data.profiles?.email || 'Ẩn danh';
-
-         c.innerHTML = `
-            <div class="grid md:grid-cols-12 gap-0 h-full">
-                <div class="md:col-span-7 bg-gray-900 p-4 flex items-center justify-center overflow-hidden">
-                    ${carouselHtml}
-                </div>
-
-                <div class="md:col-span-5 p-6 overflow-y-auto bg-white">
-                   <div class="flex justify-between items-start mb-2">
-                       <div class="badge badge-outline opacity-50">${data.code || 'NO-CODE'}</div>
-                       <div class="text-xs opacity-50">Ngày đăng: ${formatDateVN(data.created_at)}</div>
-                   </div>
-                   
-                   <h2 class="text-2xl font-bold text-gray-800 leading-tight mb-1">${maskAddress(data)}</h2>
-                   <p class="text-sm text-gray-500 mb-4 flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        ${data.ward}, ${data.district}
-                   </p>
-
-                   <div class="text-3xl font-black text-primary mb-6 border-b pb-4 border-gray-100">
-                       ${money(data.price)} <span class="text-base font-normal text-gray-400">/tháng</span>
-                   </div>
-
-                   <div class="grid grid-cols-2 gap-y-4 gap-x-2 text-sm mb-6">
-                       <div class="flex flex-col"><span class="text-xs opacity-50">Diện tích</span><span class="font-bold text-gray-700">${data.area || '-'} m²</span></div>
-                       <div class="flex flex-col"><span class="text-xs opacity-50">Kích thước</span><span class="font-bold text-gray-700">${data.width} x ${data.length}m</span></div>
-                       <div class="flex flex-col"><span class="text-xs opacity-50">Kết cấu</span><span class="font-bold text-gray-700">${data.ket_cau || '-'}</span></div>
-                       <div class="flex flex-col"><span class="text-xs opacity-50">Công năng</span><span class="font-bold text-gray-700">${data.pn||0} PN - ${data.wc||0} WC</span></div>
-                   </div>
-
-                   <div class="bg-gray-50 p-4 rounded-xl mb-6">
-                       <h4 class="font-bold text-sm mb-2 text-gray-700">Mô tả chi tiết</h4>
-                       <p class="text-sm whitespace-pre-line text-gray-600 leading-relaxed">${data.detail || 'Chưa có mô tả chi tiết.'}</p>
-                   </div>
-                   
-                   ${(data.contact_phone && isAdmin()) ? `
-                   <div class="alert alert-warning shadow-sm mb-6">
-                       <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                       <div>
-                           <h3 class="font-bold">Thông tin Chủ nhà</h3>
-                           <div class="text-xs">SĐT: <span class="font-mono text-base font-bold">${data.contact_phone}</span></div>
-                       </div>
-                   </div>` : ''}
-
-                   <div class="text-xs text-gray-400 text-center mt-auto">
-                       Tin được đăng bởi: ${creatorName}
-                   </div>
-
-                   <div class="flex gap-2 mt-4 pt-4 border-t">
-                       <button class="btn btn-primary flex-1" onclick="window.open('tel:${data.contact_phone}')">Gọi điện</button>
-                       <button class="btn btn-outline" onclick="navigator.clipboard.writeText(window.location.href);toast('Đã copy link!')">Share</button>
-                       ${editBtn}
-                   </div>
-                </div>
-            </div>`;
-    }
-
-    // Các hàm hỗ trợ nhỏ
-    function resetFilters() {
-        document.querySelectorAll("aside input, aside select").forEach(e => e.value="");
-        loadData(true);
-    }
-    function maskAddress(r) { 
-        if(CURRENT_ROLE==='admin') return r.address;
-        // Nếu là nhân viên/khách, ẩn số nhà
-        const full = r.address || "";
-        const parts = full.split(' ');
-        if(parts.length > 1) return parts.slice(1).join(' '); // Bỏ từ đầu tiên (thường là số nhà)
-        return r.street || "Đang cập nhật";
-    }
-    function toast(msg, type='info') {
-        const t = document.getElementById("toast");
-        const tx = document.getElementById("toast-text");
-        tx.innerText = msg;
-        tx.className = `alert shadow-lg ${type==='error'?'alert-error text-white':'alert-info'}`;
-        t.classList.remove("hidden");
-        setTimeout(() => t.classList.add("hidden"), 3000);
-    }
-    function money(v) { return v ? new Intl.NumberFormat("vi-VN").format(v) + " đ" : ""; }
-    function formatDateVN(d) { return d ? new Date(d).toLocaleDateString("vi-VN") : ""; }
-    function buildImageUrl(path) {
-        if (!path) return null;
-        if (path.startsWith('http')) return path;
-        const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-        return data.publicUrl;
-    }
-    function formatCurrencyInput(el) {
-        let v = el.value.replace(/\D/g, '');
-        if(v) el.value = new Intl.NumberFormat('vi-VN').format(v);
-    }
-    function pickField(obj, names) { 
-        for (const n of names) if (obj && obj[n]) return obj[n]; 
-        return null; 
-    }
-
+      document.getElementById("btn-disagree").onclick = async () => {
+          // Nếu không đồng tình -> Đăng xuất ngay lập tức
+          await supabase.auth.signOut();
+          location.reload();
+      };
+      initAuth();
+    });
   </script>
+  <dialog id="demoDisclaimerDlg" class="modal">
+    <div class="modal-box border-2 border-warning">
+      <h3 class="font-bold text-xl text-warning flex items-center gap-2">
+        ⚠️ THÔNG BÁO QUAN TRỌNG
+      </h3>
+      <p class="py-4 text-base leading-relaxed">
+        Đây là bản <b>DEMO</b> nên còn nhiều lỗi lầm. Nếu có lỗi hoặc góp ý cải tiến sản phẩm xin vui lòng liên hệ đến team <b>"Văn Hóa"</b> để được hỗ trợ.
+      </p>
+      <div class="modal-action flex justify-center gap-4">
+        <button id="btn-disagree" class="btn btn-outline btn-error">Tôi không đồng tình</button>
+        <button id="btn-agree" class="btn btn-primary px-8">Tôi đồng tình</button>
+      </div>
+    </div>
+  </dialog>
 </body>
 </html>
