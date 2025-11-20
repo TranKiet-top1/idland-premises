@@ -1111,42 +1111,35 @@ MB0001/2.jpg"></textarea>
 
       // ===== ACTION BUTTONS =====
       const actions = `
-        <div class="join join-horizontal flex flex-wrap gap-2">
-          ${
-            item.contact_phone && !isStaff()
-              ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>`
-              : ""
-          }
-          ${
-            item.contact_phone && !isStaff()
-              ? `<a class="btn btn-sm join-item" target="_blank"
-                     href="https://zalo.me/${(item.contact_phone || "")
-                       .replace(/[^0-9]/g, "")}">
-                    Zalo
-                 </a>`
-              : ""
-          }
+        <div class="join join-horizontal">
+          ${item.contact_phone && !isStaff()
+            ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>`
+            : ""}
+
+          ${item.contact_phone && !isStaff()
+            ? `<a class="btn btn-sm join-item" href="https://zalo.me/${(item.contact_phone || "").replace(/[^0-9]/g, "")}" target="_blank" rel="noopener">Zalo</a>`
+            : ""}
+
           <a class="btn btn-sm join-item" target="_blank"
              href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">
             Mở Map
           </a>
-          <button
-            class="btn btn-sm join-item"
-            onclick="navigator.clipboard.writeText(window.location.origin + window.location.pathname + '?id=${encodeURIComponent(
-              id
-            )}');toast('Đã copy link')">
+
+          <button class="btn btn-sm join-item"
+                  onclick="navigator.clipboard.writeText(window.location.origin + window.location.pathname + '?id=' + encodeURIComponent('${id}'));toast('Đã copy link');return false;">
             Copy link
           </button>
-          ${
-            isAdmin()
-              ? `<button class="btn btn-outline btn-sm join-item"
-                         onclick="openEditPremise('${id}')">
-                   Sửa
-                 </button>`
-              : ""
-          }
-        </div>
-      `;
+
+          ${isAdmin()
+            ? `<button class="btn btn-outline btn-sm join-item" onclick="openEditPremise('${id}')">Sửa</button>`
+            : ""}
+
+          <button class="btn btn-sm btn-ghost join-item"
+                  onclick="document.getElementById('detailDlg').close();return false;">
+            Đóng
+          </button>
+        </div>`;
+
 
       // ===== HTML HIỂN THỊ CHI TIẾT + GALLERY =====
       const html = `
@@ -1164,23 +1157,22 @@ MB0001/2.jpg"></textarea>
             ${
               imgUrls.length > 1
                 ? `
-                  <div class="grid grid-cols-4 gap-2">
-                    ${imgUrls
-                      .slice(0, 8)
-                      .map(
-                        (url) => `
-                      <div
-                        class="cursor-pointer border border-base-200 rounded-lg overflow-hidden hover:border-primary"
-                        onclick="(function(){
-                          const m = document.getElementById('detail-main-img');
-                          if (m) m.src='${url.replace(/'/g, "\\'")}';
-                        })()">
-                        <img src="${url}" class="w-full h-16 object-cover" />
-                      </div>
-                    `
-                      )
-                      .join("")}
+                  <div class="grid grid-cols-2 gap-2 text-sm mt-4">
+                    <div>Diện tích: <b>${item.area ?? '-'} m²</b></div>
+                    <div>Tầng: <b>${floorsVal ?? '-'}</b></div>
+
+                    <div>Ngang: <b>${item.width ?? '-'} m</b></div>
+                    <div>Dài: <b>${item.length ?? '-'} m</b></div>
+
+                    <div>PN: <b>${pnVal ?? '-'}</b></div>
+                    <div>WC: <b>${wcVal ?? '-'}</b></div>
+
+                    <div>Kết cấu: <b>${item.ket_cau || '-'}</b></div>
+                    <div>Hoa hồng: <b>${item.commission_note || '-'}</b></div>
+
+                    <div>Hướng: <b>${item.frontage ? 'Mặt tiền' : 'Hẻm'}</b></div>
                   </div>
+
                 `
                 : ""
             }
