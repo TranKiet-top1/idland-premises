@@ -1729,12 +1729,32 @@ MB0001/2.jpg"></textarea>
     // === BIẾN TOÀN CỤC LƯU FILE CHỜ UPLOAD ===
     let FILES_BUFFER = []; 
 
-    // --- 1. HÀM SINH MÃ MB TỰ ĐỘNG (Dựa trên thời gian thực -> Luôn duy nhất) ---
-    function generatePremiseCode() {
-        // Lấy 6 số cuối của timestamp (thời gian hiện tại)
-        // Ví dụ: MB-839201
-        const suffix = Date.now().toString().slice(-6); 
-        return `MB-${suffix}`;
+    // --- 1. HÀM SINH MÃ TỰ ĐỘNG TĂNG (MỚI) ---
+    async function generateNextCode() {
+        // Tìm mã lớn nhất hiện có trong DB (chỉ lấy những mã bắt đầu bằng 'MB ')
+        const { data, error } = await supabase
+            .from('premises')
+            .select('code')
+            .ilike('code', 'MB %') // Chỉ tìm các mã đúng format "MB ..."
+            .order('code', { ascending: false }) // Sắp xếp giảm dần để lấy cái lớn nhất
+            .limit(1)
+            .maybeSingle();
+
+        let nextNum = 1; // Mặc định là 1 nếu chưa có ai
+
+        if (data && data.code) {
+            // Tách lấy phần số: "MB 000120" -> lấy 000120 -> chuyển thành số 120
+            // Regex \D nghĩa là "không phải số", replace hết bằng rỗng
+            const currentNum = parseInt(data.code.replace(/\D/g, ''));
+            
+            if (!isNaN(currentNum)) {
+                nextNum = currentNum + 1;
+            }
+        }
+
+        // Format thành chuỗi 6 chữ số. VD: 1 -> "000001", 120 -> "000120"
+        const suffix = String(nextNum).padStart(6, '0');
+        return `MB ${suffix}`; // Form đúng yêu cầu: MB XXXXXX (có dấu cách)
     }
 
     // --- 2. CÁC HÀM XỬ LÝ GIAO DIỆN ẢNH (GIỮ NGUYÊN) ---
@@ -1826,9 +1846,11 @@ MB0001/2.jpg"></textarea>
         return uploadedPaths;
     }
 
-    // --- 4. HÀM LƯU TIN (CẬP NHẬT: SINH MÃ TRƯỚC KHI UPLOAD) ---
+    // --- 4. HÀM LƯU TIN (ĐÃ CẬP NHẬT LOGIC TĂNG MÃ) ---
     async function saveNewPremiseWithUpload() {
         const btn = document.getElementById("btn-save-new");
+        
+        // Validate cơ bản
         const getVal = (id) => document.getElementById(id).value.trim();
         const priceRaw = getVal("add-price").replace(/\D/g,'');
         const priceNum = priceRaw ? parseInt(priceRaw) : 0;
@@ -1838,23 +1860,27 @@ MB0001/2.jpg"></textarea>
             return;
         }
 
+        // Disable nút để tránh click đúp
         btn.disabled = true;
-        btn.innerHTML = `<span class="loading loading-spinner"></span> Đang xử lý...`;
+        btn.innerHTML = `<span class="loading loading-spinner"></span> Đang lấy mã MB...`;
 
         try {
-            // BƯỚC 1: SINH MÃ MB TRƯỚC (Để dùng làm tên folder)
-            // Bạn có thể đổi logic sinh mã ở hàm generatePremiseCode()
-            const newCode = generatePremiseCode(); 
+            // BƯỚC 1: LẤY MÃ MB TIẾP THEO TỪ DATABASE (Async)
+            const newCode = await generateNextCode();
+            console.log("Mã mới sẽ là:", newCode);
 
-            // BƯỚC 2: UPLOAD ẢNH VÀO FOLDER CÓ TÊN LÀ MÃ MB
+            // Cập nhật trạng thái nút bấm
+            btn.innerHTML = `<span class="loading loading-spinner"></span> Đang up ảnh lên ${newCode}...`;
+
+            // BƯỚC 2: UPLOAD ẢNH VÀO FOLDER CÓ TÊN LÀ MÃ MB VỪA TẠO
             const imagePaths = await uploadFilesToSupabase(newCode);
 
-            // BƯỚC 3: CHUẨN BỊ DATA (ĐÃ CÓ CODE VÀ ẢNH)
+            // BƯỚC 3: CHUẨN BỊ DATA
             const rType = document.getElementById("add-road-type").value;
             const isFrontage = rType === "Mặt tiền";
 
             const payload = {
-                code: newCode, // <-- LƯU MÃ VỪA TẠO VÀO DB LUÔN
+                code: newCode, // <-- MÃ TỰ TĂNG
                 
                 address: getVal("add-address"),
                 district: document.getElementById("add-district").value,
@@ -1874,19 +1900,18 @@ MB0001/2.jpg"></textarea>
                 commission: getVal("add-commission"),
                 frontage: isFrontage,
 
-                images: imagePaths, // Mảng đường dẫn ảnh (VD: ["MB-123/a.jpg", "MB-123/b.jpg"])
-                
+                images: imagePaths, 
                 detail: getVal("add-detail"),
                 status: 'available',
-                created_at: new Date().toISOString() // Thêm cái này cho chắc
+                created_at: new Date().toISOString()
             };
 
-            // BƯỚC 4: LƯU VÀO DB
+            // BƯỚC 4: INSERT VÀO DB
             const { error } = await supabase.from("premises").insert([payload]);
 
             if (error) throw error;
 
-            toast(isAdmin() ? `Đã thêm thành công! Mã: ${newCode}` : "Đã gửi duyệt!");
+            toast(isAdmin() ? `Thêm thành công! Mã: ${newCode}` : "Đã gửi duyệt!");
             
             // Reset form
             document.getElementById("addDlg").close();
