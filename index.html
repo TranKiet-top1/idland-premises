@@ -939,7 +939,10 @@ MB0001/2.jpg"></textarea>
                </div>
             </figure>
             <div class="card-body p-4 gap-2">
-              <h3 class="font-semibold text-sm line-clamp-2">${maskAddress(row)}</h3>
+              <h3 class="font-semibold text-sm line-clamp-2">
+                ${buildTitle(row)}
+              </h3>
+
               
               <div class="flex items-center flex-wrap gap-2 text-[11px] opacity-70">
                 <span>${[row.ward, row.district].filter(Boolean).join(" • ")}</span>
@@ -1281,10 +1284,11 @@ MB0001/2.jpg"></textarea>
           <div class="space-y-3 text-sm">
             <div>
               <h3 class="font-semibold text-lg mb-1">
-                ${item.street || "(Không có tiêu đề)"}
+                ${buildTitle(item) || "(Không có tiêu đề)"}
               </h3>
               <p class="text-gray-600">${address || ""}</p>
             </div>
+
 
             <div class="flex flex-wrap gap-2 text-xs">
               ${
