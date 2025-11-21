@@ -394,6 +394,21 @@
           <span class="label-text">Nhà mặt tiền</span>
         </div>
 
+        <div class="form-control md:col-span-2 grid grid-cols-2 gap-2">
+            <div class="form-control">
+              <label class="label"><span class="label-text">Loại hình</span></label>
+              <select id="edit-road-type" class="select select-bordered w-full">
+                <option value="Hẻm">Hẻm</option>
+                <option value="Hẻm xe hơi">Hẻm xe hơi</option>
+                <option value="Mặt tiền">Mặt tiền</option>
+              </select>
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Hoa hồng (ngắn)</span></label>
+              <input id="edit-commission-text" type="text" class="input input-bordered w-full" placeholder="VD: 1 tháng" />
+            </div>
+        </div>
+
         <div class="form-control">
           <label class="label"><span class="label-text">Trạng thái</span></label>
           <select id="edit-status" class="select select-bordered w-full">
@@ -905,19 +920,24 @@ MB0001/2.jpg"></textarea>
         const creatorEmail = row.profiles?.email || "";
         const shortName = creatorEmail.split("@")[0];
 
-        // --- BADGE VỊ TRÍ ---
+        // --- BADGE VỊ TRÍ (LOGIC MỚI) ---
         let locationBadge = "";
-        if (row.frontage === true) {
+        // Ưu tiên lấy từ cột road_type mới, nếu không có thì dùng logic cũ
+        const roadType = row.road_type || (row.frontage ? "Mặt tiền" : "Hẻm");
+
+        if (roadType === "Mặt tiền") {
             locationBadge = `<span class="badge badge-xs badge-error text-white border-none">Mặt tiền</span>`;
+        } else if (roadType === "Hẻm xe hơi") {
+            locationBadge = `<span class="badge badge-xs badge-info text-white border-none">Hẻm xe hơi</span>`;
         } else {
-            const fullText = ((row.address || "") + " " + (row.detail || "") + " " + (row.ket_cau || "")).toLowerCase();
-            if (fullText.includes("hxh") || fullText.includes("hẻm xe hơi") || fullText.includes("xe tải")) {
-                locationBadge = `<span class="badge badge-xs badge-info text-white border-none">Hẻm xe hơi</span>`;
-            } else {
-                locationBadge = `<span class="badge badge-xs badge-ghost border-none opacity-70">Nhà hẻm</span>`;
-            }
+            locationBadge = `<span class="badge badge-xs badge-ghost border-none opacity-70">Nhà hẻm</span>`;
         }
-        
+
+        // Badge Hoa hồng
+        const hhBadge = row.commission 
+            ? `<span class="badge badge-xs badge-success text-white border-none ml-1">${row.commission}</span>` 
+            : '';
+                
         // --- NÚT DUYỆT (NẾU ADMIN ĐANG Ở CHẾ ĐỘ PENDING) ---
         let approveBtn = "";
         if (SHOW_PENDING && isAdmin()) {
@@ -932,7 +952,7 @@ MB0001/2.jpg"></textarea>
                   ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
                   : `<div class="text-xs opacity-60">(Không có ảnh)</div>`
               }
-               <div class="absolute top-2 right-2 shadow-sm">${locationBadge}</div>
+               <div class="absolute top-2 right-2 shadow-sm">${locationBadge}${isAdmin() ? hhBadge : ''} </div>
                
                <div class="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[10px] p-1 px-2 truncate">
                   Đăng bởi: <b>${shortName || 'Ẩn danh'}</b>
@@ -1406,6 +1426,8 @@ MB0001/2.jpg"></textarea>
         const el = document.getElementById(elId);
         if (el) el.value = val == null ? "" : String(val);
       };
+      setVal("edit-road-type", item.road_type || (item.frontage ? "Mặt tiền" : "Hẻm"));
+      ("edit-commission-text", item.commission || "");
 
       // điền dữ liệu vào form edit
       setVal("edit-code", item.code || "");
@@ -1496,6 +1518,8 @@ MB0001/2.jpg"></textarea>
         images: getVal("edit-images").split("\n").map(s => s.trim()).filter(Boolean),
         detail: getVal("edit-detail"),
         updated_at: new Date().toISOString(),
+        road_type: document.getElementById("edit-road-type").value, // MỚI
+        commission: getVal("edit-commission-text"), // MỚI
       };
 
       const { error } = await supabase.from("premises").update(payload).eq("id", EDITING_ID);
@@ -1556,6 +1580,8 @@ MB0001/2.jpg"></textarea>
             images: getVal("add-images").split('\n').map(s=>s.trim()).filter(Boolean),
             detail: getVal("add-detail"),
             status: 'available'
+            road_type: document.getElementById("add-road-type").value, // MỚI
+              commission: getVal("add-commission"),
             // code, created_by, is_approved SẼ ĐƯỢC DB TỰ ĐỘNG XỬ LÝ (NẾU ĐÃ CHẠY SQL)
         };
 
