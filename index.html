@@ -1013,6 +1013,83 @@ MB0001/2.jpg"></textarea>
         selectWard.appendChild(opt);
       });
     }
+    // ===== CÁC HÀM HỖ TRỢ (UTILS) =====
+
+    function buildTitle(item) {
+      if (!item) return "";
+
+      const street = item.street ? item.street.toUpperCase() : "";
+      const detail = (item.detail || "").toLowerCase();
+      const ket = (item.ket_cau || "").toLowerCase();
+
+      // ==== 1. XÁC ĐỊNH LOẠI HÌNH (MB / NNC) ====
+      let type = "NNC"; // mặc định NNC
+
+      // MẶT BẰNG nếu bài có MB / LDC / LDR trong mô tả
+      if (
+        detail.includes(" mb") || detail.startsWith("mb ") || detail.includes("mb ") ||
+        detail.includes("ldc") ||
+        detail.includes("ldr")
+      ) {
+        type = "MB";
+      }
+
+      // Nếu không có MB nhưng có kết cấu nhà → NNC
+      if (
+        ket.includes("trệt") || ket.includes("tret") ||
+        ket.includes("lầu")  || ket.includes("lau") ||
+        ket.includes("lửng") || ket.includes("lung") ||
+        ket.includes("tum")  ||
+        ket.includes("pn")   ||
+        ket.includes("wc")
+      ) {
+        type = "NNC";
+      }
+
+      // ==== 2. HƯỚNG (MT / HXH / HEM) ====
+      let huong = "HEM";
+      const addr = (item.address || "").toLowerCase();
+
+      if (item.frontage) huong = "MT";
+      else if (addr.includes("/")) huong = "HXH";
+      else if (detail.includes("hxh")) huong = "HXH";
+
+      // ==== 3. PN / WC ====
+      const pn = item.pn ? `${item.pn}PN` : "";
+      const wc = item.wc ? `${item.wc}WC` : "";
+
+      // ==== 4. DIỆN TÍCH ====
+      let dientich = "";
+      if (item.width && item.length) {
+        dientich = `${item.width}X${item.length}`;
+      } else if (item.area) {
+        dientich = `${item.area}M2`;
+      }
+
+      // ==== 5. KẾT CẤU ====
+      const ketcau = item.ket_cau ? item.ket_cau.toUpperCase() : "";
+
+      // ==== 6. QUẬN ====
+      let quan = "";
+      if (item.district) {
+        const q = item.district.replace("Q.", "").replace("Quận", "").trim();
+        quan = `QUẬN ${q}`;
+      }
+
+      // ==== GHÉP TIÊU ĐỀ ====
+      const parts = [
+        type,
+        huong,
+        street,
+        pn,
+        wc,
+        dientich,
+        ketcau,
+        quan
+      ].filter(p => p);
+
+      return parts.join(" - ").toUpperCase();
+    }
 
     // ===== CHI TIẾT & SỬA =====
     async function openDetail(id) {
