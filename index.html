@@ -474,6 +474,21 @@ MB0001/2.jpg"></textarea>
                  <span class="label-text text-xs font-bold text-primary">Giá thuê (VNĐ) *</span>
                  <input id="add-price" type="text" class="input input-sm input-bordered font-bold" onkeyup="formatCurrencyInput(this)" placeholder="0"/>
              </div>
+             
+            <div class="grid grid-cols-2 gap-2 mt-3">
+                 <div class="form-control">
+                     <span class="label-text text-xs font-bold">Loại hình *</span>
+                     <select id="add-road-type" class="select select-sm select-bordered">
+                        <option value="Hẻm">Hẻm</option>
+                        <option value="Hẻm xe hơi">Hẻm xe hơi</option>
+                        <option value="Mặt tiền">Mặt tiền</option>
+                     </select>
+                 </div>
+                 <div class="form-control">
+                     <span class="label-text text-xs font-bold text-success">Hoa hồng</span>
+                     <input id="add-commission" type="text" class="input input-sm input-bordered" placeholder="VD: 1 tháng"/>
+                 </div>
+            </div>             
              <div class="mt-3">
                  <label class="flex items-center gap-2 cursor-pointer border p-2 rounded">
                      <input id="add-frontage" type="checkbox" class="checkbox checkbox-sm checkbox-primary" />
@@ -1427,7 +1442,7 @@ MB0001/2.jpg"></textarea>
         if (el) el.value = val == null ? "" : String(val);
       };
       setVal("edit-road-type", item.road_type || (item.frontage ? "Mặt tiền" : "Hẻm"));
-      ("edit-commission-text", item.commission || "");
+      setVal("edit-commission-text", item.commission || "");
 
       // điền dữ liệu vào form edit
       setVal("edit-code", item.code || "");
@@ -1579,7 +1594,7 @@ MB0001/2.jpg"></textarea>
             frontage: document.getElementById("add-frontage").checked,
             images: getVal("add-images").split('\n').map(s=>s.trim()).filter(Boolean),
             detail: getVal("add-detail"),
-            status: 'available'
+            status: 'available',
             road_type: document.getElementById("add-road-type").value, // MỚI
               commission: getVal("add-commission"),
             // code, created_by, is_approved SẼ ĐƯỢC DB TỰ ĐỘNG XỬ LÝ (NẾU ĐÃ CHẠY SQL)
