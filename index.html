@@ -446,6 +446,7 @@ MB0001/2.jpg"></textarea>
     <div class="modal-box max-w-4xl">
       <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button></form>
       <h3 class="font-bold text-lg text-primary mb-4">Đăng mặt bằng mới</h3>
+      
       <div class="grid md:grid-cols-2 gap-4">
           <div>
              <div class="form-control mb-2">
@@ -475,7 +476,7 @@ MB0001/2.jpg"></textarea>
                  <input id="add-price" type="text" class="input input-sm input-bordered font-bold" onkeyup="formatCurrencyInput(this)" placeholder="0"/>
              </div>
              
-            <div class="grid grid-cols-2 gap-2 mt-3">
+             <div class="grid grid-cols-2 gap-2 mt-3">
                  <div class="form-control">
                      <span class="label-text text-xs font-bold">Loại hình *</span>
                      <select id="add-road-type" class="select select-sm select-bordered">
@@ -488,14 +489,9 @@ MB0001/2.jpg"></textarea>
                      <span class="label-text text-xs font-bold text-success">Hoa hồng</span>
                      <input id="add-commission" type="text" class="input input-sm input-bordered" placeholder="VD: 1 tháng"/>
                  </div>
-            </div>             
-             <div class="mt-3">
-                 <label class="flex items-center gap-2 cursor-pointer border p-2 rounded">
-                     <input id="add-frontage" type="checkbox" class="checkbox checkbox-sm checkbox-primary" />
-                     <span class="text-sm font-medium">Nhà mặt tiền</span>
-                 </label>
              </div>
           </div>
+
           <div>
              <div class="grid grid-cols-3 gap-2 mb-2">
                  <div><span class="text-xs">DT (m²)</span><input id="add-area" type="number" class="input input-sm input-bordered w-full"/></div>
@@ -516,16 +512,34 @@ MB0001/2.jpg"></textarea>
                  <input id="add-contact-phone" type="text" class="input input-sm input-bordered input-error" placeholder="090..."/>
              </div>
           </div>
-          <div class="md:col-span-2">
-              <span class="text-xs">Link ảnh (Mỗi dòng 1 link)</span>
-              <textarea id="add-images" class="textarea textarea-bordered w-full h-16 text-xs mb-2" placeholder="http://..."></textarea>
-              <span class="text-xs">Mô tả chi tiết</span>
-              <textarea id="add-detail" class="textarea textarea-bordered w-full h-20 text-sm"></textarea>
+
+          <div class="md:col-span-2 border-t pt-3 mt-2">
+              <div class="flex justify-between items-center mb-2">
+                  <span class="label-text font-bold">Hình ảnh thực tế</span>
+                  <label for="inp-upload-files" class="btn btn-sm btn-primary text-white">
+                      📷 Tải ảnh lên
+                  </label>
+                  <input type="file" id="inp-upload-files" multiple accept="image/*" class="hidden" onchange="handleSelectFiles(this)"/>
+              </div>
+              
+              <div id="preview-container" class="flex flex-wrap gap-3 min-h-[100px] bg-base-200 p-2 rounded-lg border border-dashed border-gray-400">
+                  <p class="text-xs text-gray-500 w-full text-center py-8 pointer-events-none">
+                      Chưa có ảnh nào. <br/> Ảnh đầu tiên sẽ là <b>Ảnh Bìa</b>. Click vào ảnh để đặt làm bìa.
+                  </p>
+              </div>
+
+              <div class="form-control mt-2">
+                  <span class="text-xs">Mô tả chi tiết</span>
+                  <textarea id="add-detail" class="textarea textarea-bordered w-full h-20 text-sm"></textarea>
+              </div>
           </div>
       </div>
+
       <div class="modal-action">
         <button class="btn" onclick="document.getElementById('addDlg').close()">Huỷ</button>
-        <button class="btn btn-primary" onclick="saveNewPremise()">Lưu tin</button>
+        <button id="btn-save-new" class="btn btn-primary" onclick="saveNewPremiseWithUpload()">
+            Lưu tin
+        </button>
       </div>
     </div>
   </dialog>
@@ -1712,6 +1726,183 @@ MB0001/2.jpg"></textarea>
 
       initAuth();
     });
+    // === BIẾN TOÀN CỤC LƯU FILE CHỜ UPLOAD ===
+    let FILES_BUFFER = []; 
+
+    // --- 1. HÀM SINH MÃ MB TỰ ĐỘNG (Dựa trên thời gian thực -> Luôn duy nhất) ---
+    function generatePremiseCode() {
+        // Lấy 6 số cuối của timestamp (thời gian hiện tại)
+        // Ví dụ: MB-839201
+        const suffix = Date.now().toString().slice(-6); 
+        return `MB-${suffix}`;
+    }
+
+    // --- 2. CÁC HÀM XỬ LÝ GIAO DIỆN ẢNH (GIỮ NGUYÊN) ---
+    function handleSelectFiles(input) {
+        if (!input.files || input.files.length === 0) return;
+        const newFiles = Array.from(input.files);
+        FILES_BUFFER = [...FILES_BUFFER, ...newFiles];
+        input.value = '';
+        renderPreview();
+    }
+
+    function renderPreview() {
+        const container = document.getElementById("preview-container");
+        container.innerHTML = ""; 
+        if (FILES_BUFFER.length === 0) {
+            container.innerHTML = `<p class="text-xs text-gray-500 w-full text-center py-8 pointer-events-none">Chưa có ảnh nào.<br/>Ảnh đầu tiên sẽ là <b>Ảnh Bìa</b>.</p>`;
+            return;
+        }
+        FILES_BUFFER.forEach((file, index) => {
+            const url = URL.createObjectURL(file);
+            const div = document.createElement("div");
+            div.className = `relative w-24 h-24 rounded-lg overflow-hidden border-2 cursor-pointer transition-all group ${index === 0 ? 'border-primary ring-2 ring-primary ring-offset-1' : 'border-gray-300 hover:border-primary'}`;
+            div.title = index === 0 ? "Ảnh bìa hiện tại" : "Click để đặt làm ảnh bìa";
+            div.onclick = () => makeCover(index);
+
+            const img = document.createElement("img");
+            img.src = url;
+            img.className = "w-full h-full object-cover";
+            
+            const btnRemove = document.createElement("button");
+            btnRemove.innerHTML = "✕";
+            btnRemove.className = "absolute top-0 right-0 bg-red-500 text-white w-5 h-5 text-[10px] flex items-center justify-center rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity";
+            btnRemove.onclick = (e) => { e.stopPropagation(); removeFile(index); };
+
+            if (index === 0) {
+                const badge = document.createElement("div");
+                badge.innerText = "Bìa";
+                badge.className = "absolute bottom-0 left-0 right-0 bg-primary text-white text-[10px] text-center font-bold py-0.5";
+                div.appendChild(badge);
+            }
+            div.appendChild(img); div.appendChild(btnRemove); container.appendChild(div);
+        });
+    }
+
+    function makeCover(index) {
+        if (index === 0) return;
+        const item = FILES_BUFFER.splice(index, 1)[0];
+        FILES_BUFFER.unshift(item);
+        renderPreview();
+    }
+
+    function removeFile(index) {
+        FILES_BUFFER.splice(index, 1);
+        renderPreview();
+    }
+
+    // --- 3. HÀM UPLOAD (CẬP NHẬT: NHẬN THAM SỐ FOLDER NAME) ---
+    async function uploadFilesToSupabase(folderName) {
+        if (FILES_BUFFER.length === 0) return [];
+        
+        const uploadedPaths = [];
+        // Không cần timestamp ở tên file nữa vì đã có folder riêng, nhưng vẫn thêm random cho chắc
+        
+        toast(`Đang tải ${FILES_BUFFER.length} ảnh lên folder ${folderName}...`);
+
+        for (let i = 0; i < FILES_BUFFER.length; i++) {
+            const file = FILES_BUFFER[i];
+            
+            // Làm sạch tên file (bỏ dấu tiếng việt, ký tự lạ)
+            const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+            
+            // Cấu trúc path: TÊN_FOLDER/TÊN_FILE
+            // Ví dụ: MB-123456/hinh_nha_1.jpg
+            const filePath = `${folderName}/${cleanName}`;
+            
+            const { data, error } = await supabase.storage
+                .from(STORAGE_BUCKET)
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (error) {
+                console.error("Lỗi upload:", file.name, error);
+                continue; 
+            }
+            if (data) uploadedPaths.push(data.path);
+        }
+        return uploadedPaths;
+    }
+
+    // --- 4. HÀM LƯU TIN (CẬP NHẬT: SINH MÃ TRƯỚC KHI UPLOAD) ---
+    async function saveNewPremiseWithUpload() {
+        const btn = document.getElementById("btn-save-new");
+        const getVal = (id) => document.getElementById(id).value.trim();
+        const priceRaw = getVal("add-price").replace(/\D/g,'');
+        const priceNum = priceRaw ? parseInt(priceRaw) : 0;
+
+        if (!getVal("add-address") || !getVal("add-district") || !priceNum) {
+            toast("Vui lòng nhập: Địa chỉ, Quận và Giá thuê!");
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `<span class="loading loading-spinner"></span> Đang xử lý...`;
+
+        try {
+            // BƯỚC 1: SINH MÃ MB TRƯỚC (Để dùng làm tên folder)
+            // Bạn có thể đổi logic sinh mã ở hàm generatePremiseCode()
+            const newCode = generatePremiseCode(); 
+
+            // BƯỚC 2: UPLOAD ẢNH VÀO FOLDER CÓ TÊN LÀ MÃ MB
+            const imagePaths = await uploadFilesToSupabase(newCode);
+
+            // BƯỚC 3: CHUẨN BỊ DATA (ĐÃ CÓ CODE VÀ ẢNH)
+            const rType = document.getElementById("add-road-type").value;
+            const isFrontage = rType === "Mặt tiền";
+
+            const payload = {
+                code: newCode, // <-- LƯU MÃ VỪA TẠO VÀO DB LUÔN
+                
+                address: getVal("add-address"),
+                district: document.getElementById("add-district").value,
+                ward: document.getElementById("add-ward").value,
+                street: getVal("add-street"),
+                price: priceNum,
+                area: Number(getVal("add-area")) || null,
+                width: Number(getVal("add-width")) || null,
+                length: Number(getVal("add-length")) || null,
+                floors: Number(getVal("add-floors")) || null,
+                pn: Number(getVal("add-bedrooms")) || null,
+                wc: Number(getVal("add-wc")) || null,
+                ket_cau: getVal("add-ket-cau"),
+                contact_phone: getVal("add-contact-phone"),
+                
+                road_type: rType,
+                commission: getVal("add-commission"),
+                frontage: isFrontage,
+
+                images: imagePaths, // Mảng đường dẫn ảnh (VD: ["MB-123/a.jpg", "MB-123/b.jpg"])
+                
+                detail: getVal("add-detail"),
+                status: 'available',
+                created_at: new Date().toISOString() // Thêm cái này cho chắc
+            };
+
+            // BƯỚC 4: LƯU VÀO DB
+            const { error } = await supabase.from("premises").insert([payload]);
+
+            if (error) throw error;
+
+            toast(isAdmin() ? `Đã thêm thành công! Mã: ${newCode}` : "Đã gửi duyệt!");
+            
+            // Reset form
+            document.getElementById("addDlg").close();
+            FILES_BUFFER = []; 
+            renderPreview();
+            applyFilters(true);
+            if(isAdmin()) checkPendingCount();
+
+        } catch (err) {
+            console.error(err);
+            toast("Lỗi: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = "Lưu tin";
+        }
+    }
   </script>
 </body>
 </html>
