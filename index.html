@@ -305,121 +305,9 @@
   </div>
 
   <dialog id="detailDlg" class="modal">
-    <div class="modal-box max-w-4xl">
-      <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button></form>
-      <h3 class="font-bold text-lg text-primary mb-4">Đăng mặt bằng mới</h3>
-      
-      <div class="collapse collapse-arrow bg-base-200 mb-4 border border-primary/20">
-        <input type="checkbox" /> 
-        <div class="collapse-title font-medium text-sm">
-          📋 <span class="text-primary font-bold">Copy tin từ Zalo/Facebook dán vào đây để điền tự động</span>
-        </div>
-        <div class="collapse-content">
-          <textarea id="paste-area" class="textarea textarea-bordered w-full h-24 text-xs" placeholder="Dán nội dung tin đăng vào đây... (Ví dụ: Cho thuê nhà D8, giá 50tr...)"></textarea>
-          <button type="button" class="btn btn-sm btn-primary mt-2 w-full" onclick="parseAndFill()">
-            ✨ Phân tích & Điền tự động
-          </button>
-        </div>
-      </div>
-      <div class="grid md:grid-cols-2 gap-4">
-          <div>
-             <div class="form-control mb-2">
-                 <span class="label-text text-xs font-bold text-primary">Mã mặt bằng *</span>
-                 <input id="add-code" type="text" class="input input-sm input-bordered border-primary font-bold" placeholder="VD: MBKD 5678..."/>
-             </div>
-
-             <div class="form-control mb-2">
-                 <span class="label-text text-xs font-bold">Địa chỉ (Số nhà + Đường) *</span>
-                 <input id="add-address" type="text" class="input input-sm input-bordered" placeholder="VD: 123 Nguyễn Trãi"/>
-             </div>
-             <div class="grid grid-cols-2 gap-2 mb-2">
-                 <div class="form-control">
-                     <span class="label-text text-xs">Quận *</span>
-                     <select id="add-district" class="select select-sm select-bordered">
-                        <option value="">-- Chọn --</option>
-                     </select>
-                 </div>
-                 <div class="form-control">
-                     <span class="label-text text-xs">Phường *</span>
-                     <select id="add-ward" class="select select-sm select-bordered" disabled>
-                        <option value="">-- Chọn Quận trước --</option>
-                     </select>
-                 </div>
-             </div>
-             <div class="form-control mb-2">
-                 <span class="label-text text-xs">Tên đường (để lọc)</span>
-                 <input id="add-street" type="text" class="input input-sm input-bordered"/>
-             </div>
-             <div class="form-control mt-3">
-                 <span class="label-text text-xs font-bold text-primary">Giá thuê (VNĐ) *</span>
-                 <input id="add-price" type="text" class="input input-sm input-bordered font-bold" onkeyup="formatCurrencyInput(this)" placeholder="0"/>
-             </div>
-             
-             <div class="grid grid-cols-2 gap-2 mt-3">
-                 <div class="form-control">
-                     <span class="label-text text-xs font-bold">Loại hình *</span>
-                     <select id="add-road-type" class="select select-sm select-bordered">
-                        <option value="Hẻm">Hẻm</option>
-                        <option value="Hẻm xe hơi">Hẻm xe hơi</option>
-                        <option value="Mặt tiền">Mặt tiền</option>
-                     </select>
-                 </div>
-                 <div class="form-control">
-                     <span class="label-text text-xs font-bold text-success">Hoa hồng</span>
-                     <input id="add-commission" type="text" class="input input-sm input-bordered" placeholder="VD: 1 tháng"/>
-                 </div>
-             </div>
-          </div>
-
-          <div>
-             <div class="grid grid-cols-3 gap-2 mb-2">
-                 <div><span class="text-xs">DT (m²)</span><input id="add-area" type="number" class="input input-sm input-bordered w-full"/></div>
-                 <div><span class="text-xs">Ngang</span><input id="add-width" type="number" class="input input-sm input-bordered w-full"/></div>
-                 <div><span class="text-xs">Dài</span><input id="add-length" type="number" class="input input-sm input-bordered w-full"/></div>
-             </div>
-             <div class="grid grid-cols-3 gap-2 mb-2">
-                 <div><span class="text-xs">Tầng</span><input id="add-floors" type="number" class="input input-sm input-bordered w-full"/></div>
-                 <div><span class="text-xs">PN</span><input id="add-bedrooms" type="number" class="input input-sm input-bordered w-full"/></div>
-                 <div><span class="text-xs">WC</span><input id="add-wc" type="number" class="input input-sm input-bordered w-full"/></div>
-             </div>
-             <div class="form-control mb-2">
-                 <span class="text-xs">Kết cấu</span>
-                 <input id="add-ket-cau" type="text" class="input input-sm input-bordered" placeholder="VD: Trệt 3 lầu..."/>
-             </div>
-             <div class="form-control mb-2">
-                 <span class="text-xs font-bold text-error">SĐT Chủ (Admin xem)</span>
-                 <input id="add-contact-phone" type="text" class="input input-sm input-bordered input-error" placeholder="090..."/>
-             </div>
-          </div>
-
-          <div class="md:col-span-2 border-t pt-3 mt-2">
-              <div class="flex justify-between items-center mb-2">
-                  <span class="label-text font-bold">Hình ảnh thực tế</span>
-                  <label for="inp-upload-files" class="btn btn-sm btn-primary text-white">
-                      📷 Tải ảnh lên
-                  </label>
-                  <input type="file" id="inp-upload-files" multiple accept="image/*" class="hidden" onchange="handleSelectFiles(this)"/>
-              </div>
-              
-              <div id="preview-container" class="flex flex-wrap gap-3 min-h-[100px] bg-base-200 p-2 rounded-lg border border-dashed border-gray-400">
-                  <p class="text-xs text-gray-500 w-full text-center py-8 pointer-events-none">
-                      Chưa có ảnh nào. <br/> Ảnh đầu tiên sẽ là <b>Ảnh Bìa</b>. Click vào ảnh để đặt làm bìa.
-                  </p>
-              </div>
-
-              <div class="form-control mt-2">
-                  <span class="text-xs">Mô tả chi tiết</span>
-                  <textarea id="add-detail" class="textarea textarea-bordered w-full h-20 text-sm"></textarea>
-              </div>
-          </div>
-      </div>
-
-      <div class="modal-action">
-        <button class="btn" onclick="document.getElementById('addDlg').close()">Huỷ</button>
-        <button id="btn-save-new" class="btn btn-primary" onclick="saveNewPremiseWithUpload()">
-            Lưu tin
-        </button>
-      </div>
+    <div class="modal-box max-w-5xl p-4">
+      <form method="dialog" class="modal-backdrop absolute inset-0" onclick="document.getElementById('detailDlg').close()"></form>
+      <div id="detail-content"></div>
     </div>
   </dialog>
 
@@ -559,25 +447,8 @@ MB0001/2.jpg"></textarea>
       <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button></form>
       <h3 class="font-bold text-lg text-primary mb-4">Đăng mặt bằng mới</h3>
       
-      <div class="collapse collapse-arrow bg-base-200 mb-4 border border-primary/20">
-        <input type="checkbox" checked /> 
-        <div class="collapse-title font-medium text-sm">
-          📋 <span class="text-primary font-bold">Copy tin từ Zalo/Facebook dán vào đây</span>
-        </div>
-        <div class="collapse-content">
-          <textarea id="paste-area-vip" class="textarea textarea-bordered w-full h-24 text-xs" placeholder="Dán nội dung tin đăng vào đây..."></textarea>
-          <button type="button" class="btn btn-sm btn-primary mt-2 w-full" onclick="parseAndFill()">
-            ✨ Phân tích & Điền tự động
-          </button>
-        </div>
-      </div>
       <div class="grid md:grid-cols-2 gap-4">
           <div>
-             <div class="form-control mb-2">
-                 <span class="label-text text-xs font-bold text-primary">Mã mặt bằng *</span>
-                 <input id="add-code" type="text" class="input input-sm input-bordered border-primary font-bold" placeholder="VD: MBKD 5678..."/>
-             </div>
-
              <div class="form-control mb-2">
                  <span class="label-text text-xs font-bold">Địa chỉ (Số nhà + Đường) *</span>
                  <input id="add-address" type="text" class="input input-sm input-bordered" placeholder="VD: 123 Nguyễn Trãi"/>
@@ -1975,41 +1846,42 @@ MB0001/2.jpg"></textarea>
         return uploadedPaths;
     }
 
-    // === HÀM LƯU TIN MỚI (UPLOAD ẢNH + DÙNG MÃ THỦ CÔNG) ===
+    // --- 4. HÀM LƯU TIN (ĐÃ CẬP NHẬT LOGIC TĂNG MÃ) ---
     async function saveNewPremiseWithUpload() {
         const btn = document.getElementById("btn-save-new");
-        const getVal = (id) => document.getElementById(id).value.trim();
         
-        // 1. Lấy các trường bắt buộc
-        const rawCode = getVal("add-code");
+        // Validate cơ bản
+        const getVal = (id) => document.getElementById(id).value.trim();
         const priceRaw = getVal("add-price").replace(/\D/g,'');
         const priceNum = priceRaw ? parseInt(priceRaw) : 0;
 
-        // VALIDATION
-        if (!rawCode || !getVal("add-address") || !getVal("add-district") || !priceNum) {
-            toast("Thiếu thông tin: MÃ MB, Địa chỉ, Quận hoặc Giá!");
-            if(!rawCode) document.getElementById("add-code").classList.add("input-error");
+        if (!getVal("add-address") || !getVal("add-district") || !priceNum) {
+            toast("Vui lòng nhập: Địa chỉ, Quận và Giá thuê!");
             return;
-        } else {
-            document.getElementById("add-code").classList.remove("input-error");
         }
 
+        // Disable nút để tránh click đúp
         btn.disabled = true;
-        btn.innerHTML = `<span class="loading loading-spinner"></span> Đang xử lý...`;
+        btn.innerHTML = `<span class="loading loading-spinner"></span> Đang lấy mã MB...`;
 
         try {
-            const newCode = rawCode; 
-            console.log("Đang lưu tin với mã:", newCode);
-            
-            // 2. UPLOAD ẢNH (Dùng mã MB để đặt tên folder)
-            btn.innerHTML = `<span class="loading loading-spinner"></span> Đang up ảnh...`;
+            // BƯỚC 1: LẤY MÃ MB TIẾP THEO TỪ DATABASE (Async)
+            const newCode = await generateNextCode();
+            console.log("Mã mới sẽ là:", newCode);
+
+            // Cập nhật trạng thái nút bấm
+            btn.innerHTML = `<span class="loading loading-spinner"></span> Đang up ảnh lên ${newCode}...`;
+
+            // BƯỚC 2: UPLOAD ẢNH VÀO FOLDER CÓ TÊN LÀ MÃ MB VỪA TẠO
             const imagePaths = await uploadFilesToSupabase(newCode);
 
-            // 3. CHUẨN BỊ DATA
+            // BƯỚC 3: CHUẨN BỊ DATA
             const rType = document.getElementById("add-road-type").value;
-            
+            const isFrontage = rType === "Mặt tiền";
+
             const payload = {
-                code: newCode,
+                code: newCode, // <-- MÃ TỰ TĂNG
+                
                 address: getVal("add-address"),
                 district: document.getElementById("add-district").value,
                 ward: document.getElementById("add-ward").value,
@@ -2025,32 +1897,24 @@ MB0001/2.jpg"></textarea>
                 contact_phone: getVal("add-contact-phone"),
                 
                 road_type: rType,
-                frontage: (rType === "Mặt tiền"),
                 commission: getVal("add-commission"),
+                frontage: isFrontage,
 
                 images: imagePaths, 
                 detail: getVal("add-detail"),
-                status: 'available'
-                // created_at sẽ do Supabase tự sinh
+                status: 'available',
+                created_at: new Date().toISOString()
             };
 
-            // 4. GỬI LÊN SUPABASE
+            // BƯỚC 4: INSERT VÀO DB
             const { error } = await supabase.from("premises").insert([payload]);
 
-            if (error) {
-                if (error.code === '23505') throw new Error(`Mã "${newCode}" đã tồn tại!`);
-                throw error;
-            }
+            if (error) throw error;
 
-            toast(isAdmin() ? "Đã thêm thành công!" : "Đã gửi duyệt!");
+            toast(isAdmin() ? `Thêm thành công! Mã: ${newCode}` : "Đã gửi duyệt!");
             
-            // Reset Form
+            // Reset form
             document.getElementById("addDlg").close();
-            document.getElementById("add-code").value = "";
-            document.getElementById("paste-area").value = ""; // Xóa ô dán tin
-            document.getElementById("add-address").value = "";
-            document.getElementById("add-price").value = "";
-            
             FILES_BUFFER = []; 
             renderPreview();
             applyFilters(true);
@@ -2063,120 +1927,6 @@ MB0001/2.jpg"></textarea>
             btn.disabled = false;
             btn.innerHTML = "Lưu tin";
         }
-    }
-    // === CÔNG CỤ PHÂN TÍCH TIN ĐĂNG (REGEX) ===
-    function parseAndFill() {
-        // SỬA DÒNG NÀY: đổi "paste-area" thành "paste-area-vip"
-        const textElement = document.getElementById("paste-area-vip");
-        
-        // Kiểm tra an toàn: nếu không tìm thấy thẻ thì báo lỗi hệ thống
-        if (!textElement) return toast("Lỗi: Không tìm thấy ô nhập liệu (Code HTML chưa khớp)");
-
-        const text = textElement.value;
-        if (!text) return toast("Vui lòng dán nội dung tin vào ô!");
-
-        // 1. Tìm MÃ MB (VD: MBKD 123...)
-        const codeMatch = text.match(/(MBKD|MB)\s*([0-9]+)/i);
-        if (codeMatch) document.getElementById("add-code").value = codeMatch[0].toUpperCase();
-
-        // 2. Tìm GIÁ (VD: 50 Triệu, 50tr)
-        const priceMatch = text.match(/(\d+)\s*(Triệu|tr)/i);
-        if (priceMatch) {
-            const price = parseInt(priceMatch[1]) * 1000000;
-            document.getElementById("add-price").value = new Intl.NumberFormat('vi-VN').format(price);
-        }
-
-        // 3. Tìm DIỆN TÍCH / KÍCH THƯỚC (VD: 5m x 16m, 5x16)
-        const dimMatch = text.match(/(\d+)[m\s]*x\s*(\d+)[m\s]*/i);
-        if (dimMatch) {
-            const w = dimMatch[1];
-            const l = dimMatch[2];
-            document.getElementById("add-width").value = w;
-            document.getElementById("add-length").value = l;
-            document.getElementById("add-area").value = w * l;
-        }
-
-        // 4. Tìm SỐ ĐIỆN THOẠI (09xxx, 07xxx)
-        const phoneMatch = text.match(/(03|05|07|08|09|01[2|6|8|9])+([0-9]{8})\b/);
-        if (phoneMatch) document.getElementById("add-contact-phone").value = phoneMatch[0];
-
-        // 5. Tìm SỐ TẦNG (Trệt 3 Lầu -> 4 tầng)
-        let floors = 0;
-        if (text.match(/Trệt/i)) floors += 1;
-        if (text.match(/Lửng/i)) floors += 0.5; // Hoặc 1 tùy quy ước
-        const lauMatch = text.match(/(\d+)\s*Lầu/i);
-        if (lauMatch) floors += parseInt(lauMatch[1]);
-        if (floors > 0) document.getElementById("add-floors").value = floors;
-
-        // 6. Tìm PN / WC
-        const pnMatch = text.match(/(\d+)PN/i);
-        if (pnMatch) document.getElementById("add-bedrooms").value = pnMatch[1];
-        
-        const wcMatch = text.match(/(\d+)WC/i);
-        if (wcMatch) document.getElementById("add-wc").value = wcMatch[1];
-
-        // 7. Tìm QUẬN (Cố gắng khớp với HCM_DATA)
-        const districts = Object.keys(HCM_DATA);
-        let foundDist = "";
-        for (let d of districts) {
-            // Kiểm tra tên quận có trong bài viết không (VD: Thủ Đức, Quận 7)
-            if (text.toLowerCase().includes(d.toLowerCase())) {
-                foundDist = d;
-                break;
-            }
-        }
-        // Fix riêng cho "Thủ Đức" nếu data viết hoa thường
-        if (!foundDist && text.toLowerCase().includes("thủ đức")) foundDist = "Thủ Đức";
-        
-        if (foundDist) {
-            document.getElementById("add-district").value = foundDist;
-            // Kích hoạt sự kiện change để load Phường
-            document.getElementById("add-district").dispatchEvent(new Event('change'));
-            
-            // Sau khi load phường, thử tìm phường
-            setTimeout(() => {
-               const wards = HCM_DATA[foundDist] || [];
-               for (let w of wards) {
-                   // Bỏ chữ "Phường" để so sánh cho dễ (VD: "An Khánh" trong bài vs "Phường An Khánh")
-                   const wClean = w.replace("Phường", "").trim();
-                   if (text.includes(wClean)) {
-                       document.getElementById("add-ward").value = w;
-                       break;
-                   }
-               }
-            }, 500);
-        }
-
-        // 8. Tìm LOẠI HÌNH
-        if (text.toLowerCase().includes("mặt tiền")) document.getElementById("add-road-type").value = "Mặt tiền";
-        else if (text.toLowerCase().includes("hẻm")) document.getElementById("add-road-type").value = "Hẻm";
-
-        // 9. Tìm KẾT CẤU & MÔ TẢ
-        const ketcauLine = text.match(/Kết Cấu:(.*)/i);
-        if (ketcauLine) document.getElementById("add-ket-cau").value = ketcauLine[1].trim();
-        
-        // Điền toàn bộ text vào mô tả chi tiết
-        document.getElementById("add-detail").value = text;
-
-        // 10. Tìm HOA HỒNG
-        if (text.toLowerCase().includes("hh thỏa thuận") || text.toLowerCase().includes("hoa hồng")) {
-             document.getElementById("add-commission").value = "Thỏa thuận";
-        }
-
-        // 11. Tìm ĐỊA CHỈ & ĐƯỜNG
-        // VD: Địa chỉ: C20 Đường D8
-        const addrMatch = text.match(/(Địa chỉ|ĐC|Add):\s*(.*)/i);
-        if (addrMatch) {
-            const fullAddr = addrMatch[2].split(',')[0]; // Lấy phần trước dấu phẩy
-            document.getElementById("add-address").value = fullAddr;
-            
-            // Thử đoán tên đường (Lấy sau chữ Đường)
-            if (fullAddr.includes("Đường")) {
-                document.getElementById("add-street").value = fullAddr.split("Đường")[1].trim();
-            }
-        }
-
-        toast("Đã phân tích dữ liệu xong!");
     }
   </script>
 </body>
