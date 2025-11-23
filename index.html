@@ -565,7 +565,7 @@ MB0001/2.jpg"></textarea>
           📋 <span class="text-primary font-bold">Copy tin từ Zalo/Facebook dán vào đây</span>
         </div>
         <div class="collapse-content">
-          <textarea id="paste-area" class="textarea textarea-bordered w-full h-24 text-xs" placeholder="Dán toàn bộ nội dung tin đăng vào đây..."></textarea>
+          <textarea id="paste-area-vip" class="textarea textarea-bordered w-full h-24 text-xs" placeholder="Dán nội dung tin đăng vào đây..."></textarea>
           <button type="button" class="btn btn-sm btn-primary mt-2 w-full" onclick="parseAndFill()">
             ✨ Phân tích & Điền tự động
           </button>
@@ -2066,7 +2066,13 @@ MB0001/2.jpg"></textarea>
     }
     // === CÔNG CỤ PHÂN TÍCH TIN ĐĂNG (REGEX) ===
     function parseAndFill() {
-        const text = document.getElementById("paste-area").value;
+        // SỬA DÒNG NÀY: đổi "paste-area" thành "paste-area-vip"
+        const textElement = document.getElementById("paste-area-vip");
+        
+        // Kiểm tra an toàn: nếu không tìm thấy thẻ thì báo lỗi hệ thống
+        if (!textElement) return toast("Lỗi: Không tìm thấy ô nhập liệu (Code HTML chưa khớp)");
+
+        const text = textElement.value;
         if (!text) return toast("Vui lòng dán nội dung tin vào ô!");
 
         // 1. Tìm MÃ MB (VD: MBKD 123...)
