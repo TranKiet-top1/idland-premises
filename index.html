@@ -559,8 +559,25 @@ MB0001/2.jpg"></textarea>
       <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button></form>
       <h3 class="font-bold text-lg text-primary mb-4">Đăng mặt bằng mới</h3>
       
+      <div class="collapse collapse-arrow bg-base-200 mb-4 border border-primary/20">
+        <input type="checkbox" checked /> 
+        <div class="collapse-title font-medium text-sm">
+          📋 <span class="text-primary font-bold">Copy tin từ Zalo/Facebook dán vào đây</span>
+        </div>
+        <div class="collapse-content">
+          <textarea id="paste-area" class="textarea textarea-bordered w-full h-24 text-xs" placeholder="Dán toàn bộ nội dung tin đăng vào đây..."></textarea>
+          <button type="button" class="btn btn-sm btn-primary mt-2 w-full" onclick="parseAndFill()">
+            ✨ Phân tích & Điền tự động
+          </button>
+        </div>
+      </div>
       <div class="grid md:grid-cols-2 gap-4">
           <div>
+             <div class="form-control mb-2">
+                 <span class="label-text text-xs font-bold text-primary">Mã mặt bằng *</span>
+                 <input id="add-code" type="text" class="input input-sm input-bordered border-primary font-bold" placeholder="VD: MBKD 5678..."/>
+             </div>
+
              <div class="form-control mb-2">
                  <span class="label-text text-xs font-bold">Địa chỉ (Số nhà + Đường) *</span>
                  <input id="add-address" type="text" class="input input-sm input-bordered" placeholder="VD: 123 Nguyễn Trãi"/>
