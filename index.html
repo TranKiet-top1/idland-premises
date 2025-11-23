@@ -927,47 +927,39 @@ MB0001/2.jpg"></textarea>
 
       if (!rows || rows.length === 0) {
         if (PAGE === 0) {
-          grid.innerHTML =
-            `<div class="col-span-full text-center text-sm opacity-70 py-10">
-              Chưa có mặt bằng nào khớp bộ lọc hiện tại.
-            </div>`;
+          grid.innerHTML = `<div class="col-span-full text-center text-sm opacity-70 py-10">Chưa có mặt bằng nào khớp bộ lọc hiện tại.</div>`;
         }
         return;
       }
 
       const html = rows.map((row) => {
-        const hasImages = Array.isArray(row.images) && row.images.length > 0;
-        const firstPath = hasImages ? row.images[0] : null;
+        // Xử lý ảnh (Logic cũ)
+        let firstPath = null;
+        if (Array.isArray(row.images) && row.images.length > 0) firstPath = row.images[0];
+        else if (typeof row.images === "string" && row.images.trim()) {
+             try { 
+                 if(row.images.startsWith("[")) firstPath = JSON.parse(row.images)[0];
+                 else firstPath = row.images.split(/[\n;,]+/)[0];
+             } catch(e){}
+        }
         const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
 
         const pnVal = pickField(row, ["pn", "so_pn", "bedrooms", "rooms"]);
         const wcVal = pickField(row, ["wc", "bathrooms"]);
         const floorsVal = pickField(row, ["floors"]);
         const updatedLabel = formatDateVN(row.updated_at || row.created_at);
-        
-        // Lấy tên người đăng (nếu có)
         const creatorEmail = row.profiles?.email || "";
         const shortName = creatorEmail.split("@")[0];
 
-        // --- BADGE VỊ TRÍ (LOGIC MỚI) ---
+        // Badge Vị trí
         let locationBadge = "";
-        // Ưu tiên lấy từ cột road_type mới, nếu không có thì dùng logic cũ
         const roadType = row.road_type || (row.frontage ? "Mặt tiền" : "Hẻm");
+        if (roadType === "Mặt tiền") locationBadge = `<span class="badge badge-xs badge-error text-white border-none">Mặt tiền</span>`;
+        else if (roadType === "Hẻm xe hơi") locationBadge = `<span class="badge badge-xs badge-info text-white border-none">Hẻm xe hơi</span>`;
+        else locationBadge = `<span class="badge badge-xs badge-ghost border-none opacity-70">Nhà hẻm</span>`;
 
-        if (roadType === "Mặt tiền") {
-            locationBadge = `<span class="badge badge-xs badge-error text-white border-none">Mặt tiền</span>`;
-        } else if (roadType === "Hẻm xe hơi") {
-            locationBadge = `<span class="badge badge-xs badge-info text-white border-none">Hẻm xe hơi</span>`;
-        } else {
-            locationBadge = `<span class="badge badge-xs badge-ghost border-none opacity-70">Nhà hẻm</span>`;
-        }
-
-        // Badge Hoa hồng
-        const hhBadge = row.commission 
-            ? `<span class="badge badge-xs badge-success text-white border-none ml-1">${row.commission}</span>` 
-            : '';
-                
-        // --- NÚT DUYỆT (NẾU ADMIN ĐANG Ở CHẾ ĐỘ PENDING) ---
+        const hhBadge = row.commission ? `<span class="badge badge-xs badge-success text-white border-none ml-1">${row.commission}</span>` : '';
+        
         let approveBtn = "";
         if (SHOW_PENDING && isAdmin()) {
             approveBtn = `<button onclick="approveOne('${row.id}', event)" class="btn btn-xs btn-success w-full mt-2 text-white">✔ Duyệt ngay</button>`;
@@ -976,40 +968,35 @@ MB0001/2.jpg"></textarea>
         return `
           <article class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden" data-id="${row.id}">
             <figure class="h-52 bg-base-200 flex items-center justify-center relative">
-              ${
-                imgUrl
-                  ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
-                  : `<div class="text-xs opacity-60">(Không có ảnh)</div>`
-              }
-               <div class="absolute top-2 right-2 shadow-sm">${locationBadge}${isAdmin() ? hhBadge : ''} </div>
-               
+              
+              <div id="thumb-box-${row.id}" class="w-full h-full flex items-center justify-center ${imgUrl ? '' : 'opacity-60'}">
+                  ${
+                    imgUrl
+                      ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
+                      : `<div class="text-xs">(Đang quét ảnh...)</div>`
+                  }
+              </div>
+
+               <div class="absolute top-2 right-2 shadow-sm flex items-center">${locationBadge}${isAdmin() ? hhBadge : ''} </div>
                <div class="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[10px] p-1 px-2 truncate">
                   Đăng bởi: <b>${shortName || 'Ẩn danh'}</b>
                </div>
             </figure>
             <div class="card-body p-4 gap-2">
-              <h3 class="font-semibold text-sm line-clamp-2">
-                ${buildTitle(row)}
-              </h3>
-
-              
+              <h3 class="font-semibold text-sm line-clamp-2">${buildTitle(row)}</h3>
               <div class="flex items-center flex-wrap gap-2 text-[11px] opacity-70">
                 <span>${[row.ward, row.district].filter(Boolean).join(" • ")}</span>
               </div>
-
               <div class="flex flex-wrap items-center gap-2 text-[11px] mt-1">
                 ${row.area ? `<span>${row.area} m²</span>` : ""}
                 ${row.width && row.length ? `<span>${row.width}×${row.length} m</span>` : ""}
                 ${pnVal ? `<span>${pnVal} PN</span>` : ""}
-                ${wcVal ? `<span>${wcVal} WC</span>` : ""}
                 ${floorsVal ? `<span>${floorsVal} tầng</span>` : ""}
               </div>
-              
               <div class="flex items-center justify-between mt-1">
                 <div class="text-primary font-extrabold text-lg">${money(row.price)}</div>
                 <div class="text-[10px] opacity-60">${updatedLabel}</div>
               </div>
-              
               ${approveBtn}
             </div>
           </article>
@@ -1021,32 +1008,9 @@ MB0001/2.jpg"></textarea>
       grid.querySelectorAll("[data-id]").forEach((el) => {
         el.onclick = () => openDetail(el.getAttribute("data-id"));
       });
-    }
 
-    // === HÀM MỚI: LẤY QUẬN TỪ HCM_DATA ===
-    async function buildDistrictWardOptions() {
-      // Lấy danh sách quận chuẩn từ HCM_DATA (không trùng, không quận ảo)
-      const selectDistrict = document.getElementById("filter-district");
-      const current = selectDistrict.value;
-
-      const districts = Object.keys(HCM_DATA).sort((a, b) =>
-        a.localeCompare(b, "vi")
-      );
-
-      selectDistrict.innerHTML = '<option value="">Tất cả</option>';
-      districts.forEach((d) => {
-        const opt = document.createElement("option");
-        opt.value = d;
-        opt.textContent = d;
-        selectDistrict.appendChild(opt);
-      });
-
-      // Giữ lại quận đang chọn nếu còn tồn tại
-      if (current && districts.includes(current)) {
-        selectDistrict.value = current;
-      }
-
-      updateWardOptions();
+      // --- GỌI HÀM QUÉT ẢNH TỰ ĐỘNG ---
+      scanGridImages(rows);
     }
 
     // === HÀM MỚI: LỌC PHƯỜNG THEO QUẬN TỪ HCM_DATA ===
@@ -1815,6 +1779,43 @@ MB0001/2.jpg"></textarea>
         } finally {
             btn.disabled = false;
             btn.innerHTML = "Lưu tin";
+        }
+    }
+    // === HÀM MỚI: TỰ ĐỘNG QUÉT ẢNH CHO DANH SÁCH ===
+    async function scanGridImages(rows) {
+        // Chỉ lọc ra những căn CÓ MÃ nhưng KHÔNG CÓ ẢNH trong data
+        const missingImgRows = rows.filter(r => {
+            let hasImg = false;
+            if (Array.isArray(r.images) && r.images.length > 0) hasImg = true;
+            else if (typeof r.images === "string" && r.images.trim().length > 0) hasImg = true;
+            return !hasImg && r.code;
+        });
+
+        if (missingImgRows.length === 0) return;
+
+        // Chạy ngầm từng căn để tìm ảnh
+        for (const row of missingImgRows) {
+            // Tìm cái khung ảnh của căn đó trên giao diện
+            const imgContainer = document.getElementById(`thumb-box-${row.id}`);
+            if (!imgContainer) continue;
+
+            // Gọi vào Storage kiểm tra xem có folder tên là Mã căn không
+            const { data: files } = await supabase.storage
+                .from(STORAGE_BUCKET)
+                .list(row.code, { limit: 1, sortBy: { column: 'name', order: 'asc' } });
+
+            // Nếu tìm thấy file ảnh
+            if (files && files.length > 0 && files[0].name !== '.emptyFolderPlaceholder') {
+                const fullPath = `${row.code}/${files[0].name}`;
+                const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
+                
+                if (data.publicUrl) {
+                    // Thay thế dòng chữ "(Không có ảnh)" bằng thẻ <img>
+                    imgContainer.innerHTML = `<img src="${data.publicUrl}" class="w-full h-full object-cover animate-fade-in" alt="${row.code}" />`;
+                    // Thêm hiệu ứng hiện dần cho đẹp
+                    imgContainer.classList.remove("opacity-60");
+                }
+            }
         }
     }
   </script>
