@@ -1144,12 +1144,14 @@ MB0001/2.jpg"></textarea>
     }
 
     // ===== CHI TIẾT & SỬA =====
+    // ===== CHI TIẾT & SỬA (ĐÃ NÂNG CẤP TỰ QUÉT ẢNH STORAGE) =====
     async function openDetail(id) {
       const dlg = document.getElementById("detailDlg");
       const wrap = document.getElementById("detail-content");
-      wrap.innerHTML = `<div class="py-10 text-center text-sm opacity-70">Đang tải...</div>`;
+      wrap.innerHTML = `<div class="py-10 text-center text-sm opacity-70"><span class="loading loading-spinner"></span> Đang tải dữ liệu và quét hình ảnh...</div>`;
       dlg.showModal();
 
+      // 1. Lấy thông tin căn nhà từ Database
       const { data, error } = await supabase
         .from("premises")
         .select("*")
@@ -1164,268 +1166,155 @@ MB0001/2.jpg"></textarea>
 
       const item = data;
 
-      // ===== LẤY THÔNG TIN CƠ BẢN =====
+      // 2. XỬ LÝ HÌNH ẢNH:
+      // Ưu tiên 1: Lấy từ cột 'images' trong Database (nếu có)
+      // Ưu tiên 2: Nếu Database trống, tự động quét Storage theo MÃ CĂN (item.code)
+      
+      let imgUrls = [];
+      let rawImgs = item.images;
+
+      // Bước 2a: Thử lấy từ Database trước
+      if (Array.isArray(rawImgs) && rawImgs.length > 0) {
+        imgUrls = rawImgs.map(p => buildImageUrl(p)).filter(Boolean);
+      } 
+      else if (typeof rawImgs === "string" && rawImgs.trim()) {
+         // Xử lý trường hợp lưu dạng chuỗi JSON hoặc xuống dòng
+         let paths = [];
+         try {
+            if (rawImgs.startsWith("[")) paths = JSON.parse(rawImgs);
+            else paths = rawImgs.split(/[\n;,]+/).map(s => s.trim());
+         } catch(e) { paths = []; }
+         imgUrls = paths.map(p => buildImageUrl(p)).filter(Boolean);
+      }
+
+      // Bước 2b: Nếu vẫn chưa có ảnh nào -> QUÉT STORAGE
+      if (imgUrls.length === 0 && item.code) {
+          console.log("Database không có ảnh, đang quét Storage folder:", item.code);
+          
+          // Tìm folder có tên trùng với Mã căn
+          const { data: files, error: listError } = await supabase.storage
+            .from(STORAGE_BUCKET)
+            .list(item.code, { // Tên folder = item.code
+                limit: 50,
+                offset: 0,
+                sortBy: { column: 'name', order: 'asc' },
+            });
+
+          if (!listError && files && files.length > 0) {
+              // Lọc bỏ file rác hệ thống (nếu có)
+              const validFiles = files.filter(f => f.name !== '.emptyFolderPlaceholder');
+              
+              // Tạo đường dẫn public
+              imgUrls = validFiles.map(f => {
+                  const fullPath = `${item.code}/${f.name}`;
+                  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
+                  return data.publicUrl;
+              });
+              console.log("Đã tìm thấy ảnh trong Storage:", imgUrls);
+          }
+      }
+
+      // --- CÁC PHẦN DƯỚI GIỮ NGUYÊN ---
       const pnVal = pickField(item, ["pn", "so_pn", "bedrooms", "rooms"]);
       const wcVal = pickField(item, ["wc", "bathrooms"]);
       const floorsVal = pickField(item, ["floors"]);
-      const detailText =
-        pickField(item, [
-          "detail",
-          "thong_tin_chi_tiet",
-          "chi_tiet",
-          "description",
-          "info_detail",
-        ]) || "";
-
+      const detailText = item.detail || item.description || "";
       const updatedLabel = formatDateVN(item.updated_at || item.created_at);
-      const price =
-        typeof item.price === "number"
-          ? new Intl.NumberFormat("vi-VN").format(item.price) + " đ/tháng"
-          : "";
-      const area =
-        typeof item.area === "number" ? item.area + " m²" : "";
-      const address =
-        item.address ||
-        [item.street, item.ward, item.district, item.city]
-          .filter(Boolean)
-          .join(", ");
+      
+      const price = typeof item.price === "number" ? new Intl.NumberFormat("vi-VN").format(item.price) + " đ/tháng" : "";
+      const area = typeof item.area === "number" ? item.area + " m²" : "";
+      const address = item.address || [item.street, item.ward, item.district, item.city].filter(Boolean).join(", ");
 
-      // ===== XỬ LÝ HÌNH ẢNH: ARRAY / JSON / CHUỖI NGĂN CÁCH ; , \n =====
-      let rawImgs = item.images;
-      let imgPaths = [];
+      // Embed Map
+      const mapsQuery = encodeURIComponent([item.address, item.ward, item.district, item.city].filter(Boolean).join(", "));
+      const mapEmbed = `<iframe class="w-full h-64 border-0 rounded-xl" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${mapsQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed"></iframe>`;
 
-      if (Array.isArray(rawImgs)) {
-        imgPaths = rawImgs;
-      } else if (typeof rawImgs === "string" && rawImgs.trim()) {
-        const s = rawImgs.trim();
-        try {
-          if (s.startsWith("[") && s.endsWith("]")) {
-            const parsed = JSON.parse(s);
-            if (Array.isArray(parsed)) imgPaths = parsed;
-          } else {
-            imgPaths = s.split(/[\n;,]+/);
-          }
-        } catch (e) {
-          console.warn("parse images error", e);
-          imgPaths = s.split(/[\n;,]+/);
-        }
-      }
-
-      // làm sạch path + log ra để debug
-      imgPaths = (imgPaths || [])
-        .map((p) => (p || "").trim())
-        .filter(Boolean);
-
-      const imgUrls = imgPaths
-        .map((p) => buildImageUrl(p))
-        .filter(Boolean);
-
-      console.log("IMAGES for", item.code || item.id, { imgPaths, imgUrls });
-
-
-      // ===== MAP EMBED =====
-      const mapsQuery = encodeURIComponent(
-        [item.address, item.ward, item.district, item.city]
-          .filter(Boolean)
-          .join(", ")
-      );
-      const mapEmbed = `
-        <iframe
-          class="w-full h-64 border-0 rounded-xl"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          src="https://www.google.com/maps?q=${mapsQuery}&output=embed">
-        </iframe>
-      `;
-
-      // ===== ACTION BUTTONS =====
+      // Nút hành động
       const actions = `
         <div class="join join-horizontal flex flex-wrap gap-2">
-          ${
-            item.contact_phone && !isStaff()
-              ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>`
-              : ""
-          }
-          ${
-            item.contact_phone && !isStaff()
-              ? `<a class="btn btn-sm join-item" target="_blank"
-                     href="https://zalo.me/${(item.contact_phone || "")
-                       .replace(/[^0-9]/g, "")}">
-                    Zalo
-                 </a>`
-              : ""
-          }
-          <a class="btn btn-sm join-item" target="_blank"
-             href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">
-            Mở Map
-          </a>
-          <button
-            class="btn btn-sm join-item"
-            onclick="navigator.clipboard.writeText(window.location.origin + window.location.pathname + '?id=${encodeURIComponent(
-              id
-            )}');toast('Đã copy link')">
-            Copy link
-          </button>
-          ${
-            isAdmin()
-              ? `<button class="btn btn-outline btn-sm join-item"
-                         onclick="openEditPremise('${id}')">
-                   Sửa
-                 </button>`
-              : ""
-          }
+          ${item.contact_phone && !isStaff() ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>` : ""}
+          ${item.contact_phone && !isStaff() ? `<a class="btn btn-sm join-item" target="_blank" href="https://zalo.me/${(item.contact_phone || "").replace(/[^0-9]/g, "")}">Zalo</a>` : ""}
+          <a class="btn btn-sm join-item" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Mở Map</a>
+          <button class="btn btn-sm join-item" onclick="navigator.clipboard.writeText(window.location.href);toast('Đã copy link')">Copy link</button>
+          ${isAdmin() ? `<button class="btn btn-outline btn-sm join-item" onclick="openEditPremise('${id}')">Sửa</button>` : ""}
         </div>
       `;
 
-      // ===== HTML HIỂN THỊ CHI TIẾT + GALLERY =====
+      // Render HTML
       const html = `
         <div class="relative">
-          <button
-            type="button"
-            onclick="document.getElementById('detailDlg').close()"
-            class="absolute top-3 right-3 z-50 w-9 h-9 flex items-center justify-center
-                   bg-white rounded-full shadow hover:bg-gray-200 transition"
-          >
-            ✕
-          </button>
-
+          <button type="button" onclick="document.getElementById('detailDlg').close()" class="absolute top-3 right-3 z-50 w-9 h-9 flex items-center justify-center bg-white rounded-full shadow hover:bg-gray-200 transition">✕</button>
 
           <div class="grid md:grid-cols-2 gap-6">
+            <div class="space-y-3">
+              <div class="w-full h-[340px] bg-base-200 flex items-center justify-center rounded-xl overflow-hidden bg-black/5">
+                ${imgUrls.length 
+                  ? `<img id="detail-main-img" src="${imgUrls[0]}" class="w-full h-full object-contain" />` 
+                  : `<div class="flex flex-col items-center opacity-40"><span class="text-4xl">📷</span><span class="text-xs mt-2">Chưa có hình ảnh trong folder "${item.code || '...'}"</span></div>`
+                }
+              </div>
 
-          <!-- CỘT HÌNH ẢNH -->
-          <div class="space-y-3">
-            <div class="w-full h-[340px] bg-base-200 flex items-center justify-center rounded-xl overflow-hidden">
-              ${
-                imgUrls.length
-                  ? `<img id="detail-main-img" src="${imgUrls[0]}" class="w-full h-full object-cover" />`
-                  : `<div class="text-xs text-gray-500 italic">Chưa có hình ảnh</div>`
-              }
-            </div>
-
-            ${
-              imgUrls.length > 1
-                ? `
-                  <div class="grid grid-cols-4 gap-2">
-                    ${imgUrls
-                      .slice(0, 8)
-                      .map(
-                        (url) => `
-                      <div
-                        class="cursor-pointer border border-base-200 rounded-lg overflow-hidden hover:border-primary"
-                        onclick="(function(){
-                          const m = document.getElementById('detail-main-img');
-                          if (m) m.src='${url.replace(/'/g, "\\'")}';
-                        })()">
-                        <img src="${url}" class="w-full h-16 object-cover" />
+              ${imgUrls.length > 1 ? `
+                  <div class="grid grid-cols-5 gap-2">
+                    ${imgUrls.slice(0, 10).map(url => `
+                      <div class="cursor-pointer border border-base-200 rounded-lg overflow-hidden hover:border-primary h-14 bg-base-100" 
+                           onclick="document.getElementById('detail-main-img').src='${url}'">
+                        <img src="${url}" class="w-full h-full object-cover" />
                       </div>
-                    `
-                      )
-                      .join("")}
+                    `).join("")}
                   </div>
-                `
-                : ""
-            }
-
-            ${mapEmbed}
-          </div>
-
-          <!-- CỘT THÔNG TIN -->
-          <div class="space-y-3 text-sm">
-            <div>
-              <h3 class="font-semibold text-lg mb-1">
-                ${buildTitle(item) || "(Không có tiêu đề)"}
-              </h3>
-              <p class="text-gray-600">${address || ""}</p>
+                ` : ""}
+              ${mapEmbed}
             </div>
 
+            <div class="space-y-3 text-sm">
+              <div>
+                <h3 class="font-semibold text-lg mb-1 leading-snug">${buildTitle(item) || "(Không có tiêu đề)"}</h3>
+                <p class="text-gray-600">${address || ""}</p>
+              </div>
 
-            <div class="flex flex-wrap gap-2 text-xs">
-              ${
-                price
-                  ? `<span class="badge badge-primary badge-outline">Giá: ${price}</span>`
-                  : ""
-              }
-              ${
-                area
-                  ? `<span class="badge badge-outline">Diện tích: ${area}</span>`
-                  : ""
-              }
-              ${
-                floorsVal
-                  ? `<span class="badge badge-outline">Tầng: ${floorsVal}</span>`
-                  : ""
-              }
-              ${
-                pnVal
-                  ? `<span class="badge badge-outline">PN: ${pnVal}</span>`
-                  : ""
-              }
-              ${
-                wcVal
-                  ? `<span class="badge badge-outline">WC: ${wcVal}</span>`
-                  : ""
-              }
-              ${
-                item.status
-                  ? `<span class="badge badge-outline">Trạng thái: ${item.status}</span>`
-                  : ""
-              }
-            </div>
+              <div class="flex flex-wrap gap-2 text-xs">
+                ${price ? `<span class="badge badge-primary badge-outline font-bold">Giá: ${price}</span>` : ""}
+                ${area ? `<span class="badge badge-outline">DT: ${area}</span>` : ""}
+                ${item.status ? `<span class="badge badge-ghost">${item.status}</span>` : ""}
+              </div>
 
-            <div class="text-xs text-gray-500">
-              ${
-                item.code
-                  ? `Mã: <span class="font-mono">${item.code}</span><br/>`
-                  : ""
-              }
-              ${updatedLabel ? `Cập nhật: ${updatedLabel}` : ""}
-            </div>
+              <div class="text-xs text-gray-500 flex justify-between items-end border-b pb-2">
+                 <span>Mã: <span class="font-mono font-bold text-black">${item.code || '---'}</span></span>
+                 <span>Cập nhật: ${updatedLabel}</span>
+              </div>
 
-            <div class="grid grid-cols-2 gap-2 text-sm mt-2">
-              <div>Diện tích: <b>${item.area ?? '-'} m²</b></div>
-              <div>Tầng: <b>${floorsVal ?? '-'}</b></div>
+              <div class="grid grid-cols-2 gap-y-1 gap-x-4 text-sm mt-2">
+                <div>Diện tích: <b>${item.area ?? '-'} m²</b></div>
+                <div>Tầng: <b>${floorsVal ?? '-'}</b></div>
+                <div>Ngang: <b>${item.width ?? '-'} m</b></div>
+                <div>Dài: <b>${item.length ?? '-'} m</b></div>
+                <div>PN: <b>${pnVal ?? '-'}</b></div>
+                <div>WC: <b>${wcVal ?? '-'}</b></div>
+                <div>Kết cấu: <b>${item.ket_cau || '-'}</b></div>
+                <div>Hoa hồng: <b class="text-success">${item.commission_note || '-'}</b></div>
+                <div>Hướng: <b>${item.frontage ? 'Mặt tiền' : (item.direction || '-')}</b></div>
+              </div>
 
-              <div>Ngang: <b>${item.width ?? '-'} m</b></div>
-              <div>Dài: <b>${item.length ?? '-'} m</b></div>
-
-              <div>PN: <b>${pnVal ?? '-'}</b></div>
-              <div>WC: <b>${wcVal ?? '-'}</b></div>
-
-              <div>Kết cấu: <b>${item.ket_cau || '-'}</b></div>
-              <div>Hoa hồng: <b>${item.commission_note || '-'}</b></div>
-
-              <div>Hướng: <b>${item.frontage ? 'Mặt tiền' : 'Hẻm'}</b></div>
-            </div>
-
-            ${
-              item.contact_phone && !isStaff()
-                ? `
-                <div class="mt-2 text-sm">
-                  Liên hệ: ${
-                    item.contact_name
-                      ? `<b>${item.contact_name}</b> - `
-                      : ""
-                  }${item.contact_phone}
+              ${item.contact_phone && !isStaff() ? `
+                <div class="mt-3 p-3 bg-base-200 rounded-lg text-sm border border-base-300">
+                  Liên hệ chủ nhà: <br/>
+                  <b class="text-lg">${item.contact_phone}</b> ${item.contact_name ? `(${item.contact_name})` : ""}
                 </div>
-              `
-                : ""
-            }
+              ` : ""}
 
-            <div class="mt-4">
-              <div class="font-semibold mb-1">Chi tiết:</div>
-              <p class="whitespace-pre-line text-gray-700">
-                ${detailText || "(Chưa có mô tả chi tiết)"}
-              </p>
-            </div>
+              <div class="mt-4">
+                <div class="font-semibold mb-1 opacity-70 uppercase text-xs">Chi tiết:</div>
+                <p class="whitespace-pre-line text-gray-700 leading-relaxed">${detailText || "(Chưa có mô tả chi tiết)"}</p>
+              </div>
 
-            <div class="mt-4">
-              ${actions}
+              <div class="mt-4 pt-4 border-t">
+                ${actions}
+              </div>
             </div>
           </div>
-        </div>
         </div>
       `;
-
       wrap.innerHTML = html;
     }
 
