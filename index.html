@@ -749,10 +749,13 @@ MB0001/2.jpg"></textarea>
         return;
       }
 
+      // Nếu là Admin -> hiện nút duyệt bài + nút Báo hết
       if (isAdmin()) {
+        document.getElementById("admin-pending-controls").classList.remove("hidden");
         checkPendingCount();
-        checkRentedReportCount();
+        checkRentedReportCount(); // 👉 load số mặt bằng nhân sự đã báo hết
       }
+
 
       CURRENT_USER = data.user;
 
@@ -1788,6 +1791,11 @@ MB0001/2.jpg"></textarea>
       document.getElementById("btn-open-add").onclick = () => document.getElementById("addDlg").showModal();
       document.getElementById("btn-toggle-pending").onclick = togglePendingMode;
       document.getElementById("btn-approve-all").onclick = approveAll;
+      
+      const btnToggleRented = document.getElementById("btn-toggle-rented-reports");
+      if (btnToggleRented) {
+        btnToggleRented.onclick = toggleReportedMode;
+      }
 
       // Quick filters
       document.querySelectorAll("[data-quick]").forEach((btn) => {
