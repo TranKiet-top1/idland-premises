@@ -1092,7 +1092,8 @@ MB0001/2.jpg"></textarea>
     // === HÀM MỚI: LẤY QUẬN TỪ HCM_DATA ===
     function buildDistrictWardOptions() {
       const selectDistrict = document.getElementById("filter-district");
-      if (!selectDistrict || !window.HCM_DATA) return;
+      // Bỏ chữ "window." đi để truy cập trực tiếp vào biến HCM_DATA
+      if (!selectDistrict || !HCM_DATA) return;
 
       // Lưu lại giá trị đang chọn (nếu có)
       const current = selectDistrict.value;
