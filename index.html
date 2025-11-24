@@ -879,6 +879,7 @@ MB0001/2.jpg"></textarea>
       let rows = data || [];
 
       // Client filter: Hẻm / HXH
+            // Client filter: Hẻm / HXH
       if (f.frontageType === "hem" || f.frontageType === "hxh") {
         rows = rows.filter((row) => {
           const isFront = row.frontage === true;
@@ -895,6 +896,22 @@ MB0001/2.jpg"></textarea>
           return true;
         });
       }
+
+      // 👉 SẮP XẾP LẠI: Còn trống > Giữ cọc > Đã thuê
+      const STATUS_ORDER = { available: 0, deposited: 1, rented: 2 };
+      rows.sort((a, b) => {
+        const sa = STATUS_ORDER[a.status] ?? 99;
+        const sb = STATUS_ORDER[b.status] ?? 99;
+        if (sa !== sb) return sa - sb;
+
+        const da = new Date(a.updated_at || a.created_at || 0).getTime();
+        const db = new Date(b.updated_at || b.created_at || 0).getTime();
+        return db - da; // mới lên trên
+      });
+
+      LAST_ROWS = rows;
+      TOTAL_COUNT = count || rows.length;
+
 
       LAST_ROWS = rows;
       TOTAL_COUNT = count || rows.length;
@@ -959,6 +976,12 @@ MB0001/2.jpg"></textarea>
         else locationBadge = `<span class="badge badge-xs badge-ghost border-none opacity-70">Nhà hẻm</span>`;
 
         const hhBadge = row.commission ? `<span class="badge badge-xs badge-success text-white border-none ml-1">${row.commission}</span>` : '';
+                // Nếu nhân sự đã báo hết mà admin chưa duyệt
+        const staffReportBadge =
+          row.rented_reported_at && row.status !== "rented"
+            ? `<span class="badge badge-xs badge-warning border-none ml-1">NS báo hết</span>`
+            : "";
+
         
         let approveBtn = "";
         if (SHOW_PENDING && isAdmin()) {
@@ -977,7 +1000,12 @@ MB0001/2.jpg"></textarea>
                   }
               </div>
 
-               <div class="absolute top-2 right-2 shadow-sm flex items-center">${locationBadge}${isAdmin() ? hhBadge : ''} </div>
+               <div class="absolute top-2 right-2 shadow-sm flex items-center">
+                 ${locationBadge}
+                 ${isAdmin() ? hhBadge : ''}
+                 ${isAdmin() ? staffReportBadge : ''}
+               </div>
+
                <div class="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[10px] p-1 px-2 truncate">
                   Đăng bởi: <b>${shortName || 'Ẩn danh'}</b>
                </div>
@@ -1196,13 +1224,62 @@ MB0001/2.jpg"></textarea>
       // Nút hành động
       const actions = `
         <div class="join join-horizontal flex flex-wrap gap-2">
-          ${item.contact_phone && !isStaff() ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>` : ""}
-          ${item.contact_phone && !isStaff() ? `<a class="btn btn-sm join-item" target="_blank" href="https://zalo.me/${(item.contact_phone || "").replace(/[^0-9]/g, "")}">Zalo</a>` : ""}
-          <a class="btn btn-sm join-item" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Mở Map</a>
-          <button class="btn btn-sm join-item" onclick="navigator.clipboard.writeText(window.location.href);toast('Đã copy link')">Copy link</button>
-          ${isAdmin() ? `<button class="btn btn-outline btn-sm join-item" onclick="openEditPremise('${id}')">Sửa</button>` : ""}
+          ${item.contact_phone && !isStaff()
+            ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>`
+            : ""}
+
+          ${item.contact_phone && !isStaff()
+            ? `<a class="btn btn-sm join-item" target="_blank"
+                 href="https://zalo.me/${(item.contact_phone || "").replace(/[^0-9]/g, "")}">
+                 Zalo
+               </a>`
+            : ""}
+
+          <a class="btn btn-sm join-item" target="_blank"
+             href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">
+            Mở Map
+          </a>
+
+          <button class="btn btn-sm join-item"
+            onclick="navigator.clipboard.writeText(window.location.href);toast('Đã copy link')">
+            Copy link
+          </button>
+
+          ${
+            // 👉 Nhân sự: chỉ được bấm khi đang còn trống / giữ cọc, chưa báo hết
+            isStaff() &&
+            (item.status === "available" || item.status === "deposited") &&
+            !item.rented_reported_at
+              ? `<button class="btn btn-sm btn-error btn-outline join-item"
+                         onclick="reportRented('${id}')">
+                   Báo hết
+                 </button>`
+              : ""
+          }
+
+          ${
+            // 👉 Admin: thấy yêu cầu báo hết để duyệt
+            isAdmin() && item.rented_reported_at && !item.rented_confirmed_at
+              ? `<button class="btn btn-sm btn-error join-item"
+                         onclick="confirmRented('${id}')">
+                   Xác nhận đã hết
+                 </button>
+                 <button class="btn btn-sm btn-ghost join-item"
+                         onclick="cancelRented('${id}')">
+                   Huỷ báo hết
+                 </button>`
+              : ""
+          }
+
+          ${isAdmin()
+            ? `<button class="btn btn-outline btn-sm join-item"
+                       onclick="openEditPremise('${id}')">
+                 Sửa
+               </button>`
+            : ""}
         </div>
       `;
+
 
       // Render HTML
       const html = `
@@ -1260,7 +1337,20 @@ MB0001/2.jpg"></textarea>
                 <div>Hướng: <b>${item.frontage ? 'Mặt tiền' : (item.direction || '-')}</b></div>
               </div>
 
+              ${
+                item.rented_confirmed_at
+                  ? `<div class="mt-2 text-xs text-error">
+                       Ngày báo hết: <b>${formatDateVN(item.rented_confirmed_at)}</b>
+                     </div>`
+                  : item.rented_reported_at
+                  ? `<div class="mt-2 text-xs text-warning">
+                       Nhân sự đã báo hết ngày <b>${formatDateVN(item.rented_reported_at)}</b> – chờ admin xác nhận
+                     </div>`
+                  : ""
+              }
+
               ${item.contact_phone && !isStaff() ? `
+
                 <div class="mt-3 p-3 bg-base-200 rounded-lg text-sm border border-base-300">
                   Liên hệ chủ nhà: <br/>
                   <b class="text-lg">${item.contact_phone}</b> ${item.contact_name ? `(${item.contact_name})` : ""}
@@ -1409,6 +1499,71 @@ MB0001/2.jpg"></textarea>
       toast("Đã lưu thay đổi!");
       document.getElementById("editDlg").close();
       await applyFilters(false);
+    }
+    // ===== BÁO HẾT / DUYỆT HẾT =====
+    async function reportRented(id) {
+      if (!isStaff()) return;
+      if (!confirm("Xác nhận báo hết mặt bằng này?")) return;
+
+      const { error } = await supabase
+        .from("premises")
+        .update({
+          rented_reported_at: new Date().toISOString()
+        })
+        .eq("id", id);
+
+      if (error) {
+        console.error(error);
+        toast("Lỗi báo hết: " + error.message);
+        return;
+      }
+      toast("Đã báo hết, chờ admin xác nhận");
+      document.getElementById("detailDlg").close();
+      applyFilters(true);
+    }
+
+    async function confirmRented(id) {
+      if (!isAdmin()) return;
+      if (!confirm("Xác nhận mặt bằng này đã hết / đã thuê?")) return;
+
+      const { error } = await supabase
+        .from("premises")
+        .update({
+          status: "rented",
+          rented_confirmed_at: new Date().toISOString()
+        })
+        .eq("id", id);
+
+      if (error) {
+        console.error(error);
+        toast("Lỗi xác nhận: " + error.message);
+        return;
+      }
+      toast("Đã xác nhận mặt bằng hết");
+      document.getElementById("detailDlg").close();
+      applyFilters(true);
+    }
+
+    async function cancelRented(id) {
+      if (!isAdmin()) return;
+      if (!confirm("Huỷ yêu cầu báo hết mặt bằng này?")) return;
+
+      const { error } = await supabase
+        .from("premises")
+        .update({
+          rented_reported_at: null,
+          rented_confirmed_at: null
+        })
+        .eq("id", id);
+
+      if (error) {
+        console.error(error);
+        toast("Lỗi huỷ báo hết: " + error.message);
+        return;
+      }
+      toast("Đã huỷ báo hết");
+      document.getElementById("detailDlg").close();
+      applyFilters(true);
     }
 
     // ===== LOGIC THÊM MỚI (MỚI) =====
