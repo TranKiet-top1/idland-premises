@@ -96,6 +96,13 @@
                <button id="btn-toggle-pending" class="btn btn-warning btn-sm text-white">
                    Cần duyệt <span class="badge badge-sm bg-white text-warning ml-1 border-none" id="count-pending">0</span>
                </button>
+
+               <!-- 👉 NÚT LỌC HÀNG NHÂN SỰ BÁO HẾT -->
+               <button id="btn-toggle-rented-reports" class="btn btn-error btn-sm text-white">
+                   Báo hết
+                   <span class="badge badge-sm bg-white text-error ml-1 border-none" id="count-rented-reports">0</span>
+               </button>
+
                <button id="btn-approve-all" class="btn btn-success btn-sm text-white hidden">✔ Duyệt tất cả</button>
           </div>
 
@@ -103,6 +110,7 @@
             + Thêm mặt bằng
           </button>
         </div>
+
       </div>
 
       <div class="flex flex-wrap items-center gap-2 mb-3">
@@ -637,6 +645,37 @@ MB0001/2.jpg"></textarea>
     
     // BIẾN MỚI CHO ADMIN DUYỆT BÀI
     let SHOW_PENDING = false;
+    // 👉 chế độ xem danh sách tin nhân sự đã báo hết (admin)
+    let SHOW_REPORTED = false;
+    // Đếm số mặt bằng nhân sự đã báo hết nhưng admin chưa xác nhận
+    async function checkRentedReportCount() {
+      const { count } = await supabase
+        .from("premises")
+        .select("*", { count: "exact", head: true })
+        .not("rented_reported_at", "is", null)
+        .is("rented_confirmed_at", null);
+
+      const cnt = count || 0;
+      const span = document.getElementById("count-rented-reports");
+      if (span) span.textContent = cnt;
+    }
+
+    function toggleReportedMode() {
+      SHOW_REPORTED = !SHOW_REPORTED;
+      const btn = document.getElementById("btn-toggle-rented-reports");
+      if (!btn) return;
+
+      if (SHOW_REPORTED) {
+        btn.classList.add("btn-active");
+        btn.textContent = "Đang xem Báo hết (Thoát)";
+      } else {
+        btn.classList.remove("btn-active");
+        btn.innerHTML =
+          `Báo hết <span class="badge badge-sm bg-white text-error ml-1 border-none" id="count-rented-reports">...</span>`;
+        checkRentedReportCount();
+      }
+      applyFilters(true);
+    }
 
     // ===== HELPERS =====
     function toast(msg) {
@@ -709,6 +748,12 @@ MB0001/2.jpg"></textarea>
         document.getElementById("app-root").classList.add("hidden");
         return;
       }
+
+      if (isAdmin()) {
+        checkPendingCount();
+        checkRentedReportCount();
+      }
+
       CURRENT_USER = data.user;
 
       // --- LẤY ROLE TỪ BẢNG PROFILES ---
@@ -895,6 +940,10 @@ MB0001/2.jpg"></textarea>
           }
           return true;
         });
+      }
+      // Chế độ admin xem danh sách các tin nhân sự đã báo hết
+      if (SHOW_REPORTED && isAdmin()) {
+        rows = rows.filter((row) => row.rented_reported_at && !row.rented_confirmed_at);
       }
 
       // 👉 SẮP XẾP LẠI: Còn trống > Giữ cọc > Đã thuê
@@ -1677,6 +1726,7 @@ MB0001/2.jpg"></textarea>
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("btn-login").addEventListener("click", handleLogin);
       document.getElementById("btn-logout").addEventListener("click", handleLogout);
+
       
       document.getElementById("btn-apply").addEventListener("click", () => applyFilters(true));
       document.getElementById("btn-reset").addEventListener("click", () => {
@@ -1692,6 +1742,8 @@ MB0001/2.jpg"></textarea>
       document.getElementById("btn-open-add").onclick = () => document.getElementById("addDlg").showModal();
       document.getElementById("btn-toggle-pending").onclick = togglePendingMode;
       document.getElementById("btn-approve-all").onclick = approveAll;
+      document.getElementById("btn-toggle-rented-reports").onclick = toggleReportedMode;
+
 
       // Quick filters
       document.querySelectorAll("[data-quick]").forEach((btn) => {
