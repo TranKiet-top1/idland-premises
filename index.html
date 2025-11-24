@@ -1302,7 +1302,22 @@ MB0001/2.jpg"></textarea>
       
       const price = typeof item.price === "number" ? new Intl.NumberFormat("vi-VN").format(item.price) + " đ/tháng" : "";
       const area = typeof item.area === "number" ? item.area + " m²" : "";
-      const address = item.address || [item.street, item.ward, item.district, item.city].filter(Boolean).join(", ");
+            // GHÉP ĐỊA CHỈ ĐẦY ĐỦ: SỐ NHÀ / ĐƯỜNG + PHƯỜNG + QUẬN + TP
+      const addressParts = [];
+
+      if (item.address) {
+        // address thường là "591/8 Lê Quang Định"
+        addressParts.push(item.address);
+      } else if (item.street) {
+        addressParts.push(item.street);
+      }
+
+      if (item.ward) addressParts.push(item.ward);
+      if (item.district) addressParts.push(item.district);
+      if (item.city) addressParts.push(item.city);
+
+      const address = addressParts.join(", ");
+
 
       // Embed Map
       const mapsQuery = encodeURIComponent([item.address, item.ward, item.district, item.city].filter(Boolean).join(", "));
