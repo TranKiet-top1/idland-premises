@@ -1731,8 +1731,10 @@ MB0001/2.jpg"></textarea>
       document.getElementById("btn-apply").addEventListener("click", () => applyFilters(true));
       document.getElementById("btn-reset").addEventListener("click", () => {
          document.querySelectorAll("aside input, aside select").forEach(el => el.value = "");
+         updateWardOptions();          // 👉 thêm dòng này cho Phường về lại “Tất cả”
          applyFilters(true);
       });
+
 
       document.getElementById("btn-load-more").addEventListener("click", () => {
           PAGE++; applyFilters(false);
@@ -1764,6 +1766,13 @@ MB0001/2.jpg"></textarea>
           document.getElementById("filter-ward").value = "";
           applyFilters(true);
       });
+      // Khi chọn Quận trong bộ lọc → cập nhật lại danh sách Phường
+      const filterDistrict = document.getElementById("filter-district");
+      if (filterDistrict) {
+        filterDistrict.addEventListener("change", () => {
+          updateWardOptions();
+        });
+      }
 
       // ===== DEMO NOTICE BUTTONS =====
       const demoAgreeBtn = document.getElementById("btn-demo-agree");
