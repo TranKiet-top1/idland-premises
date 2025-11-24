@@ -1726,26 +1726,31 @@ MB0001/2.jpg"></textarea>
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("btn-login").addEventListener("click", handleLogin);
       document.getElementById("btn-logout").addEventListener("click", handleLogout);
-
       
       document.getElementById("btn-apply").addEventListener("click", () => applyFilters(true));
       document.getElementById("btn-reset").addEventListener("click", () => {
-         document.querySelectorAll("aside input, aside select").forEach(el => el.value = "");
-         updateWardOptions();          // 👉 thêm dòng này cho Phường về lại “Tất cả”
-         applyFilters(true);
+        document.querySelectorAll("aside input, aside select").forEach(el => el.value = "");
+        applyFilters(true);
       });
-
 
       document.getElementById("btn-load-more").addEventListener("click", () => {
-          PAGE++; applyFilters(false);
+        PAGE++;
+        applyFilters(false);
       });
+
+      // Khi chọn QUẬN trong bộ lọc -> cập nhật PHƯỜNG + lọc lại
+      const filterDistrict = document.getElementById("filter-district");
+      if (filterDistrict) {
+        filterDistrict.addEventListener("change", () => {
+          updateWardOptions();
+          applyFilters(true);
+        });
+      }
 
       // Admin / Add Events
       document.getElementById("btn-open-add").onclick = () => document.getElementById("addDlg").showModal();
       document.getElementById("btn-toggle-pending").onclick = togglePendingMode;
       document.getElementById("btn-approve-all").onclick = approveAll;
-      document.getElementById("btn-toggle-rented-reports").onclick = toggleReportedMode;
-
 
       // Quick filters
       document.querySelectorAll("[data-quick]").forEach((btn) => {
@@ -1757,34 +1762,24 @@ MB0001/2.jpg"></textarea>
       document.querySelectorAll("[data-quick-district]").forEach((btn) => {
         btn.addEventListener("click", () => {
           document.getElementById("filter-district").value = btn.getAttribute("data-quick-district");
-          updateWardOptions(); applyFilters(true);
+          updateWardOptions();
+          applyFilters(true);
         });
       });
       document.getElementById("btn-clear-quick").addEventListener("click", () => {
-          document.getElementById("filter-status").value = "";
-          document.getElementById("filter-district").value = "";
-          document.getElementById("filter-ward").value = "";
-          applyFilters(true);
+        document.getElementById("filter-status").value = "";
+        document.getElementById("filter-district").value = "";
+        document.getElementById("filter-ward").value = "";
+        applyFilters(true);
       });
-      // Khi chọn Quận trong bộ lọc → cập nhật lại danh sách Phường
-      const filterDistrict = document.getElementById("filter-district");
-      if (filterDistrict) {
-        filterDistrict.addEventListener("change", () => {
-          updateWardOptions();
-        });
-      }
 
       // ===== DEMO NOTICE BUTTONS =====
       const demoAgreeBtn = document.getElementById("btn-demo-agree");
       const demoDisagreeBtn = document.getElementById("btn-demo-disagree");
       const demoDlg = document.getElementById("demoNoticeDlg");
-
       if (demoAgreeBtn && demoDlg) {
-        demoAgreeBtn.addEventListener("click", () => {
-          demoDlg.close();
-        });
+        demoAgreeBtn.addEventListener("click", () => demoDlg.close());
       }
-
       if (demoDisagreeBtn && demoDlg) {
         demoDisagreeBtn.addEventListener("click", async () => {
           demoDlg.close();
@@ -1793,38 +1788,13 @@ MB0001/2.jpg"></textarea>
         });
       }
 
+      // Luôn build dropdown QUẬN/PHƯỜNG khi load trang
+      buildDistrictWardOptions();
+
+      // Rồi mới xử lý login / role / dữ liệu
       initAuth();
     });
-    // === BIẾN TOÀN CỤC LƯU FILE CHỜ UPLOAD ===
-    let FILES_BUFFER = []; 
 
-    // --- 1. HÀM SINH MÃ TỰ ĐỘNG TĂNG (MỚI) ---
-    async function generateNextCode() {
-        // Tìm mã lớn nhất hiện có trong DB (chỉ lấy những mã bắt đầu bằng 'MB ')
-        const { data, error } = await supabase
-            .from('premises')
-            .select('code')
-            .ilike('code', 'MB %') // Chỉ tìm các mã đúng format "MB ..."
-            .order('code', { ascending: false }) // Sắp xếp giảm dần để lấy cái lớn nhất
-            .limit(1)
-            .maybeSingle();
-
-        let nextNum = 1; // Mặc định là 1 nếu chưa có ai
-
-        if (data && data.code) {
-            // Tách lấy phần số: "MB 000120" -> lấy 000120 -> chuyển thành số 120
-            // Regex \D nghĩa là "không phải số", replace hết bằng rỗng
-            const currentNum = parseInt(data.code.replace(/\D/g, ''));
-            
-            if (!isNaN(currentNum)) {
-                nextNum = currentNum + 1;
-            }
-        }
-
-        // Format thành chuỗi 6 chữ số. VD: 1 -> "000001", 120 -> "000120"
-        const suffix = String(nextNum).padStart(6, '0');
-        return `MB ${suffix}`; // Form đúng yêu cầu: MB XXXXXX (có dấu cách)
-    }
 
     // --- 2. CÁC HÀM XỬ LÝ GIAO DIỆN ẢNH (GIỮ NGUYÊN) ---
     function handleSelectFiles(input) {
