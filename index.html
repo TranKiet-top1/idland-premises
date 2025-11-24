@@ -1089,6 +1089,40 @@ MB0001/2.jpg"></textarea>
       // --- GỌI HÀM QUÉT ẢNH TỰ ĐỘNG ---
       scanGridImages(rows);
     }
+    // === HÀM MỚI: LẤY QUẬN TỪ HCM_DATA ===
+    function buildDistrictWardOptions() {
+      const selectDistrict = document.getElementById("filter-district");
+      if (!selectDistrict || !window.HCM_DATA) return;
+
+      // Lưu lại giá trị đang chọn (nếu có)
+      const current = selectDistrict.value;
+
+      // Lấy danh sách quận từ HCM_DATA và sort theo tiếng Việt
+      const districts = Object.keys(HCM_DATA).sort((a, b) =>
+        a.localeCompare(b, "vi")
+      );
+
+      // Reset lại dropdown
+      selectDistrict.innerHTML = '<option value="">Tất cả</option>';
+
+      // Đổ option quận
+      districts.forEach((d) => {
+        const opt = document.createElement("option");
+        opt.value = d;
+        opt.textContent = d;
+        selectDistrict.appendChild(opt);
+      });
+
+      // Nếu trước đó đã chọn quận và quận đó vẫn tồn tại → set lại
+      if (current && districts.includes(current)) {
+        selectDistrict.value = current;
+      }
+
+      // Cập nhật lại danh sách phường theo quận đang chọn
+      if (typeof updateWardOptions === "function") {
+        updateWardOptions();
+      }
+    }
 
     // === HÀM MỚI: LỌC PHƯỜNG THEO QUẬN TỪ HCM_DATA ===
     function updateWardOptions() {
@@ -1742,7 +1776,9 @@ MB0001/2.jpg"></textarea>
       const filterDistrict = document.getElementById("filter-district");
       if (filterDistrict) {
         filterDistrict.addEventListener("change", () => {
-          updateWardOptions();
+          if (typeof updateWardOptions === "function") {
+            updateWardOptions();
+          }
           applyFilters(true);
         });
       }
