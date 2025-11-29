@@ -1377,6 +1377,17 @@ MB0001/2.jpg"></textarea>
               : ""
           }
 
+          ${
+            isStaff() &&
+            item.rented_reported_at &&
+            !item.rented_confirmed_at
+              ? `<button class="btn btn-sm btn-outline join-item"
+                         onclick="cancelRentedStaff('${id}')">
+                   Huỷ báo hết
+                 </button>`
+              : ""
+          }
+
           ${isAdmin()
             ? `<button class="btn btn-outline btn-sm join-item"
                        onclick="openEditPremise('${id}')">
@@ -2031,6 +2042,28 @@ MB0001/2.jpg"></textarea>
             btn.innerHTML = "Lưu tin";
         }
     }
+    async function cancelRentedStaff(id) {
+      if (!isStaff()) return;
+      if (!confirm("Bạn muốn huỷ báo hết mặt bằng này?")) return;
+
+      const { error } = await supabase
+        .from("premises")
+        .update({
+          rented_reported_at: null
+        })
+        .eq("id", id);
+
+      if (error) {
+        console.error(error);
+        toast("Lỗi: " + error.message);
+        return;
+      }
+
+      toast("Đã huỷ báo hết");
+      document.getElementById("detailDlg").close();
+      applyFilters(true);
+    }
+
     // === HÀM MỚI: TỰ ĐỘNG QUÉT ẢNH CHO DANH SÁCH ===
     async function scanGridImages(rows) {
         // Chỉ lọc ra những căn CÓ MÃ nhưng KHÔNG CÓ ẢNH trong data
