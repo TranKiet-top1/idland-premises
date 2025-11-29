@@ -2328,8 +2328,8 @@ MB0001/2.jpg"></textarea>
         if (!row.code) continue;
 
         // 👉 LẤY ĐÚNG THẺ THEO row.id (không phải code)
-        const imgContainer = document.getElementById(`thumb-box-${row.id}`);
-        if (!imgContainer) {
+        const imgContainer = document.getElementById(`thumb-box-${row.code}`);
+        if (!imgContainer) {  
           console.log("Không tìm thấy thumb-box cho", row.id, row.code);
           continue;
         }
