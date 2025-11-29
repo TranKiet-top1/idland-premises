@@ -1034,11 +1034,6 @@ MB0001/2.jpg"></textarea>
       } else {
         renderCards(LAST_ROWS, false);
       }
-      if (typeof scanGridImages === "function") {
-        scanGridImages(LAST_ROWS).catch(err =>
-          console.error("scanGridImages error", err)
-        );
-      }
       document.getElementById("count-total").textContent = TOTAL_COUNT;
       document.getElementById("count-show").textContent = Math.min(
         (PAGE + 1) * PAGE_SIZE,
@@ -2316,60 +2311,62 @@ MB0001/2.jpg"></textarea>
     }
 
     // === HÀM MỚI: TỰ ĐỘNG QUÉT ẢNH CHO DANH SÁCH ===
+    // === HÀM QUÉT ẢNH TỰ ĐỘNG (ĐÃ TỐI ƯU) ===
     async function scanGridImages(rows) {
       if (!rows || !rows.length) return;
 
-      for (const row of rows) {
-        // Nếu đã có images trong DB rồi thì bỏ qua
+      // Dùng map để tạo ra một mảng các Promises chạy song song
+      const promises = rows.map(async (row) => {
+        // 1. Kiểm tra điều kiện bỏ qua
         let hasImg = false;
+        // Check mảng hoặc chuỗi JSON
         if (Array.isArray(row.images) && row.images.length > 0) hasImg = true;
-        else if (typeof row.images === "string" && row.images.trim().length > 0) hasImg = true;
-        if (hasImg) continue;
-        if (!row.code) continue;
+        // Check chuỗi string
+        else if (typeof row.images === "string" && row.images.trim().length > 0 && row.images !== "[]") hasImg = true;
+        
+        if (hasImg) return; // Nếu đã có ảnh trong DB thì bỏ qua
+        if (!row.code) return;
 
-        // 👉 LẤY ĐÚNG THẺ THEO row.id (không phải code)
+        // 2. Tìm thẻ chứa ảnh trong DOM
         const imgContainer = document.getElementById(`thumb-box-${row.code}`);
-        if (!imgContainer) {
-          console.log("Không tìm thấy thumb-box cho", row.id, row.code);
-          continue;
+        if (!imgContainer) return;
+
+        try {
+          // 3. Gọi Supabase lấy danh sách file (chỉ lấy 1 file để tiết kiệm)
+          const { data: files, error } = await supabase.storage
+            .from(STORAGE_BUCKET)
+            .list(row.code, {
+              limit: 1, // Chỉ cần lấy 1 cái làm thumbnail
+              sortBy: { column: "name", order: "asc" },
+            });
+
+          if (error || !files || !files.length) {
+            // Nếu không có ảnh, hiện placeholder khác để biết là đã quét xong
+            imgContainer.innerHTML = `<div class="text-[10px] opacity-50 italic">Không có ảnh</div>`;
+            return;
+          }
+
+          const first = files.find(f => f.name !== ".emptyFolderPlaceholder") || files[0];
+          if (!first) return;
+
+          // 4. Lấy URL Public
+          const fullPath = `${row.code}/${first.name}`;
+          const { data: pub } = supabase.storage
+            .from(STORAGE_BUCKET)
+            .getPublicUrl(fullPath);
+
+          if (pub && pub.publicUrl) {
+            // 5. Cập nhật giao diện
+            imgContainer.innerHTML = `<img src="${pub.publicUrl}" class="w-full h-full object-cover animate-fade-in" alt="${row.code}" />`;
+            imgContainer.classList.remove("opacity-60");
+          }
+        } catch (err) {
+          console.warn(`Lỗi quét ảnh ${row.code}:`, err);
         }
+      });
 
-        console.log("Database không có ảnh, đang quét Storage folder:", row.code);
-
-        const { data: files, error } = await supabase.storage
-          .from(STORAGE_BUCKET)
-          .list(row.code, {
-            limit: 10,
-            sortBy: { column: "name", order: "asc" },
-          });
-
-        if (error) {
-          console.error("Lỗi list storage", error);
-          continue;
-        }
-
-        if (!files || !files.length) {
-          console.log("Không thấy file nào trong storage cho", row.code);
-          continue;
-        }
-
-        console.log("Đã tìm thấy ảnh trong Storage:", files);
-
-        // Lấy file đầu tiên (bỏ qua .emptyFolderPlaceholder nếu có)
-        const first = files.find(f => f.name !== ".emptyFolderPlaceholder") || files[0];
-        if (!first) continue;
-
-        const fullPath = `${row.code}/${first.name}`;
-        const { data: pub } = supabase.storage
-          .from(STORAGE_BUCKET)
-          .getPublicUrl(fullPath);
-
-        if (!pub || !pub.publicUrl) continue;
-
-        imgContainer.innerHTML =
-          `<img src="${pub.publicUrl}" class="w-full h-full object-cover animate-fade-in" alt="${row.code}" />`;
-        imgContainer.classList.remove("opacity-60");
-      }
+      // Chờ tất cả chạy xong (hoặc chạy nền cũng được, nhưng Promise.all giúp quản lý tốt hơn)
+      await Promise.all(promises);
     }
 
   </script>
