@@ -1153,10 +1153,13 @@ MB0001/2.jpg"></textarea>
       grid.querySelectorAll("[data-id]").forEach((el) => {
         el.onclick = () => openDetail(el.getAttribute("data-id"));
       });
-
+      if (typeof scanGridImages === "function") {
+        scanGridImages(rows).catch(err => console.error("scanGridImages error", err));
+      }      
       // --- GỌI HÀM QUÉT ẢNH TỰ ĐỘNG ---
       scanGridImages(rows);
     }
+
     // === HÀM MỚI: LẤY QUẬN TỪ HCM_DATA ===
     function buildDistrictWardOptions() {
       const selectDistrict = document.getElementById("filter-district");
