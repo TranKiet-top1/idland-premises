@@ -1104,7 +1104,7 @@ MB0001/2.jpg"></textarea>
           <article class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden" data-id="${row.id}">
             <figure class="h-52 bg-base-200 flex items-center justify-center relative">
               
-              <div id="thumb-box-${row.code}" class="w-full h-full flex items-center justify-center ${imgUrl ? '' : 'opacity-60'}">
+              <div id="thumb-box-${row.id}" class="w-full h-full flex items-center justify-center ${imgUrl ? '' : 'opacity-60'}">
                   ${
                     imgUrl
                       ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
@@ -2310,63 +2310,72 @@ MB0001/2.jpg"></textarea>
       applyFilters(true);
     }
 
-    // === HÀM MỚI: TỰ ĐỘNG QUÉT ẢNH CHO DANH SÁCH ===
-    // === HÀM QUÉT ẢNH TỰ ĐỘNG (ĐÃ TỐI ƯU) ===
+// === HÀM QUÉT ẢNH TỰ ĐỘNG (PHIÊN BẢN CHIA NHỎ - BATCHING) ===
     async function scanGridImages(rows) {
       if (!rows || !rows.length) return;
 
-      // Dùng map để tạo ra một mảng các Promises chạy song song
-      const promises = rows.map(async (row) => {
-        // 1. Kiểm tra điều kiện bỏ qua
-        let hasImg = false;
-        // Check mảng hoặc chuỗi JSON
-        if (Array.isArray(row.images) && row.images.length > 0) hasImg = true;
-        // Check chuỗi string
-        else if (typeof row.images === "string" && row.images.trim().length > 0 && row.images !== "[]") hasImg = true;
-        
-        if (hasImg) return; // Nếu đã có ảnh trong DB thì bỏ qua
-        if (!row.code) return;
+      // Cấu hình: Mỗi lần chỉ quét 5 ảnh để tránh nghẽn mạng
+      const BATCH_SIZE = 5;
 
-        // 2. Tìm thẻ chứa ảnh trong DOM
-        const imgContainer = document.getElementById(`thumb-box-${row.code}`);
-        if (!imgContainer) return;
+      // Hàm xử lý một nhóm
+      const processBatch = async (batch) => {
+        const promises = batch.map(async (row) => {
+          // 1. Kiểm tra xem có cần quét không
+          // Nếu đã có link ảnh sẵn (Array hoặc String dài) thì thôi
+          let hasImg = false;
+          if (Array.isArray(row.images) && row.images.length > 0) hasImg = true;
+          else if (typeof row.images === "string" && row.images.trim().length > 5 && row.images !== "[]") hasImg = true;
+          
+          if (hasImg) return; 
+          if (!row.code) return;
 
-        try {
-          // 3. Gọi Supabase lấy danh sách file (chỉ lấy 1 file để tiết kiệm)
-          const { data: files, error } = await supabase.storage
-            .from(STORAGE_BUCKET)
-            .list(row.code, {
-              limit: 1, // Chỉ cần lấy 1 cái làm thumbnail
-              sortBy: { column: "name", order: "asc" },
-            });
+          // 2. Tìm thẻ div bằng row.id (QUAN TRỌNG: Phải khớp với renderCards)
+          const imgContainer = document.getElementById(`thumb-box-${row.id}`);
+          
+          // Nếu không tìm thấy thẻ (do chưa render xong hoặc sai ID), bỏ qua
+          if (!imgContainer) return;
 
-          if (error || !files || !files.length) {
-            // Nếu không có ảnh, hiện placeholder khác để biết là đã quét xong
-            imgContainer.innerHTML = `<div class="text-[10px] opacity-50 italic">Không có ảnh</div>`;
-            return;
+          try {
+            // 3. Gọi Supabase list file trong folder 'code'
+            const { data: files, error } = await supabase.storage
+              .from(STORAGE_BUCKET)
+              .list(row.code, {
+                limit: 1, 
+                sortBy: { column: "name", order: "asc" },
+              });
+
+            if (error || !files || !files.length) {
+              // Đánh dấu là đã quét nhưng không có ảnh
+              imgContainer.innerHTML = `<div class="text-[10px] opacity-40 italic">Chưa có ảnh</div>`;
+              return;
+            }
+
+            // Lọc bỏ file rác hệ thống
+            const first = files.find(f => f.name !== ".emptyFolderPlaceholder") || files[0];
+            if (!first) return;
+
+            // 4. Lấy URL và hiển thị
+            const fullPath = `${row.code}/${first.name}`;
+            const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
+
+            if (pub && pub.publicUrl) {
+              imgContainer.innerHTML = `<img src="${pub.publicUrl}" class="w-full h-full object-cover animate-fade-in" alt="${row.code}" />`;
+              imgContainer.classList.remove("opacity-60");
+            }
+          } catch (err) {
+            console.warn(`Lỗi quét ảnh ${row.code}:`, err);
           }
+        });
 
-          const first = files.find(f => f.name !== ".emptyFolderPlaceholder") || files[0];
-          if (!first) return;
+        // Chờ nhóm này chạy xong hết mới cho nhóm sau chạy
+        await Promise.all(promises);
+      };
 
-          // 4. Lấy URL Public
-          const fullPath = `${row.code}/${first.name}`;
-          const { data: pub } = supabase.storage
-            .from(STORAGE_BUCKET)
-            .getPublicUrl(fullPath);
-
-          if (pub && pub.publicUrl) {
-            // 5. Cập nhật giao diện
-            imgContainer.innerHTML = `<img src="${pub.publicUrl}" class="w-full h-full object-cover animate-fade-in" alt="${row.code}" />`;
-            imgContainer.classList.remove("opacity-60");
-          }
-        } catch (err) {
-          console.warn(`Lỗi quét ảnh ${row.code}:`, err);
-        }
-      });
-
-      // Chờ tất cả chạy xong (hoặc chạy nền cũng được, nhưng Promise.all giúp quản lý tốt hơn)
-      await Promise.all(promises);
+      // VÒNG LẶP CHIA NHỎ DANH SÁCH
+      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+        const batch = rows.slice(i, i + BATCH_SIZE);
+        await processBatch(batch);
+      }
     }
 
   </script>
