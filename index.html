@@ -1109,7 +1109,7 @@ MB0001/2.jpg"></textarea>
           <article class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden" data-id="${row.id}">
             <figure class="h-52 bg-base-200 flex items-center justify-center relative">
               
-              <div id="thumb-box-${row.id}" class="w-full h-full flex items-center justify-center ${imgUrl ? '' : 'opacity-60'}">
+              <div id="thumb-box-${row.code}" class="w-full h-full flex items-center justify-center ${imgUrl ? '' : 'opacity-60'}">
                   ${
                     imgUrl
                       ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
@@ -2328,7 +2328,7 @@ MB0001/2.jpg"></textarea>
         if (!row.code) continue;
 
         // 👉 LẤY ĐÚNG THẺ THEO row.id (không phải code)
-        const imgContainer = document.getElementById(`thumb-box-${row.id}`);
+        const imgContainer = document.getElementById(`thumb-box-${row.code}`);
         if (!imgContainer) {
           console.log("Không tìm thấy thumb-box cho", row.id, row.code);
           continue;
