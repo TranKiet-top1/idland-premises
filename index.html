@@ -1034,6 +1034,11 @@ MB0001/2.jpg"></textarea>
       } else {
         renderCards(LAST_ROWS, false);
       }
+      if (typeof scanGridImages === "function") {
+        scanGridImages(LAST_ROWS).catch(err =>
+          console.error("scanGridImages error", err)
+        );
+      }
       document.getElementById("count-total").textContent = TOTAL_COUNT;
       document.getElementById("count-show").textContent = Math.min(
         (PAGE + 1) * PAGE_SIZE,
@@ -1104,7 +1109,7 @@ MB0001/2.jpg"></textarea>
           <article class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden" data-id="${row.id}">
             <figure class="h-52 bg-base-200 flex items-center justify-center relative">
               
-              <div id="thumb-box-${row.id}" class="w-full h-full flex items-center justify-center ${imgUrl ? '' : 'opacity-60'}">
+              <div id="thumb-box-${row.code}" class="w-full h-full flex items-center justify-center ${imgUrl ? '' : 'opacity-60'}">
                   ${
                     imgUrl
                       ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
@@ -2310,72 +2315,139 @@ MB0001/2.jpg"></textarea>
       applyFilters(true);
     }
 
-// === HÀM QUÉT ẢNH TỰ ĐỘNG (PHIÊN BẢN CHIA NHỎ - BATCHING) ===
+    // === HÀM MỚI: TỰ ĐỘNG QUÉT ẢNH CHO DANH SÁCH ===
     async function scanGridImages(rows) {
       if (!rows || !rows.length) return;
 
-      // Cấu hình: Mỗi lần chỉ quét 5 ảnh để tránh nghẽn mạng
-      const BATCH_SIZE = 5;
+      for (const row of rows) {
+        // Nếu đã có images trong DB rồi thì bỏ qua
+        let hasImg = false;
+        if (Array.isArray(row.images) && row.images.length > 0) hasImg = true;
+        else if (typeof row.images === "string" && row.images.trim().length > 0) hasImg = true;
+        if (hasImg) continue;
+        if (!row.code) continue;
 
-      // Hàm xử lý một nhóm
-      const processBatch = async (batch) => {
-        const promises = batch.map(async (row) => {
-          // 1. Kiểm tra xem có cần quét không
-          // Nếu đã có link ảnh sẵn (Array hoặc String dài) thì thôi
+        // 👉 LẤY ĐÚNG THẺ THEO row.id (không phải code)
+        const imgContainer = document.getElementById(`thumb-box-${row.code}`);
+        if (!imgContainer) {
+          console.log("Không tìm thấy thumb-box cho", row.id, row.code);
+          continue;
+        }
+
+        console.log("Database không có ảnh, đang quét Storage folder:", row.code);
+
+        const { data: files, error } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .list(row.code, {
+            limit: 10,
+            sortBy: { column: "name", order: "asc" },
+          });
+
+        if (error) {
+          console.error("Lỗi list storage", error);
+          continue;
+        }
+
+        if (!files || !files.length) {
+          console.log("Không thấy file nào trong storage cho", row.code);
+          continue;
+        }
+
+        console.log("Đã tìm thấy ảnh trong Storage:", files);
+
+        // Lấy file đầu tiên (bỏ qua .emptyFolderPlaceholder nếu có)
+        const first = files.find(f => f.name !== ".emptyFolderPlaceholder") || files[0];
+        if (!first) continue;
+
+        const fullPath = `${row.code}/${first.name}`;
+        const { data: pub } = supabase.storage
+          .from(STORAGE_BUCKET)
+          .getPublicUrl(fullPath);
+
+        if (!pub || !pub.publicUrl) continue;
+
+        imgContainer.innerHTML =
+          `<img src="${pub.publicUrl}" class="w-full h-full object-cover animate-fade-in" alt="${row.code}" />`;
+        imgContainer.classList.remove("opacity-60");
+      }
+    }
+    // ==== TOOL 1 LẦN: ĐỒNG BỘ ẢNH TỪ STORAGE -> CỘT images ====
+    async function syncImagesFromStorage() {
+      if (!isAdmin || !isAdmin()) {
+        alert("Chỉ admin mới được chạy sync images.");
+        return;
+      }
+
+      const PAGE_SIZE = 100;
+      let from = 0;
+      let totalUpdated = 0;
+
+      alert("Bắt đầu sync ảnh, mở Console để xem log. Đừng tắt tab cho tới khi xong.");
+
+      while (true) {
+        const { data: rows, error } = await supabase
+          .from("premises")
+          .select("id, code, images", { count: "exact" })
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (error) {
+          console.error("Lỗi load premises:", error);
+          break;
+        }
+        if (!rows || rows.length === 0) break;
+
+        console.log(`Đang xử lý từ row ${from} tới ${from + rows.length - 1}`);
+
+        for (const row of rows) {
+          // Nếu đã có images rồi thì bỏ qua
           let hasImg = false;
           if (Array.isArray(row.images) && row.images.length > 0) hasImg = true;
-          else if (typeof row.images === "string" && row.images.trim().length > 5 && row.images !== "[]") hasImg = true;
-          
-          if (hasImg) return; 
-          if (!row.code) return;
+          else if (typeof row.images === "string" && row.images.trim().length > 0) hasImg = true;
+          if (hasImg) continue;
+          if (!row.code) continue;
 
-          // 2. Tìm thẻ div bằng row.id (QUAN TRỌNG: Phải khớp với renderCards)
-          const imgContainer = document.getElementById(`thumb-box-${row.id}`);
-          
-          // Nếu không tìm thấy thẻ (do chưa render xong hoặc sai ID), bỏ qua
-          if (!imgContainer) return;
+          console.log("→ Quét folder:", row.code);
 
-          try {
-            // 3. Gọi Supabase list file trong folder 'code'
-            const { data: files, error } = await supabase.storage
-              .from(STORAGE_BUCKET)
-              .list(row.code, {
-                limit: 1, 
-                sortBy: { column: "name", order: "asc" },
-              });
+          const { data: files, error: err2 } = await supabase.storage
+            .from(STORAGE_BUCKET) // ví dụ "premise-images"
+            .list(row.code, {
+              limit: 50,
+              sortBy: { column: "name", order: "asc" },
+            });
 
-            if (error || !files || !files.length) {
-              // Đánh dấu là đã quét nhưng không có ảnh
-              imgContainer.innerHTML = `<div class="text-[10px] opacity-40 italic">Chưa có ảnh</div>`;
-              return;
-            }
-
-            // Lọc bỏ file rác hệ thống
-            const first = files.find(f => f.name !== ".emptyFolderPlaceholder") || files[0];
-            if (!first) return;
-
-            // 4. Lấy URL và hiển thị
-            const fullPath = `${row.code}/${first.name}`;
-            const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
-
-            if (pub && pub.publicUrl) {
-              imgContainer.innerHTML = `<img src="${pub.publicUrl}" class="w-full h-full object-cover animate-fade-in" alt="${row.code}" />`;
-              imgContainer.classList.remove("opacity-60");
-            }
-          } catch (err) {
-            console.warn(`Lỗi quét ảnh ${row.code}:`, err);
+          if (err2) {
+            console.error("   Lỗi list storage", row.code, err2);
+            continue;
           }
-        });
+          if (!files || !files.length) {
+            console.log("   Không có file nào trong storage cho", row.code);
+            continue;
+          }
 
-        // Chờ nhóm này chạy xong hết mới cho nhóm sau chạy
-        await Promise.all(promises);
-      };
+          // Bỏ file placeholder nếu có
+          const validFiles = files.filter(f => f.name !== ".emptyFolderPlaceholder");
+          if (!validFiles.length) continue;
 
-      // VÒNG LẶP CHIA NHỎ DANH SÁCH
-      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-        const batch = rows.slice(i, i + BATCH_SIZE);
-        await processBatch(batch);
+          // Lưu đường dẫn tương đối vào cột images (Postgres text[] hoặc jsonb đều ok)
+          const paths = validFiles.map(f => `${row.code}/${f.name}`);
+
+          const { error: err3 } = await supabase
+            .from("premises")
+            .update({ images: paths })
+            .eq("id", row.id);
+
+          if (err3) {
+            console.error("   Lỗi update images cho", row.code, err3);
+          } else {
+            totalUpdated++;
+            console.log("   Đã update images cho", row.code, paths);
+          }
+        }
+
+        from += PAGE_SIZE;
       }
+
+      alert("Sync ảnh xong. Tổng số mặt bằng được cập nhật: " + totalUpdated);
     }
 
   </script>
