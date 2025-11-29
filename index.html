@@ -1299,11 +1299,15 @@ MB0001/2.jpg"></textarea>
       dlg.showModal();
 
       // 1. Lấy thông tin căn nhà từ Database
+      let end = offset + PAGE_SIZE - 1;
+      if (end >= totalRows) end = totalRows - 1;
+
       const { data, error } = await supabase
         .from("premises")
-        .select("*")
-        .eq("id", id)
-        .single();
+        .select("*", { count: "exact" })
+        .order("updated_at", { ascending: false })
+        .range(offset, end);
+
 
       if (error || !data) {
         console.error(error);
