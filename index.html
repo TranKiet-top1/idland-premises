@@ -1029,16 +1029,16 @@ MB0001/2.jpg"></textarea>
       LAST_ROWS = rows;
       TOTAL_COUNT = count || rows.length;
 
-
-      LAST_ROWS = rows;
-      TOTAL_COUNT = count || rows.length;
-
       if (PAGE === 0) {
         renderCards(LAST_ROWS, true);
       } else {
         renderCards(LAST_ROWS, false);
       }
-
+      if (typeof scanGridImages === "function") {
+        scanGridImages(LAST_ROWS).catch(err =>
+          console.error("scanGridImages error", err)
+        );
+      }
       document.getElementById("count-total").textContent = TOTAL_COUNT;
       document.getElementById("count-show").textContent = Math.min(
         (PAGE + 1) * PAGE_SIZE,
