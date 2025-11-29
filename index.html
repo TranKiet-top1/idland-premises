@@ -537,7 +537,8 @@ MB0001/2.jpg"></textarea>
                   <label for="inp-upload-files" class="btn btn-sm btn-primary text-white">
                       📷 Tải ảnh lên
                   </label>
-                  <input type="file" id="inp-upload-files" multiple accept="image/*" class="hidden" onchange="handleSelectFiles(this)"/>
+                  <input type="file" multiple accept="image/*" onchange="handleSelectFiles(this)" />
+
               </div>
               
               <div id="preview-container" class="flex flex-wrap gap-3 min-h-[100px] bg-base-200 p-2 rounded-lg border border-dashed border-gray-400">
@@ -1857,6 +1858,70 @@ MB0001/2.jpg"></textarea>
                 wardSelect.disabled = true;
             }
         });
+    }
+    // ====================== GLOBAL VARIABLES ======================
+    let FILES_BUFFER = [];  // Lưu file khi chọn ảnh bằng input
+
+
+    // ====================== HÀM TẠO MÃ MẶT BẰNG ======================
+    async function generateNextCode() {
+      const { data, error } = await supabase
+        .from("premises")
+        .select("code")
+        .order("code", { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+
+      let nextNumber = 1;
+      if (data && data.length > 0) {
+        const lastCode = data[0].code; // VD: MBKD 56780001345
+        const num = parseInt(lastCode.replace(/\D/g, ""), 10);
+        nextNumber = num + 1;
+      }
+
+      return "MBKD " + nextNumber.toString().padStart(11, "0");
+    }
+
+
+    // ====================== HÀM CHỌN FILE ẢNH ======================
+    function handleSelectFiles(input) {
+      const files = Array.from(input.files || []);
+      if (!files.length) return;
+
+      for (const file of files) {
+        FILES_BUFFER.push(file);
+      }
+
+      renderImagePreview();
+    }
+    function renderImagePreview() {
+      const previewBox = document.getElementById("new-images-preview");
+      if (!previewBox) return;
+
+      if (FILES_BUFFER.length === 0) {
+        previewBox.innerHTML = `
+          <div class="text-center text-gray-400 py-6">
+            Chưa có ảnh nào. Ảnh đầu tiên sẽ là <b>Ảnh Bìa</b>.
+          </div>`;
+        return;
+      }
+
+      previewBox.innerHTML = FILES_BUFFER.map((file, i) => {
+        const url = URL.createObjectURL(file);
+        return `
+          <div class="relative inline-block m-1">
+            <img src="${url}" class="h-24 w-24 object-cover rounded-lg border" />
+            <button class="btn btn-xs btn-circle absolute -top-2 -right-2 bg-white"
+                    onclick="deleteImageFromBuffer(${i})">✕</button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function deleteImageFromBuffer(index) {
+      FILES_BUFFER.splice(index, 1);
+      renderImagePreview();
     }
 
     async function saveNewPremise() {
