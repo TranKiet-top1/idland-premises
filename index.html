@@ -93,19 +93,29 @@
 
         <div class="flex flex-wrap gap-2 justify-end">
           <div id="admin-pending-controls" class="hidden flex gap-2">
-               <button id="btn-toggle-pending" class="btn btn-warning btn-sm text-white">
-                   Cần duyệt <span class="badge badge-sm bg-white text-warning ml-1 border-none" id="count-pending">0</span>
-               </button>
+            <!-- CẦN DUYỆT -->
+            <button id="btn-toggle-pending" class="btn btn-warning btn-sm text-white">
+              Cần duyệt
+              <span class="badge badge-sm bg-white text-warning ml-1 border-none" id="count-pending">0</span>
+            </button>
 
-               <!-- 👉 NÚT LỌC HÀNG NHÂN SỰ BÁO HẾT -->
-               <button id="btn-toggle-rented-reports" class="btn btn-error btn-sm text-white">
-                   Báo hết
-                   <span class="badge badge-sm bg-white text-error ml-1 border-none" id="count-rented-reports">0</span>
-               </button>
+            <!-- BÁO HẾT -->
+            <button id="btn-toggle-rented-reports" class="btn btn-error btn-sm text-white">
+              Báo hết
+              <span class="badge badge-sm bg-white text-error ml-1 border-none" id="count-rented-reports">0</span>
+            </button>
 
-               <button id="btn-approve-all" class="btn btn-success btn-sm text-white hidden">✔ Duyệt tất cả</button>
+            <!-- DUYỆT CHẠY LẠI (MỚI) -->
+            <button id="btn-toggle-reactivate" class="btn btn-info btn-sm text-white">
+              Duyệt chạy lại
+              <span class="badge badge-sm bg-white text-info ml-1 border-none" id="count-reactivate">0</span>
+            </button>
+
+            <!-- DUYỆT TẤT CẢ -->
+            <button id="btn-approve-all" class="btn btn-success btn-sm text-white hidden">
+              ✔ Duyệt tất cả
+            </button>
           </div>
-
           <button id="btn-open-add" class="btn btn-primary btn-sm">
             + Thêm mặt bằng
           </button>
@@ -680,7 +690,44 @@ MB0001/2.jpg"></textarea>
       }
       applyFilters(true);
     }
+    // 👉 chế độ xem danh sách tin yêu cầu chạy lại (admin)
+    let SHOW_REACTIVATE = false;
 
+    // Đếm số mặt bằng yêu cầu chạy lại, admin chưa duyệt
+    async function checkReactivateCount() {
+      try {
+        const { count, error } = await supabase
+          .from("premises")
+          .select("*", { count: "exact", head: true })
+          .not("reactivate_reported_at", "is", null)
+          .is("reactivate_confirmed_at", null);
+
+        if (error) throw error;
+        const cnt = count || 0;
+        const span = document.getElementById("count-reactivate");
+        if (span) span.textContent = cnt;
+      } catch (err) {
+        console.error("checkReactivateCount error", err);
+      }
+    }
+
+    function toggleReactivateMode() {
+      SHOW_REACTIVATE = !SHOW_REACTIVATE;
+      const btn = document.getElementById("btn-toggle-reactivate");
+      if (!btn) return;
+
+      if (SHOW_REACTIVATE) {
+        btn.classList.add("btn-active");
+        btn.textContent = "Đang xem Duyệt chạy lại (Thoát)";
+      } else {
+        btn.classList.remove("btn-active");
+        btn.innerHTML =
+          `Duyệt chạy lại <span class="badge badge-sm bg-white text-info ml-1 border-none" id="count-reactivate">...</span>`;
+        checkReactivateCount();
+      }
+
+      applyFilters(true);
+    }
     // ===== HELPERS =====
     function toast(msg) {
       const toastEl = document.getElementById("toast");
@@ -757,9 +804,9 @@ MB0001/2.jpg"></textarea>
       if (isAdmin()) {
         document.getElementById("admin-pending-controls").classList.remove("hidden");
         checkPendingCount();
-        checkRentedReportCount(); // 👉 load số mặt bằng nhân sự đã báo hết
+        checkRentedReportCount();
+        checkReactivateCount();
       }
-
 
       CURRENT_USER = data.user;
 
@@ -865,7 +912,20 @@ MB0001/2.jpg"></textarea>
       } else {
           query = query.eq("is_approved", true);
       }
-
+      // --- CHẾ ĐỘ XEM BÁO HẾT / DUYỆT CHẠY LẠI (ADMIN) ---
+      if (isAdmin()) {
+        if (SHOW_REPORTED) {
+          // chỉ những tin đã báo hết, admin chưa xác nhận
+          query = query
+            .not("rented_reported_at", "is", null)
+            .is("rented_confirmed_at", null);
+        } else if (SHOW_REACTIVATE) {
+          // chỉ những tin yêu cầu chạy lại, admin chưa xác nhận
+          query = query
+            .not("reactivate_reported_at", "is", null)
+            .is("reactivate_confirmed_at", null);
+        }
+      }
       // --- ÁP DỤNG FILTER ---
       if (f.keyword) {
         const kw = "%" + f.keyword + "%";
@@ -1937,6 +1997,12 @@ MB0001/2.jpg"></textarea>
       // Admin / Add Events
       document.getElementById("btn-open-add").onclick = () => document.getElementById("addDlg").showModal();
       document.getElementById("btn-toggle-pending").onclick = togglePendingMode;
+      const btnToggleReported = document.getElementById("btn-toggle-rented-reports");
+      if (btnToggleReported) btnToggleReported.onclick = toggleReportedMode;
+
+      const btnToggleReactivate = document.getElementById("btn-toggle-reactivate");
+      if (btnToggleReactivate) btnToggleReactivate.onclick = toggleReactivateMode;
+
       document.getElementById("btn-approve-all").onclick = approveAll;
       
       const btnToggleRented = document.getElementById("btn-toggle-rented-reports");
