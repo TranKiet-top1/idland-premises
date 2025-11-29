@@ -2317,41 +2317,61 @@ MB0001/2.jpg"></textarea>
 
     // === HÀM MỚI: TỰ ĐỘNG QUÉT ẢNH CHO DANH SÁCH ===
     async function scanGridImages(rows) {
-        // Chỉ lọc ra những căn CÓ MÃ nhưng KHÔNG CÓ ẢNH trong data
-        const missingImgRows = rows.filter(r => {
-            let hasImg = false;
-            if (Array.isArray(r.images) && r.images.length > 0) hasImg = true;
-            else if (typeof r.images === "string" && r.images.trim().length > 0) hasImg = true;
-            return !hasImg && r.code;
-        });
+      if (!rows || !rows.length) return;
 
-        if (missingImgRows.length === 0) return;
+      for (const row of rows) {
+        // Nếu đã có images trong DB rồi thì bỏ qua
+        let hasImg = false;
+        if (Array.isArray(row.images) && row.images.length > 0) hasImg = true;
+        else if (typeof row.images === "string" && row.images.trim().length > 0) hasImg = true;
+        if (hasImg) continue;
+        if (!row.code) continue;
 
-        // Chạy ngầm từng căn để tìm ảnh
-        for (const row of missingImgRows) {
-            // Tìm cái khung ảnh của căn đó trên giao diện
-            const imgContainer = document.getElementById(`thumb-box-${row.id}`);
-            if (!imgContainer) continue;
-
-            // Gọi vào Storage kiểm tra xem có folder tên là Mã căn không
-            const { data: files } = await supabase.storage
-                .from(STORAGE_BUCKET)
-                .list(row.code, { limit: 1, sortBy: { column: 'name', order: 'asc' } });
-
-            // Nếu tìm thấy file ảnh
-            if (files && files.length > 0 && files[0].name !== '.emptyFolderPlaceholder') {
-                const fullPath = `${row.code}/${files[0].name}`;
-                const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
-                
-                if (data.publicUrl) {
-                    // Thay thế dòng chữ "(Không có ảnh)" bằng thẻ <img>
-                    imgContainer.innerHTML = `<img src="${data.publicUrl}" class="w-full h-full object-cover animate-fade-in" alt="${row.code}" />`;
-                    // Thêm hiệu ứng hiện dần cho đẹp
-                    imgContainer.classList.remove("opacity-60");
-                }
-            }
+        // 👉 LẤY ĐÚNG THẺ THEO row.id (không phải code)
+        const imgContainer = document.getElementById(`thumb-box-${row.id}`);
+        if (!imgContainer) {
+          console.log("Không tìm thấy thumb-box cho", row.id, row.code);
+          continue;
         }
+
+        console.log("Database không có ảnh, đang quét Storage folder:", row.code);
+
+        const { data: files, error } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .list(row.code, {
+            limit: 10,
+            sortBy: { column: "name", order: "asc" },
+          });
+
+        if (error) {
+          console.error("Lỗi list storage", error);
+          continue;
+        }
+
+        if (!files || !files.length) {
+          console.log("Không thấy file nào trong storage cho", row.code);
+          continue;
+        }
+
+        console.log("Đã tìm thấy ảnh trong Storage:", files);
+
+        // Lấy file đầu tiên (bỏ qua .emptyFolderPlaceholder nếu có)
+        const first = files.find(f => f.name !== ".emptyFolderPlaceholder") || files[0];
+        if (!first) continue;
+
+        const fullPath = `${row.code}/${first.name}`;
+        const { data: pub } = supabase.storage
+          .from(STORAGE_BUCKET)
+          .getPublicUrl(fullPath);
+
+        if (!pub || !pub.publicUrl) continue;
+
+        imgContainer.innerHTML =
+          `<img src="${pub.publicUrl}" class="w-full h-full object-cover animate-fade-in" alt="${row.code}" />`;
+        imgContainer.classList.remove("opacity-60");
+      }
     }
+
   </script>
 </body>
 </html>
