@@ -1328,18 +1328,28 @@ MB0001/2.jpg"></textarea>
       const mapEmbed = `<iframe class="w-full h-64 border-0 rounded-xl" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${mapsQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed"></iframe>`;
 
       // Nút hành động
+      const isRented = item.status === "rented";
+      const isAvailableLike =
+        item.status === "available" || item.status === "deposited";
+
       const actions = `
         <div class="join join-horizontal flex flex-wrap gap-2">
-          ${item.contact_phone && !isStaff()
-            ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>`
-            : ""}
-
-          ${item.contact_phone && !isStaff()
-            ? `<a class="btn btn-sm join-item" target="_blank"
-                 href="https://zalo.me/${(item.contact_phone || "").replace(/[^0-9]/g, "")}">
-                 Zalo
-               </a>`
-            : ""}
+          ${
+            item.contact_phone && !isStaff()
+              ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">
+                   Gọi
+                 </a>`
+              : ""
+          }
+          ${
+            item.contact_phone && !isStaff()
+              ? `<a class="btn btn-sm join-item" target="_blank"
+                   href="https://zalo.me/${(item.contact_phone || "")
+                     .replace(/[^0-9]/g, "")}">
+                   Zalo
+                 </a>`
+              : ""
+          }
 
           <a class="btn btn-sm join-item" target="_blank"
              href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">
@@ -1352,50 +1362,60 @@ MB0001/2.jpg"></textarea>
           </button>
 
           ${
-            // 👉 Nhân sự: chỉ được bấm khi đang còn trống / giữ cọc, chưa báo hết
+            // 🔴 BÁO HẾT – NHÂN SỰ: chỉ báo, chờ admin duyệt
             isStaff() &&
-            (item.status === "available" || item.status === "deposited") &&
-            !item.rented_reported_at
+            isAvailableLike &&
+            !item.rented_reported_at &&
+            !item.rented_confirmed_at
               ? `<button class="btn btn-sm btn-error btn-outline join-item"
-                         onclick="reportRented('${id}')">
+                         onclick="reportRentedStaff('${id}')">
                    Báo hết
                  </button>`
               : ""
           }
 
           ${
-            // 👉 Admin: thấy yêu cầu báo hết để duyệt
-            isAdmin() && item.rented_reported_at && !item.rented_confirmed_at
+            // 🔴 BÁO HẾT – ADMIN: chuyển thẳng sang "rented", không cần duyệt
+            isAdmin() && isAvailableLike
               ? `<button class="btn btn-sm btn-error join-item"
-                         onclick="confirmRented('${id}')">
-                   Xác nhận đã hết
-                 </button>
-                 <button class="btn btn-sm btn-ghost join-item"
-                         onclick="cancelRented('${id}')">
-                   Huỷ báo hết
+                         onclick="reportRentedDirect('${id}')">
+                   Báo hết
+                 </button>`
+              : ""
+          }
+
+
+          ${
+            // 🟡 BÁO CHẠY LẠI – chỉ hiện khi đang ở trạng thái đã hết
+            isRented && !item.reactivate_reported_at
+              ? `<button class="btn btn-sm btn-outline join-item"
+                         onclick="requestReactivate('${id}')">
+                   Báo chạy lại
                  </button>`
               : ""
           }
 
           ${
-            isStaff() &&
-            item.rented_reported_at &&
-            !item.rented_confirmed_at
-              ? `<button class="btn btn-sm btn-outline join-item"
-                         onclick="cancelRentedStaff('${id}')">
-                   Huỷ báo hết
+            // ✅ DUYỆT CHẠY LẠI – chỉ admin thấy khi có yêu cầu chạy lại
+            isAdmin() && item.reactivate_reported_at && !item.reactivate_confirmed_at
+              ? `<button class="btn btn-sm btn-success join-item"
+                         onclick="confirmReactivate('${id}')">
+                   Duyệt chạy lại
                  </button>`
               : ""
           }
 
-          ${isAdmin()
-            ? `<button class="btn btn-outline btn-sm join-item"
-                       onclick="openEditPremise('${id}')">
-                 Sửa
-               </button>`
-            : ""}
+          ${
+            isAdmin()
+              ? `<button class="btn btn-outline btn-sm join-item"
+                         onclick="openEditPremise('${id}')">
+                   Sửa
+                 </button>`
+              : ""
+          }
         </div>
       `;
+
 
 
       // Render HTML
@@ -1455,16 +1475,23 @@ MB0001/2.jpg"></textarea>
               </div>
 
               ${
-                item.rented_confirmed_at
+                item.status === "rented" && item.rented_confirmed_at
                   ? `<div class="mt-2 text-xs text-error">
                        Ngày báo hết: <b>${formatDateVN(item.rented_confirmed_at)}</b>
                      </div>`
-                  : item.rented_reported_at
-                  ? `<div class="mt-2 text-xs text-warning">
-                       Nhân sự đã báo hết ngày <b>${formatDateVN(item.rented_reported_at)}</b> – chờ admin xác nhận
+                  : ""
+              }
+
+              ${
+                item.reactivate_reported_at && !item.reactivate_confirmed_at
+                  ? `<div class="mt-1 text-xs text-warning">
+                       Đã báo chạy lại ngày <b>${formatDateVN(
+                         item.reactivate_reported_at
+                       )}</b> – chờ admin duyệt.
                      </div>`
                   : ""
               }
+
 
               ${item.contact_phone && !isStaff() ? `
 
@@ -1610,22 +1637,37 @@ MB0001/2.jpg"></textarea>
         road_type: document.getElementById("edit-road-type").value, // MỚI
         commission: getVal("edit-commission-text"), // MỚI
       };
+      // Nếu admin chỉnh trạng thái khác "rented" -> xoá ngày báo hết & yêu cầu chạy lại
+      if (payload.status && payload.status !== "rented") {
+        payload.rented_reported_at = null;
+        payload.rented_confirmed_at = null;
+        payload.reactivate_reported_at = null;
+        payload.reactivate_confirmed_at = null;
+      }
 
-      const { error } = await supabase.from("premises").update(payload).eq("id", EDITING_ID);
+      const { error } = await supabase
+        .from("premises")
+        .update(payload)
+        .eq("id", editingId);
+
       if (error) { toast("Lỗi: " + error.message); return; }
       toast("Đã lưu thay đổi!");
       document.getElementById("editDlg").close();
       await applyFilters(false);
     }
-    // ===== BÁO HẾT / DUYỆT HẾT =====
-    async function reportRented(id) {
-      if (!isStaff()) return;
-      if (!confirm("Xác nhận báo hết mặt bằng này?")) return;
-
+    // ===== BÁO HẾT (KHÔNG CẦN DUYỆT) =====
+    async function reportRentedDirect(id) {
+      if (!isAdmin()) return;  // chỉ admin được dùng
+      if (!confirm("Xác nhận mặt bằng này đã hết / đã cho thuê?")) return;
+      const nowIso = new Date().toISOString();
       const { error } = await supabase
         .from("premises")
         .update({
-          rented_reported_at: new Date().toISOString()
+          status: "rented",
+          rented_reported_at: nowIso,
+          rented_confirmed_at: nowIso, // coi như duyệt luôn
+          reactivate_reported_at: null,
+          reactivate_confirmed_at: null,
         })
         .eq("id", id);
 
@@ -1634,10 +1676,62 @@ MB0001/2.jpg"></textarea>
         toast("Lỗi báo hết: " + error.message);
         return;
       }
-      toast("Đã báo hết, chờ admin xác nhận");
+
+      toast("Đã báo hết mặt bằng này.");
       document.getElementById("detailDlg").close();
       applyFilters(true);
     }
+
+    // ===== BÁO CHẠY LẠI (NS & ADMIN) =====
+    async function requestReactivate(id) {
+      if (!confirm("Báo chạy lại mặt bằng này?")) return;
+
+      const { error } = await supabase
+        .from("premises")
+        .update({
+          reactivate_reported_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+
+      if (error) {
+        console.error(error);
+        toast("Lỗi báo chạy lại: " + error.message);
+        return;
+      }
+
+      toast("Đã báo chạy lại – chờ admin duyệt.");
+      document.getElementById("detailDlg").close();
+      applyFilters(true);
+    }
+
+    // ===== ADMIN DUYỆT CHẠY LẠI =====
+    async function confirmReactivate(id) {
+      if (!isAdmin()) return;
+      if (!confirm("Duyệt cho mặt bằng này chạy lại?")) return;
+
+      const { error } = await supabase
+        .from("premises")
+        .update({
+          status: "available",
+          reactivate_confirmed_at: new Date().toISOString(),
+          reactivate_reported_at: null,
+          // xoá dấu vết 'Ngày báo hết' để ẩn dòng đó
+          rented_reported_at: null,
+          rented_confirmed_at: null,
+        })
+        .eq("id", id);
+
+      if (error) {
+        console.error(error);
+        toast("Lỗi duyệt chạy lại: " + error.message);
+        return;
+      }
+
+      toast("Đã duyệt cho mặt bằng chạy lại.");
+      document.getElementById("detailDlg").close();
+      applyFilters(true);
+    }
+
 
     async function confirmRented(id) {
       if (!isAdmin()) return;
@@ -1748,6 +1842,29 @@ MB0001/2.jpg"></textarea>
             applyFilters(true);
             if(isAdmin()) checkPendingCount();
         }
+    }
+      // ===== NHÂN SỰ: BÁO HẾT (CHỜ ADMIN DUYỆT) =====
+    async function reportRentedStaff(id) {
+      if (!isStaff()) return;
+      if (!confirm("Xác nhận báo hết mặt bằng này để admin duyệt?")) return;
+
+      const { error } = await supabase
+        .from("premises")
+        .update({
+          rented_reported_at: new Date().toISOString(),
+          rented_confirmed_at: null   // chắc chắn là chưa duyệt
+        })
+        .eq("id", id);
+
+      if (error) {
+        console.error(error);
+        toast("Lỗi báo hết: " + error.message);
+        return;
+      }
+
+      toast("Đã báo hết – chờ admin xác nhận.");
+      document.getElementById("detailDlg").close();
+      applyFilters(true);
     }
 
     // ===== LOGIC ADMIN PENDING (MỚI) =====
