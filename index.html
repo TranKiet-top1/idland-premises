@@ -2314,63 +2314,62 @@ MB0001/2.jpg"></textarea>
       document.getElementById("detailDlg").close();
       applyFilters(true);
     }
+// === QUÉT ẢNH RUNTIME TỪ STORAGE, KHÔNG PHỤ THUỘC CỘT images ===
+async function scanGridImages(rows) {
+  if (!rows || !rows.length) return;
 
-    // === HÀM MỚI: TỰ ĐỘNG QUÉT ẢNH CHO DANH SÁCH ===
-    async function scanGridImages(rows) {
-      if (!rows || !rows.length) return;
+  for (const row of rows) {
+    if (!row || !row.code) continue;
 
-      for (const row of rows) {
-        // Nếu đã có images trong DB rồi thì bỏ qua
-        let hasImg = false;
-        if (Array.isArray(row.images) && row.images.length > 0) hasImg = true;
-        else if (typeof row.images === "string" && row.images.trim().length > 0) hasImg = true;
-        if (hasImg) continue;
-        if (!row.code) continue;
+    // Tìm khung ảnh theo id đã render ở renderCards
+    const imgContainer = document.getElementById(`thumb-box-${row.id}`);
+    if (!imgContainer) continue;
 
-        // 👉 LẤY ĐÚNG THẺ THEO row.id (không phải code)
-        const imgContainer = document.getElementById(`thumb-box-${row.code}`);
-        if (!imgContainer) {  
-          console.log("Không tìm thấy thumb-box cho", row.id, row.code);
-          continue;
-        }
+    // Nếu trong DOM đã có <img> (do cột images render sẵn) thì bỏ qua
+    if (imgContainer.querySelector("img")) continue;
 
-        console.log("Database không có ảnh, đang quét Storage folder:", row.code);
+    try {
+      // Quét folder theo mã mặt bằng trong Storage
+      const { data: files, error } = await supabase.storage
+        .from(STORAGE_BUCKET) // vd: "premise-images"
+        .list(row.code, {
+          limit: 10,
+          sortBy: { column: "name", order: "asc" },
+        });
 
-        const { data: files, error } = await supabase.storage
-          .from(STORAGE_BUCKET)
-          .list(row.code, {
-            limit: 10,
-            sortBy: { column: "name", order: "asc" },
-          });
+      if (error) {
+        console.error("Lỗi list storage cho", row.code, error);
+        continue;
+      }
 
-        if (error) {
-          console.error("Lỗi list storage", error);
-          continue;
-        }
+      if (!files || !files.length) {
+        // Không có file nào trong storage => giữ nguyên "(Đang quét ảnh...)"
+        continue;
+      }
 
-        if (!files || !files.length) {
-          console.log("Không thấy file nào trong storage cho", row.code);
-          continue;
-        }
+      // Bỏ file placeholder nếu có, lấy file đầu tiên
+      const first = files.find(f => f.name !== ".emptyFolderPlaceholder") || files[0];
+      if (!first) continue;
 
-        console.log("Đã tìm thấy ảnh trong Storage:", files);
+      const fullPath = `${row.code}/${first.name}`;
+      const { data } = supabase.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(fullPath);
 
-        // Lấy file đầu tiên (bỏ qua .emptyFolderPlaceholder nếu có)
-        const first = files.find(f => f.name !== ".emptyFolderPlaceholder") || files[0];
-        if (!first) continue;
-
-        const fullPath = `${row.code}/${first.name}`;
-        const { data: pub } = supabase.storage
-          .from(STORAGE_BUCKET)
-          .getPublicUrl(fullPath);
-
-        if (!pub || !pub.publicUrl) continue;
-
-        imgContainer.innerHTML =
-          `<img src="${pub.publicUrl}" class="w-full h-full object-cover animate-fade-in" alt="${row.code}" />`;
+      if (data && data.publicUrl) {
+        imgContainer.innerHTML = `
+          <img src="${data.publicUrl}"
+               class="w-full h-full object-cover animate-fade-in"
+               alt="${row.code}" />
+        `;
         imgContainer.classList.remove("opacity-60");
       }
+    } catch (err) {
+      console.error("scanGridImages error", row.code, err);
     }
+  }
+}
+
     // ==== TOOL 1 LẦN: ĐỒNG BỘ ẢNH TỪ STORAGE -> CỘT images ====
     async function syncImagesFromStorage() {
       if (!isAdmin || !isAdmin()) {
