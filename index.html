@@ -899,9 +899,11 @@ MB0001/2.jpg"></textarea>
 
       // Cập nhật icon trên tất cả nút fav có cùng id
       document.querySelectorAll(`.fav-btn[data-id="${id}"]`).forEach(btn => {
-        btn.classList.toggle("btn-warning", isFav);
+        btn.classList.toggle("btn-error", isFav);
+        btn.classList.toggle("text-white", isFav);
         btn.classList.toggle("btn-ghost", !isFav);
         btn.textContent = isFav ? "★" : "☆";
+
       });
 
       // Nếu đang ở chế độ chỉ xem ghim -> render lại danh sách ghim
@@ -1249,6 +1251,14 @@ MB0001/2.jpg"></textarea>
       // Lấy danh sách ghim hiện tại (1 lần)
       const favSet = new Set(getFavoriteIds());
 
+      // 👉 ƯU TIÊN HÀNG ĐƯỢC GHIM LÊN TRÊN
+      const sortedRows = [...rows].sort((a, b) => {
+        const af = favSet.has(a.id);
+        const bf = favSet.has(b.id);
+        if (af === bf) return 0;      // cùng ghim hoặc cùng không ghim => giữ nguyên thứ tự
+        return af ? -1 : 1;          // a ghim, b không ghim => a lên trên
+      });
+
       const html = rows.map((row) => {
         // Xử lý ảnh (Logic cũ)
         let firstPath = null;
@@ -1295,7 +1305,8 @@ MB0001/2.jpg"></textarea>
 
         // Trạng thái ghim
         const isFav = favSet.has(row.id);
-        const favBtnClass = isFav ? "btn-warning" : "btn-ghost";
+        const favBtnClass = isFav ? "btn-error text-white" : "btn-ghost";
+
         const favIcon = isFav ? "★" : "☆";
 
         return `
@@ -1312,15 +1323,16 @@ MB0001/2.jpg"></textarea>
 
                <div class="absolute top-2 right-2 shadow-sm flex items-center gap-1">
                  <!-- NÚT GHIM -->
-                 <button 
-                   type="button"
-                   class="fav-btn btn btn-xs ${favBtnClass} btn-circle bg-white border-none"
-                   data-id="${row.id}"
-                   title="Ghim / bỏ ghim"
-                   onclick="toggleFavorite(event, '${row.id}')"
-                 >
-                   ${favIcon}
-                 </button>
+                <button 
+                  type="button"
+                  class="fav-btn btn btn-sm ${favBtnClass} btn-circle border-none text-lg"
+                  data-id="${row.id}"
+                  title="Ghim / bỏ ghim"
+                  onclick="toggleFavorite(event, '${row.id}')"
+                >
+                  ${favIcon}
+                </button>
+
 
                  ${locationBadge}
                  ${isAdmin() ? hhBadge : ""}
