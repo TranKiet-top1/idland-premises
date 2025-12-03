@@ -876,7 +876,7 @@ MB0001/2.jpg"></textarea>
     }
 
     function toggleFavorite(e, id) {
-      if (e) e.stopPropagation();
+      if (e) e.stopPropagation(); // ⬅ để khi bấm sao không bị mở popup
 
       if (!CURRENT_USER) {
         toast("Vui lòng đăng nhập để ghim sản phẩm.");
@@ -897,16 +897,15 @@ MB0001/2.jpg"></textarea>
 
       saveFavoriteIds(ids);
 
-      // Cập nhật icon trên tất cả nút fav có cùng id
+      // Cập nhật icon / màu cho tất cả nút sao của id này
       document.querySelectorAll(`.fav-btn[data-id="${id}"]`).forEach(btn => {
         btn.classList.toggle("btn-error", isFav);
         btn.classList.toggle("text-white", isFav);
         btn.classList.toggle("btn-ghost", !isFav);
         btn.textContent = isFav ? "★" : "☆";
-
       });
 
-      // Nếu đang ở chế độ chỉ xem ghim -> render lại danh sách ghim
+      // Nếu đang ở chế độ chỉ xem ghim thì render lại
       if (FAVORITES_MODE) {
         const favSet = new Set(ids);
         const filtered = (LAST_ROWS || []).filter(r => favSet.has(r.id));
@@ -915,6 +914,7 @@ MB0001/2.jpg"></textarea>
         if (showEl) showEl.textContent = filtered.length;
       }
     }
+
 
     function toggleFavoriteMode() {
       FAVORITES_MODE = !FAVORITES_MODE;
@@ -1243,31 +1243,34 @@ MB0001/2.jpg"></textarea>
 
       if (!rows || rows.length === 0) {
         if (PAGE === 0) {
-          grid.innerHTML = `<div class="col-span-full text-center text-sm opacity-70 py-10">Chưa có mặt bằng nào khớp bộ lọc hiện tại.</div>`;
+          grid.innerHTML = `
+            <div class="col-span-full text-center text-sm opacity-70 py-10">
+              Chưa có mặt bằng nào khớp bộ lọc hiện tại.
+            </div>`;
         }
         return;
       }
 
-      // Lấy danh sách ghim hiện tại (1 lần)
+      // Lấy danh sách ghim
       const favSet = new Set(getFavoriteIds());
 
       // 👉 ƯU TIÊN HÀNG ĐƯỢC GHIM LÊN TRÊN
       const sortedRows = [...rows].sort((a, b) => {
         const af = favSet.has(a.id);
         const bf = favSet.has(b.id);
-        if (af === bf) return 0;      // cùng ghim hoặc cùng không ghim => giữ nguyên thứ tự
-        return af ? -1 : 1;          // a ghim, b không ghim => a lên trên
+        if (af === bf) return 0;
+        return af ? -1 : 1; // ghim lên trước
       });
 
-      const html = rows.map((row) => {
-        // Xử lý ảnh (Logic cũ)
+      const html = sortedRows.map((row) => {
+        // Xử lý ảnh
         let firstPath = null;
         if (Array.isArray(row.images) && row.images.length > 0) firstPath = row.images[0];
         else if (typeof row.images === "string" && row.images.trim()) {
           try {
             if (row.images.startsWith("[")) firstPath = JSON.parse(row.images)[0];
             else firstPath = row.images.split(/[\n;,]+/)[0];
-          } catch (e) { }
+          } catch (e) {}
         }
         const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
 
@@ -1278,21 +1281,21 @@ MB0001/2.jpg"></textarea>
         const creatorEmail = row.profiles?.email || "";
         const shortName = creatorEmail.split("@")[0];
 
-        // Badge Vị trí
+        // Badge vị trí
         let locationBadge = "";
         const roadType = row.road_type || (row.frontage ? "Mặt tiền" : "Hẻm");
-        if (roadType === "Mặt tiền")
+        if (roadType === "Mặt tiền") {
           locationBadge = `<span class="badge badge-xs badge-error text-white border-none">Mặt tiền</span>`;
-        else if (roadType === "Hẻm xe hơi")
+        } else if (roadType === "Hẻm xe hơi") {
           locationBadge = `<span class="badge badge-xs badge-info text-white border-none">Hẻm xe hơi</span>`;
-        else
+        } else {
           locationBadge = `<span class="badge badge-xs badge-ghost border-none opacity-70">Nhà hẻm</span>`;
+        }
 
         const hhBadge = row.commission
           ? `<span class="badge badge-xs badge-success text-white border-none ml-1">${row.commission}</span>`
           : "";
 
-        // Nếu nhân sự đã báo hết mà admin chưa duyệt
         const staffReportBadge =
           row.rented_reported_at && row.status !== "rented"
             ? `<span class="badge badge-xs badge-warning border-none ml-1">NS báo hết</span>`
@@ -1300,49 +1303,52 @@ MB0001/2.jpg"></textarea>
 
         let approveBtn = "";
         if (SHOW_PENDING && isAdmin()) {
-          approveBtn = `<button onclick="approveOne('${row.id}', event)" class="btn btn-xs btn-success w-full mt-2 text-white">✔ Duyệt ngay</button>`;
+          approveBtn = `
+            <button onclick="approveOne('${row.id}', event)" 
+              class="btn btn-xs btn-success w-full mt-2 text-white">
+              ✔ Duyệt ngay
+            </button>`;
         }
 
         // Trạng thái ghim
         const isFav = favSet.has(row.id);
         const favBtnClass = isFav ? "btn-error text-white" : "btn-ghost";
-
         const favIcon = isFav ? "★" : "☆";
 
         return `
-          <article class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden" data-id="${row.id}">
+          <article 
+            class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden"
+            data-id="${row.id}">
+            
             <figure class="h-52 bg-base-200 flex items-center justify-center relative">
-              
-              <div id="thumb-box-${row.code}" class="w-full h-full flex items-center justify-center ${imgUrl ? "" : "opacity-60"}">
-                  ${
-                    imgUrl
-                      ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
-                      : `<div class="text-xs">(Đang quét ảnh...)</div>`
-                  }
+              <div id="thumb-box-${row.code}" 
+                class="w-full h-full flex items-center justify-center ${imgUrl ? "" : "opacity-60"}">
+                ${
+                  imgUrl
+                    ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
+                    : `<div class="text-xs">(Đang quét ảnh...)</div>`
+                }
               </div>
 
-               <div class="absolute top-2 right-2 shadow-sm flex items-center gap-1">
-                 <!-- NÚT GHIM -->
+              <div class="absolute top-2 right-2 shadow-sm flex items-center gap-1">
                 <button 
                   type="button"
                   class="fav-btn btn btn-sm ${favBtnClass} btn-circle border-none text-lg"
                   data-id="${row.id}"
                   title="Ghim / bỏ ghim"
-                  onclick="toggleFavorite(event, '${row.id}')"
-                >
+                  onclick="toggleFavorite(event, '${row.id}')">
                   ${favIcon}
                 </button>
+                ${locationBadge}
+                ${isAdmin() ? hhBadge : ""}
+                ${isAdmin() ? staffReportBadge : ""}
+              </div>
 
-
-                 ${locationBadge}
-                 ${isAdmin() ? hhBadge : ""}
-                 ${isAdmin() ? staffReportBadge : ""}
-               </div>
-
-               <div class="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[10px] p-1 px-2 truncate">
-                  Đăng bởi: <b>${shortName || "Ẩn danh"}</b>
-               </div>
+              <div class="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[10px] p-1 px-2 truncate">
+                Đăng bởi: <b>${shortName || "Ẩn danh"}</b>
+              </div>
             </figure>
+
             <div class="card-body p-4 gap-2">
               <h3 class="font-semibold text-sm line-clamp-2">${buildTitle(row)}</h3>
               <div class="flex items-center flex-wrap gap-2 text-[11px] opacity-70">
@@ -1365,7 +1371,23 @@ MB0001/2.jpg"></textarea>
       });
 
       grid.insertAdjacentHTML("beforeend", html.join(""));
+
+      // 👉 GẮN CLICK ĐỂ MỞ POPUP
+      grid.querySelectorAll(".premise-card").forEach((el) => {
+        el.onclick = () => {
+          const id = el.getAttribute("data-id");
+          if (id) openDetail(id);
+        };
+      });
+
+      // Quét ảnh nếu có hàm scanGridImages
+      if (typeof scanGridImages === "function") {
+        scanGridImages(sortedRows).catch(err =>
+          console.error("scanGridImages error", err)
+        );
+      }
     }
+
 
 
     // === HÀM MỚI: LẤY QUẬN TỪ HCM_DATA ===
