@@ -23,6 +23,8 @@
     }
   </style>
 </head>
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&language=vi"></script>
+
 <body class="bg-base-200">
 
   <section id="auth-section" class="min-h-screen flex flex-col bg-base-200">
@@ -207,7 +209,13 @@
         <button class="btn btn-xs btn-ghost btn-outline" id="btn-clear-quick">
           Xoá lọc nhanh
         </button>
+
+        <!-- NÚT XEM GHIM -->
+        <button class="btn btn-xs btn-outline" id="btn-toggle-favorites">
+          Xem mặt bằng đã ghim
+        </button>
       </div>
+
 
       <div class="grid md:grid-cols-[260px,1fr] gap-4">
         <aside class="bg-base-100 rounded-2xl shadow-sm p-4">
@@ -836,6 +844,198 @@ MB0001/2.jpg"></textarea>
 
     function isAdmin() { return CURRENT_ROLE === "admin"; }
     function isStaff() { return CURRENT_ROLE === "staff"; }
+    // --- GHIM MẶT BẰNG THEO NHÂN SỰ (LƯU LOCAL) ---
+    let FAVORITES_MODE = false;
+
+    function getFavoriteStorageKey() {
+      if (CURRENT_USER && CURRENT_USER.id) {
+        return "idland_favorites_" + CURRENT_USER.id;
+      }
+      // fallback nếu chưa login (ít dùng)
+      return "idland_favorites_guest";
+    }
+
+    function getFavoriteIds() {
+      try {
+        const raw = localStorage.getItem(getFavoriteStorageKey());
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) {
+        console.warn("getFavoriteIds error", e);
+        return [];
+      }
+    }
+
+    function saveFavoriteIds(ids) {
+      try {
+        localStorage.setItem(getFavoriteStorageKey(), JSON.stringify(ids));
+      } catch (e) {
+        console.warn("saveFavoriteIds error", e);
+      }
+    }
+
+    function toggleFavorite(e, id) {
+      if (e) e.stopPropagation();
+
+      if (!CURRENT_USER) {
+        toast("Vui lòng đăng nhập để ghim sản phẩm.");
+        return;
+      }
+
+      let ids = getFavoriteIds();
+      const idx = ids.indexOf(id);
+      let isFav = false;
+
+      if (idx === -1) {
+        ids.push(id);
+        isFav = true;
+      } else {
+        ids.splice(idx, 1);
+        isFav = false;
+      }
+
+      saveFavoriteIds(ids);
+
+      // Cập nhật icon trên tất cả nút fav có cùng id
+      document.querySelectorAll(`.fav-btn[data-id="${id}"]`).forEach(btn => {
+        btn.classList.toggle("btn-warning", isFav);
+        btn.classList.toggle("btn-ghost", !isFav);
+        btn.textContent = isFav ? "★" : "☆";
+      });
+
+      // Nếu đang ở chế độ chỉ xem ghim -> render lại danh sách ghim
+      if (FAVORITES_MODE) {
+        const favSet = new Set(ids);
+        const filtered = (LAST_ROWS || []).filter(r => favSet.has(r.id));
+        renderCards(filtered, true);
+        const showEl = document.getElementById("count-show");
+        if (showEl) showEl.textContent = filtered.length;
+      }
+    }
+
+    function toggleFavoriteMode() {
+      FAVORITES_MODE = !FAVORITES_MODE;
+      const btn = document.getElementById("btn-toggle-favorites");
+      if (!btn) return;
+
+      if (FAVORITES_MODE) {
+        btn.classList.add("btn-active");
+        btn.textContent = "Đang xem: Mặt bằng đã ghim (thoát)";
+
+        const favSet = new Set(getFavoriteIds());
+        const filtered = (LAST_ROWS || []).filter(r => favSet.has(r.id));
+        renderCards(filtered, true);
+
+        const showEl = document.getElementById("count-show");
+        if (showEl) showEl.textContent = filtered.length;
+      } else {
+        btn.classList.remove("btn-active");
+        btn.textContent = "Xem mặt bằng đã ghim";
+
+        renderCards(LAST_ROWS || [], true);
+        const showEl = document.getElementById("count-show");
+        if (showEl) {
+          showEl.textContent = Math.min((PAGE + 1) * PAGE_SIZE, TOTAL_COUNT);
+        }
+      }
+    }
+    // --- GHIM MẶT BẰNG THEO NHÂN SỰ (LƯU LOCAL) ---
+    let FAVORITES_MODE = false;
+
+    function getFavoriteStorageKey() {
+      if (CURRENT_USER && CURRENT_USER.id) {
+        return "idland_favorites_" + CURRENT_USER.id;
+      }
+      // fallback nếu chưa login (ít dùng)
+      return "idland_favorites_guest";
+    }
+
+    function getFavoriteIds() {
+      try {
+        const raw = localStorage.getItem(getFavoriteStorageKey());
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) {
+        console.warn("getFavoriteIds error", e);
+        return [];
+      }
+    }
+
+    function saveFavoriteIds(ids) {
+      try {
+        localStorage.setItem(getFavoriteStorageKey(), JSON.stringify(ids));
+      } catch (e) {
+        console.warn("saveFavoriteIds error", e);
+      }
+    }
+
+    function toggleFavorite(e, id) {
+      if (e) e.stopPropagation();
+
+      if (!CURRENT_USER) {
+        toast("Vui lòng đăng nhập để ghim sản phẩm.");
+        return;
+      }
+
+      let ids = getFavoriteIds();
+      const idx = ids.indexOf(id);
+      let isFav = false;
+
+      if (idx === -1) {
+        ids.push(id);
+        isFav = true;
+      } else {
+        ids.splice(idx, 1);
+        isFav = false;
+      }
+
+      saveFavoriteIds(ids);
+
+      // Cập nhật icon trên tất cả nút fav có cùng id
+      document.querySelectorAll(`.fav-btn[data-id="${id}"]`).forEach(btn => {
+        btn.classList.toggle("btn-warning", isFav);
+        btn.classList.toggle("btn-ghost", !isFav);
+        btn.textContent = isFav ? "★" : "☆";
+      });
+
+      // Nếu đang ở chế độ chỉ xem ghim -> render lại danh sách ghim
+      if (FAVORITES_MODE) {
+        const favSet = new Set(ids);
+        const filtered = (LAST_ROWS || []).filter(r => favSet.has(r.id));
+        renderCards(filtered, true);
+        const showEl = document.getElementById("count-show");
+        if (showEl) showEl.textContent = filtered.length;
+      }
+    }
+
+    function toggleFavoriteMode() {
+      FAVORITES_MODE = !FAVORITES_MODE;
+      const btn = document.getElementById("btn-toggle-favorites");
+      if (!btn) return;
+
+      if (FAVORITES_MODE) {
+        btn.classList.add("btn-active");
+        btn.textContent = "Đang xem: Mặt bằng đã ghim (thoát)";
+
+        const favSet = new Set(getFavoriteIds());
+        const filtered = (LAST_ROWS || []).filter(r => favSet.has(r.id));
+        renderCards(filtered, true);
+
+        const showEl = document.getElementById("count-show");
+        if (showEl) showEl.textContent = filtered.length;
+      } else {
+        btn.classList.remove("btn-active");
+        btn.textContent = "Xem mặt bằng đã ghim";
+
+        renderCards(LAST_ROWS || [], true);
+        const showEl = document.getElementById("count-show");
+        if (showEl) {
+          showEl.textContent = Math.min((PAGE + 1) * PAGE_SIZE, TOTAL_COUNT);
+        }
+      }
+    }
 
     function maskAddress(row) {
       const full = row.address || "";
@@ -1141,15 +1341,18 @@ MB0001/2.jpg"></textarea>
         return;
       }
 
+      // Lấy danh sách ghim hiện tại (1 lần)
+      const favSet = new Set(getFavoriteIds());
+
       const html = rows.map((row) => {
         // Xử lý ảnh (Logic cũ)
         let firstPath = null;
         if (Array.isArray(row.images) && row.images.length > 0) firstPath = row.images[0];
         else if (typeof row.images === "string" && row.images.trim()) {
-             try { 
-                 if(row.images.startsWith("[")) firstPath = JSON.parse(row.images)[0];
-                 else firstPath = row.images.split(/[\n;,]+/)[0];
-             } catch(e){}
+          try {
+            if (row.images.startsWith("[")) firstPath = JSON.parse(row.images)[0];
+            else firstPath = row.images.split(/[\n;,]+/)[0];
+          } catch (e) { }
         }
         const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
 
@@ -1163,28 +1366,38 @@ MB0001/2.jpg"></textarea>
         // Badge Vị trí
         let locationBadge = "";
         const roadType = row.road_type || (row.frontage ? "Mặt tiền" : "Hẻm");
-        if (roadType === "Mặt tiền") locationBadge = `<span class="badge badge-xs badge-error text-white border-none">Mặt tiền</span>`;
-        else if (roadType === "Hẻm xe hơi") locationBadge = `<span class="badge badge-xs badge-info text-white border-none">Hẻm xe hơi</span>`;
-        else locationBadge = `<span class="badge badge-xs badge-ghost border-none opacity-70">Nhà hẻm</span>`;
+        if (roadType === "Mặt tiền")
+          locationBadge = `<span class="badge badge-xs badge-error text-white border-none">Mặt tiền</span>`;
+        else if (roadType === "Hẻm xe hơi")
+          locationBadge = `<span class="badge badge-xs badge-info text-white border-none">Hẻm xe hơi</span>`;
+        else
+          locationBadge = `<span class="badge badge-xs badge-ghost border-none opacity-70">Nhà hẻm</span>`;
 
-        const hhBadge = row.commission ? `<span class="badge badge-xs badge-success text-white border-none ml-1">${row.commission}</span>` : '';
-                // Nếu nhân sự đã báo hết mà admin chưa duyệt
+        const hhBadge = row.commission
+          ? `<span class="badge badge-xs badge-success text-white border-none ml-1">${row.commission}</span>`
+          : "";
+
+        // Nếu nhân sự đã báo hết mà admin chưa duyệt
         const staffReportBadge =
           row.rented_reported_at && row.status !== "rented"
             ? `<span class="badge badge-xs badge-warning border-none ml-1">NS báo hết</span>`
             : "";
 
-        
         let approveBtn = "";
         if (SHOW_PENDING && isAdmin()) {
-            approveBtn = `<button onclick="approveOne('${row.id}', event)" class="btn btn-xs btn-success w-full mt-2 text-white">✔ Duyệt ngay</button>`;
+          approveBtn = `<button onclick="approveOne('${row.id}', event)" class="btn btn-xs btn-success w-full mt-2 text-white">✔ Duyệt ngay</button>`;
         }
+
+        // Trạng thái ghim
+        const isFav = favSet.has(row.id);
+        const favBtnClass = isFav ? "btn-warning" : "btn-ghost";
+        const favIcon = isFav ? "★" : "☆";
 
         return `
           <article class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden" data-id="${row.id}">
             <figure class="h-52 bg-base-200 flex items-center justify-center relative">
               
-              <div id="thumb-box-${row.code}" class="w-full h-full flex items-center justify-center ${imgUrl ? '' : 'opacity-60'}">
+              <div id="thumb-box-${row.code}" class="w-full h-full flex items-center justify-center ${imgUrl ? "" : "opacity-60"}">
                   ${
                     imgUrl
                       ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
@@ -1192,14 +1405,25 @@ MB0001/2.jpg"></textarea>
                   }
               </div>
 
-               <div class="absolute top-2 right-2 shadow-sm flex items-center">
+               <div class="absolute top-2 right-2 shadow-sm flex items-center gap-1">
+                 <!-- NÚT GHIM -->
+                 <button 
+                   type="button"
+                   class="fav-btn btn btn-xs ${favBtnClass} btn-circle bg-white border-none"
+                   data-id="${row.id}"
+                   title="Ghim / bỏ ghim"
+                   onclick="toggleFavorite(event, '${row.id}')"
+                 >
+                   ${favIcon}
+                 </button>
+
                  ${locationBadge}
-                 ${isAdmin() ? hhBadge : ''}
-                 ${isAdmin() ? staffReportBadge : ''}
+                 ${isAdmin() ? hhBadge : ""}
+                 ${isAdmin() ? staffReportBadge : ""}
                </div>
 
                <div class="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[10px] p-1 px-2 truncate">
-                  Đăng bởi: <b>${shortName || 'Ẩn danh'}</b>
+                  Đăng bởi: <b>${shortName || "Ẩn danh"}</b>
                </div>
             </figure>
             <div class="card-body p-4 gap-2">
@@ -1224,16 +1448,8 @@ MB0001/2.jpg"></textarea>
       });
 
       grid.insertAdjacentHTML("beforeend", html.join(""));
-
-      grid.querySelectorAll("[data-id]").forEach((el) => {
-        el.onclick = () => openDetail(el.getAttribute("data-id"));
-      });
-      if (typeof scanGridImages === "function") {
-        scanGridImages(rows).catch(err => console.error("scanGridImages error", err));
-      }      
-      // --- GỌI HÀM QUÉT ẢNH TỰ ĐỘNG ---
-      scanGridImages(rows);
     }
+
 
     // === HÀM MỚI: LẤY QUẬN TỪ HCM_DATA ===
     function buildDistrictWardOptions() {
@@ -2182,6 +2398,11 @@ MB0001/2.jpg"></textarea>
         document.getElementById("filter-ward").value = "";
         applyFilters(true);
       });
+      // Nút xem danh sách mặt bằng đã ghim
+      const btnToggleFavorites = document.getElementById("btn-toggle-favorites");
+      if (btnToggleFavorites) {
+        btnToggleFavorites.addEventListener("click", toggleFavoriteMode);
+      }
 
       // ===== DEMO NOTICE BUTTONS =====
       const demoAgreeBtn = document.getElementById("btn-demo-agree");
