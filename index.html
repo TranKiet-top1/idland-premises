@@ -457,11 +457,33 @@
   </dialog>
 
   <dialog id="editDlg" class="modal">
+
+
     <div class="modal-box max-w-4xl">
       <form method="dialog" class="modal-backdrop absolute inset-0" onclick="document.getElementById('editDlg').close()"></form>
       <h3 class="font-bold text-lg mb-3">Chỉnh sửa mặt bằng</h3>
 
       <div class="grid md:grid-cols-2 gap-3">
+        <div class="form-control md:col-span-2">
+            <label class="label font-bold text-primary">
+                <span class="label-text">Tọa độ bản đồ (Google Maps)</span>
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+                <div class="form-control">
+                    <span class="label-text text-xs">Vĩ độ (Lat)</span>
+                    <input id="edit-lat" type="text" class="input input-bordered input-sm" placeholder="VD: 10.7769" />
+                </div>
+                <div class="form-control">
+                    <span class="label-text text-xs">Kinh độ (Lng)</span>
+                    <input id="edit-lng" type="text" class="input input-bordered input-sm" placeholder="VD: 106.7009" />
+                </div>
+            </div>
+            <label class="label">
+                <span class="label-text-alt text-gray-500">
+                    Mẹo: Mở Google Maps, click chuột phải vào vị trí nhà -> copy dòng số đầu tiên.
+                </span>
+            </label>
+        </div>
         <div class="form-control md:col-span-2">
           <label class="label">
             <span class="label-text">Mã mặt bằng (code)</span>
@@ -2027,6 +2049,9 @@ MB0001/2.jpg"></textarea>
       setVal("edit-contact-phone", item.contact_phone || "");
       setVal("edit-commission", item.commission_note || "");
       setVal("edit-detail", item.detail || "");
+      // ... các dòng setVal cũ
+      setVal("edit-lat", item.lat || ""); // <--- THÊM
+      setVal("edit-lng", item.lng || ""); // <--- THÊM
 
       const statusSelect = document.getElementById("edit-status");
       if (statusSelect) {
@@ -2099,6 +2124,8 @@ MB0001/2.jpg"></textarea>
         updated_at: new Date().toISOString(),
         road_type: document.getElementById("edit-road-type").value, // MỚI
         commission: getVal("edit-commission-text"), // MỚI
+        lat: getVal("edit-lat") ? parseFloat(getVal("edit-lat")) : null, // <--- THÊM
+        lng: getVal("edit-lng") ? parseFloat(getVal("edit-lng")) : null, // <--- THÊM
       };
       // Nếu admin chỉnh trạng thái khác "rented" -> xoá ngày báo hết & yêu cầu chạy lại
       if (payload.status && payload.status !== "rented") {
