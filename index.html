@@ -58,8 +58,7 @@
     }
   </style>
 </head>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCZB4z1gM310t1eYcs3qVeukj93WNSRHUc&libraries=geometry&language=vi"></script>
 
 <body class="bg-base-200">
 
@@ -819,122 +818,109 @@ MB0001/2.jpg"></textarea>
     // ============================================================
     let MAP_INSTANCE = null;
     let MAP_MARKERS = [];
+    // ========== CẤU HÌNH GOOGLE MAPS ==========
+    
+    // 1. Tạo Class hiển thị Giá tiền (Kế thừa OverlayView)
+    class PriceOverlay extends google.maps.OverlayView {
+        constructor(position, text, id) {
+            super();
+            this.position = position;
+            this.text = text;
+            this.id = id;
+            this.div = null;
+        }
+        onAdd() {
+            this.div = document.createElement("div");
+            this.div.className = "price-marker-label"; // Dùng lại class CSS cũ bạn đã thêm
+            this.div.innerHTML = this.text;
+            this.div.style.position = "absolute";
+            this.div.style.cursor = "pointer";
+            
+            // Sự kiện click vào giá tiền -> Mở popup
+            this.div.addEventListener("click", (e) => {
+                e.stopPropagation();
+                openDetail(this.id); // Gọi hàm mở chi tiết của bạn
+            });
 
-    // 1. Hàm khởi tạo bản đồ
+            const panes = this.getPanes();
+            panes.overlayMouseTarget.appendChild(this.div);
+        }
+        draw() {
+            const overlayProjection = this.getProjection();
+            const pos = overlayProjection.fromLatLngToDivPixel(this.position);
+            if (this.div) {
+                // Căn chỉnh để tâm đốm nằm giữa
+                this.div.style.left = (pos.x - this.div.offsetWidth / 2) + "px";
+                this.div.style.top = (pos.y - this.div.offsetHeight - 10) + "px";
+            }
+        }
+        onRemove() {
+            if (this.div) {
+                this.div.parentNode.removeChild(this.div);
+                this.div = null;
+            }
+        }
+    }
+// 2. Khởi tạo Map chính
     function initStaffMap() {
-      // Nếu map đã tạo rồi thì không tạo lại
       if (MAP_INSTANCE) return;
-
       const el = document.getElementById("premises-map");
       if (!el) return;
 
-      // Tạo map, set trung tâm là TP.HCM (10.7769, 106.7009), zoom 13
-      MAP_INSTANCE = L.map('premises-map').setView([10.7769, 106.7009], 13);
-
-      // QUAN TRỌNG: Thêm lớp nền OpenStreetMap (cái này Google Maps không cần nhưng Leaflet bắt buộc)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 19
-      }).addTo(MAP_INSTANCE);
+      MAP_INSTANCE = new google.maps.Map(el, {
+        center: { lat: 10.7769, lng: 106.7009 },
+        zoom: 13,
+        mapTypeControl: false,
+        fullscreenControl: true,
+        streetViewControl: false,
+        styles: [ /* Có thể thêm style json để ẩn bớt POI nếu muốn */ ] 
+      });
     }
 
-    // 2. Hàm xóa các marker cũ khi lọc lại
-    function clearMapMarkers() {
-      if (MAP_MARKERS.length > 0) {
-        MAP_MARKERS.forEach(marker => marker.remove()); // Lệnh xóa của Leaflet
-        MAP_MARKERS = [];
-      }
-    }
-
-    // 3. Hàm vẽ marker lên bản đồ
-// 3. Hàm vẽ marker (HIỂN THỊ GIÁ TIỀN)
+    // 3. Vẽ marker giá tiền lên map
     function renderMapMarkers(rows) {
-      // Nếu đang ở tab Danh sách (ẩn map) thì không cần vẽ ngay
       const mapView = document.getElementById("map-view");
       if (mapView && mapView.classList.contains("hidden")) return;
 
       initStaffMap();
 
-      // Fix lỗi map xám
-      setTimeout(() => {
-         if(MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
-      }, 100);
-
-      clearMapMarkers();
+      // Xóa marker cũ
+      if (MAP_MARKERS.length > 0) {
+        MAP_MARKERS.forEach(m => m.setMap(null));
+        MAP_MARKERS = [];
+      }
 
       if (!rows || !rows.length || !MAP_INSTANCE) return;
 
-      const group = new L.featureGroup();
+      let bounds = new google.maps.LatLngBounds();
+      let hasPoint = false;
 
       rows.forEach((row) => {
         if (!row.lat || !row.lng) return;
+        const lat = parseFloat(row.lat);
+        const lng = parseFloat(row.lng);
+        const pos = new google.maps.LatLng(lat, lng);
 
-        const lat = Number(row.lat);
-        const lng = Number(row.lng);
-
-        // Xử lý hiển thị giá: Rút gọn cho đẹp (VD: 10.5 Triệu -> 10.5 Tr)
-        let displayPrice = "Thương lượng";
+        // Xử lý hiển thị giá rút gọn
+        let displayPrice = "TL";
         if (row.price) {
-           if (row.price >= 1000000000) {
-             displayPrice = (row.price / 1000000000).toFixed(1) + " Tỷ";
-           } else if (row.price >= 1000000) {
-             displayPrice = (row.price / 1000000).toFixed(1) + " Tr";
-           } else {
-             displayPrice = new Intl.NumberFormat('vi-VN').format(row.price);
-           }
-           // Bỏ số .0 nếu có (VD: 10.0 Tr -> 10 Tr)
+           if (row.price >= 1000000000) displayPrice = (row.price / 1000000000).toFixed(1) + " Tỷ";
+           else if (row.price >= 1000000) displayPrice = (row.price / 1000000).toFixed(1) + " Tr";
+           else displayPrice = new Intl.NumberFormat('vi-VN').format(row.price);
            displayPrice = displayPrice.replace(".0 ", " ");
         }
 
-        const title = (typeof buildTitle === 'function' ? buildTitle(row) : row.address) || "Mặt bằng";
+        // Tạo Marker Giá tiền (Dùng Class PriceOverlay vừa tạo ở bước 2)
+        const overlay = new PriceOverlay(pos, displayPrice, row.id);
+        overlay.setMap(MAP_INSTANCE);
+        MAP_MARKERS.push(overlay);
         
-        // --- TẠO ICON GIÁ TIỀN (Custom DivIcon) ---
-        const priceIcon = L.divIcon({
-          className: '', // Để trống để không nhận style mặc định của Leaflet
-          html: `<div class="price-marker-label">${displayPrice}</div>`,
-          iconSize: [null, null], // Auto size theo nội dung text
-          iconAnchor: [20, 10]    // Căn chỉnh vị trí ghim
-        });
-
-        const marker = L.marker([lat, lng], { icon: priceIcon }).addTo(MAP_INSTANCE);
-
-        // --- TẠO POPUP ---
-        const infoContent = `
-          <div style="min-width: 200px; font-family: system-ui, sans-serif;">
-            <div style="font-weight: bold; color: #000; margin-bottom: 4px; font-size: 13px;">
-                ${title}
-            </div>
-            <div style="color: #d32f2f; font-weight: bold; margin-bottom: 6px;">
-                ${money(row.price)}
-            </div>
-            <div style="font-size: 12px; color: #555; margin-bottom: 8px;">
-               ${row.address || row.street || "Đang cập nhật địa chỉ..."}
-            </div>
-            <button 
-              onclick="openDetail('${row.id}')"
-              class="btn btn-xs btn-primary w-full text-white" 
-              style="width: 100%; padding: 6px; background-color: #4f46e5; color: white; border-radius: 4px; border: none; cursor: pointer;">
-              Xem chi tiết
-            </button>
-          </div>
-        `;
-
-        marker.bindPopup(infoContent);
-
-        // Hiệu ứng: Khi hover vào marker thì hiện đè lên các marker khác
-        marker.on('mouseover', function (e) {
-            this.setZIndexOffset(1000);
-        });
-        marker.on('mouseout', function (e) {
-            this.setZIndexOffset(0);
-        });
-
-        MAP_MARKERS.push(marker);
-        group.addLayer(marker);
+        bounds.extend(pos);
+        hasPoint = true;
       });
 
-      if (MAP_MARKERS.length > 0) {
-        MAP_INSTANCE.fitBounds(group.getBounds(), { padding: [50, 50] });
+      if (hasPoint) {
+        MAP_INSTANCE.fitBounds(bounds);
       }
     }
     // BIẾN MỚI CHO ADMIN DUYỆT BÀI
@@ -2100,69 +2086,91 @@ MB0001/2.jpg"></textarea>
 
       dlg.showModal();
     }
-    // === HÀM TỰ ĐỘNG LẤY TỌA ĐỘ TỪ ĐỊA CHỈ (DÙNG NOMINATIM FREE) ===
-    async function autoGeocode() {
-        const statusEl = document.getElementById("geo-status");
-        const latInput = document.getElementById("edit-lat");
-        const lngInput = document.getElementById("edit-lng");
+// === GOOGLE MINI MAP TRONG FORM SỬA ===
+    let EDIT_MAP = null;
+    let EDIT_MARKER = null;
 
-        // 1. Lấy thông tin địa chỉ từ các ô input đang nhập
+    function initEditMap(lat, lng) {
+        // Mặc định HCM nếu chưa có
+        const defLat = lat || 10.7769;
+        const defLng = lng || 106.7009;
+        const center = { lat: parseFloat(defLat), lng: parseFloat(defLng) };
+
+        if (!EDIT_MAP) {
+            EDIT_MAP = new google.maps.Map(document.getElementById('edit-map-preview'), {
+                center: center,
+                zoom: 15,
+                mapTypeControl: false,
+                streetViewControl: false
+            });
+        } else {
+            // Map đã có -> chỉ cần center lại và trigger resize
+            EDIT_MAP.setCenter(center);
+            EDIT_MAP.setZoom(16);
+            google.maps.event.trigger(EDIT_MAP, 'resize');
+        }
+
+        // Xóa marker cũ
+        if (EDIT_MARKER) EDIT_MARKER.setMap(null);
+
+        // Tạo marker kéo thả được
+        if (lat && lng) {
+            EDIT_MARKER = new google.maps.Marker({
+                position: center,
+                map: EDIT_MAP,
+                draggable: true, // QUAN TRỌNG: Cho phép kéo
+                animation: google.maps.Animation.DROP,
+                title: "Kéo thả tôi để chỉnh vị trí!"
+            });
+
+            // Sự kiện: Kéo xong thả ra -> Cập nhật ô input
+            EDIT_MARKER.addListener('dragend', function() {
+                const pos = EDIT_MARKER.getPosition();
+                document.getElementById('edit-lat').value = pos.lat().toFixed(6);
+                document.getElementById('edit-lng').value = pos.lng().toFixed(6);
+            });
+        }
+    }
+
+    // === TỰ ĐỘNG LẤY TỌA ĐỘ (GOOGLE GEOCODING API) ===
+    function autoGeocode() {
+        const statusEl = document.getElementById("geo-status");
+        const geocoder = new google.maps.Geocoder();
+        
         const street = document.getElementById("edit-street").value.trim();
         const ward = document.getElementById("edit-ward").value.trim();
         const district = document.getElementById("edit-district").value.trim();
-        const city = "Hồ Chí Minh"; // Mặc định TP.HCM
-
+        
         if (!street && !district) {
-            statusEl.textContent = "❌ Vui lòng nhập ít nhất Tên đường và Quận.";
-            statusEl.className = "label-text-alt text-error italic";
+            alert("Vui lòng nhập Địa chỉ & Quận");
             return;
         }
 
-        // 2. Tạo câu truy vấn (Ưu tiên: Đường + Quận + TP)
-        // Mẹo: Bỏ số nhà đi để tìm chính xác hơn trên OpenStreetMap (vì data số nhà VN còn thiếu)
-        // Ví dụ: thay vì tìm "591/8 Lê Quang Định", ta tìm "Đường Lê Quang Định, Quận Gò Vấp"
-        const query = `${street}, ${ward}, ${district}, ${city}`;
+        // Google rất thông minh, nên ghép full địa chỉ để tìm
+        const address = `${street}, ${ward}, ${district}, Hồ Chí Minh, Việt Nam`;
         
-        statusEl.textContent = "⏳ Đang tìm kiếm trên bản đồ...";
-        statusEl.className = "label-text-alt text-warning italic";
+        statusEl.textContent = "⏳ Đang hỏi Google...";
+        statusEl.className = "label-text-alt text-warning";
 
-        try {
-            // Gọi API miễn phí của OpenStreetMap
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
-            
-            const response = await fetch(url);
-            const data = await response.json();
+        geocoder.geocode({ 'address': address }, function(results, status) {
+            if (status === 'OK' && results[0]) {
+                const loc = results[0].geometry.location;
+                const lat = loc.lat();
+                const lng = loc.lng();
 
-            if (data && data.length > 0) {
-                // 3. Có kết quả -> Điền vào ô
-                latInput.value = data[0].lat;
-                lngInput.value = data[0].lon;
+                document.getElementById('edit-lat').value = lat.toFixed(6);
+                document.getElementById('edit-lng').value = lng.toFixed(6);
                 
-                statusEl.innerHTML = `✅ Đã tìm thấy: <b>${data[0].display_name.split(',')[0]}...</b>`;
-                statusEl.className = "label-text-alt text-success italic";
+                statusEl.innerHTML = `✅ Google tìm thấy: <b>${results[0].formatted_address}</b>. Hãy kéo ghim nếu chưa chuẩn.`;
+                statusEl.className = "label-text-alt text-success";
+
+                // Vẽ lại mini map với vị trí mới tìm được
+                initEditMap(lat, lng);
             } else {
-                // 4. Không tìm thấy -> Thử tìm lỏng hơn (Chỉ Quận + Phường)
-                statusEl.textContent = "⚠️ Không tìm thấy đường này. Đang thử tìm Quận/Phường...";
-                const fallbackQuery = `${ward}, ${district}, ${city}`;
-                const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fallbackQuery)}&limit=1`;
-                
-                const res2 = await fetch(fallbackUrl);
-                const data2 = await res2.json();
-                
-                if (data2 && data2.length > 0) {
-                     latInput.value = data2[0].lat;
-                     lngInput.value = data2[0].lon;
-                     statusEl.innerHTML = `✅ Tìm theo Phường/Quận: <b>${ward}, ${district}</b>`;
-                     statusEl.className = "label-text-alt text-success italic";
-                } else {
-                     statusEl.textContent = "❌ Không tìm thấy địa điểm này. Hãy nhập tay.";
-                     statusEl.className = "label-text-alt text-error italic";
-                }
+                statusEl.textContent = "❌ Google không tìm ra địa chỉ này: " + status;
+                statusEl.className = "label-text-alt text-error";
             }
-        } catch (err) {
-            console.error(err);
-            statusEl.textContent = "❌ Lỗi kết nối. Vui lòng thử lại.";
-        }
+        });
     }
 // --- HÀM LƯU SỬA MẶT BẰNG (ĐÃ SỬA LỖI EDITING_ID & THÊM TỌA ĐỘ) ---
     async function saveEditPremise() {
