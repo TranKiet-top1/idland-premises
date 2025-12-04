@@ -14,6 +14,41 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
+    /* CSS CHO GHIM GIÁ TIỀN TRÊN BẢN ĐỒ */
+    .price-marker-label {
+      background-color: white;
+      border-radius: 12px;
+      padding: 4px 8px;
+      font-weight: bold;
+      font-size: 12px;
+      color: #333;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      border: 1px solid #ccc;
+      white-space: nowrap;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    .price-marker-label:hover {
+      background-color: #3b82f6; /* Màu xanh primary khi hover */
+      color: white;
+      border-color: #2563eb;
+      transform: scale(1.1);
+      z-index: 999 !important;
+    }
+    /* Mũi tên nhỏ dưới ghim (tùy chọn) */
+    .price-marker-label::after {
+      content: "";
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 4px 4px 0;
+      border-style: solid;
+      border-color: white transparent transparent transparent;
+    }
+    .price-marker-label:hover::after {
+      border-color: #2563eb transparent transparent transparent;
+    }
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
         sans-serif;
@@ -784,50 +819,65 @@ MB0001/2.jpg"></textarea>
     }
 
     // 3. Hàm vẽ marker lên bản đồ
+// 3. Hàm vẽ marker (HIỂN THỊ GIÁ TIỀN)
     function renderMapMarkers(rows) {
-      // Nếu đang ở tab Danh sách (ẩn map) thì không cần vẽ ngay để đỡ lag
+      // Nếu đang ở tab Danh sách (ẩn map) thì không cần vẽ ngay
       const mapView = document.getElementById("map-view");
       if (mapView && mapView.classList.contains("hidden")) return;
 
-      // Đảm bảo map đã được khởi tạo
       initStaffMap();
 
-      // FIX LỖI QUAN TRỌNG: Khi chuyển từ tab ẩn sang hiện, map hay bị xám xịt
-      // Lệnh này buộc map vẽ lại kích thước
+      // Fix lỗi map xám
       setTimeout(() => {
          if(MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
       }, 100);
 
-      // Xóa điểm cũ
       clearMapMarkers();
 
       if (!rows || !rows.length || !MAP_INSTANCE) return;
 
-      // Tạo một nhóm (featureGroup) để lát nữa auto-zoom bao quát hết các điểm
       const group = new L.featureGroup();
 
       rows.forEach((row) => {
-        // Chỉ vẽ những căn có tọa độ
         if (!row.lat || !row.lng) return;
 
         const lat = Number(row.lat);
         const lng = Number(row.lng);
 
-        // Lấy thông tin hiển thị
-        const priceStr = row.price ? money(row.price) : "Thương lượng";
+        // Xử lý hiển thị giá: Rút gọn cho đẹp (VD: 10.5 Triệu -> 10.5 Tr)
+        let displayPrice = "Thương lượng";
+        if (row.price) {
+           if (row.price >= 1000000000) {
+             displayPrice = (row.price / 1000000000).toFixed(1) + " Tỷ";
+           } else if (row.price >= 1000000) {
+             displayPrice = (row.price / 1000000).toFixed(1) + " Tr";
+           } else {
+             displayPrice = new Intl.NumberFormat('vi-VN').format(row.price);
+           }
+           // Bỏ số .0 nếu có (VD: 10.0 Tr -> 10 Tr)
+           displayPrice = displayPrice.replace(".0 ", " ");
+        }
+
         const title = (typeof buildTitle === 'function' ? buildTitle(row) : row.address) || "Mặt bằng";
         
-        // --- TẠO MARKER ---
-        const marker = L.marker([lat, lng]).addTo(MAP_INSTANCE);
+        // --- TẠO ICON GIÁ TIỀN (Custom DivIcon) ---
+        const priceIcon = L.divIcon({
+          className: '', // Để trống để không nhận style mặc định của Leaflet
+          html: `<div class="price-marker-label">${displayPrice}</div>`,
+          iconSize: [null, null], // Auto size theo nội dung text
+          iconAnchor: [20, 10]    // Căn chỉnh vị trí ghim
+        });
 
-        // --- TẠO POPUP (Nội dung khi bấm vào điểm đỏ) ---
+        const marker = L.marker([lat, lng], { icon: priceIcon }).addTo(MAP_INSTANCE);
+
+        // --- TẠO POPUP ---
         const infoContent = `
           <div style="min-width: 200px; font-family: system-ui, sans-serif;">
             <div style="font-weight: bold; color: #000; margin-bottom: 4px; font-size: 13px;">
                 ${title}
             </div>
             <div style="color: #d32f2f; font-weight: bold; margin-bottom: 6px;">
-                ${priceStr}
+                ${money(row.price)}
             </div>
             <div style="font-size: 12px; color: #555; margin-bottom: 8px;">
                ${row.address || row.street || "Đang cập nhật địa chỉ..."}
@@ -843,12 +893,18 @@ MB0001/2.jpg"></textarea>
 
         marker.bindPopup(infoContent);
 
-        // Lưu vào mảng quản lý
+        // Hiệu ứng: Khi hover vào marker thì hiện đè lên các marker khác
+        marker.on('mouseover', function (e) {
+            this.setZIndexOffset(1000);
+        });
+        marker.on('mouseout', function (e) {
+            this.setZIndexOffset(0);
+        });
+
         MAP_MARKERS.push(marker);
         group.addLayer(marker);
       });
 
-      // Zoom bản đồ vừa khít tất cả các điểm marker đang có
       if (MAP_MARKERS.length > 0) {
         MAP_INSTANCE.fitBounds(group.getBounds(), { padding: [50, 50] });
       }
