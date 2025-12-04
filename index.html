@@ -2164,11 +2164,28 @@ MB0001/2.jpg"></textarea>
             statusEl.textContent = "❌ Lỗi kết nối. Vui lòng thử lại.";
         }
     }
+// --- HÀM LƯU SỬA MẶT BẰNG (ĐÃ SỬA LỖI EDITING_ID & THÊM TỌA ĐỘ) ---
     async function saveEditPremise() {
-      if (!isAdmin() || !EDITING_ID) return;
-      const getVal = (id) => document.getElementById(id).value.trim();
-      const getNum = (id) => { const v = getVal(id).replace(/[^\d.]/g, ""); return v ? Number(v) : 0; };
+      // 1. Kiểm tra quyền & ID
+      if (!isAdmin()) {
+          toast("Bạn không phải Admin!");
+          return;
+      }
+      if (!EDITING_ID) { // Sửa lỗi: Phải dùng EDITING_ID (viết hoa)
+          toast("Lỗi: Không tìm thấy ID mặt bằng đang sửa.");
+          return;
+      }
 
+      const getVal = (id) => {
+          const el = document.getElementById(id);
+          return el ? el.value.trim() : "";
+      };
+      const getNum = (id) => { 
+          const v = getVal(id).replace(/[^\d.]/g, ""); 
+          return v ? Number(v) : null; 
+      };
+
+      // 2. Lấy dữ liệu từ Form
       const payload = {
         code: getVal("edit-code"),
         address: getVal("edit-address"),
@@ -2176,6 +2193,7 @@ MB0001/2.jpg"></textarea>
         district: getVal("edit-district"),
         ward: getVal("edit-ward"),
         street: getVal("edit-street"),
+        
         price: getNum("edit-price"),
         area: getNum("edit-area"),
         width: getNum("edit-width"),
@@ -2183,20 +2201,31 @@ MB0001/2.jpg"></textarea>
         floors: getNum("edit-floors"),
         pn: getNum("edit-bedrooms"),
         wc: getNum("edit-wc"),
+        
         ket_cau: getVal("edit-ket-cau"),
         contact_phone: getVal("edit-contact-phone"),
+        
+        // Checkbox & Select
         frontage: document.getElementById("edit-frontage").checked,
         status: getVal("edit-status"),
+        road_type: document.getElementById("edit-road-type").value,
+        
+        // Hoa hồng & Mô tả
         commission_note: getVal("edit-commission"),
-        images: getVal("edit-images").split("\n").map(s => s.trim()).filter(Boolean),
+        commission: getVal("edit-commission-text"),
         detail: getVal("edit-detail"),
+        
+        // Xử lý ảnh (mảng text)
+        images: getVal("edit-images").split("\n").map(s => s.trim()).filter(Boolean),
+        
         updated_at: new Date().toISOString(),
-        road_type: document.getElementById("edit-road-type").value, // MỚI
-        commission: getVal("edit-commission-text"), // MỚI
-        lat: getVal("edit-lat") ? parseFloat(getVal("edit-lat")) : null, // <--- THÊM
-        lng: getVal("edit-lng") ? parseFloat(getVal("edit-lng")) : null, // <--- THÊM
+
+        // --- MỚI: LƯU TỌA ĐỘ (LAT/LNG) ---
+        lat: getVal("edit-lat") ? parseFloat(getVal("edit-lat")) : null,
+        lng: getVal("edit-lng") ? parseFloat(getVal("edit-lng")) : null,
       };
-      // Nếu admin chỉnh trạng thái khác "rented" -> xoá ngày báo hết & yêu cầu chạy lại
+
+      // Xử lý logic trạng thái (Nếu admin đổi trạng thái khác 'rented' thì reset ngày báo hết)
       if (payload.status && payload.status !== "rented") {
         payload.rented_reported_at = null;
         payload.rented_confirmed_at = null;
@@ -2204,16 +2233,26 @@ MB0001/2.jpg"></textarea>
         payload.reactivate_confirmed_at = null;
       }
 
+      // 3. Gửi lên Supabase
+      // Sửa lỗi: dùng EDITING_ID (viết hoa) thay vì editingId
       const { error } = await supabase
         .from("premises")
         .update(payload)
-        .eq("id", editingId);
+        .eq("id", EDITING_ID);
 
-      if (error) { toast("Lỗi: " + error.message); return; }
-      toast("Đã lưu thay đổi!");
+      if (error) { 
+          console.error(error);
+          toast("Lỗi khi lưu: " + error.message); 
+          return; 
+      }
+
+      // 4. Thành công
+      toast("Đã lưu thay đổi thành công!");
       document.getElementById("editDlg").close();
+      
+      // Load lại dữ liệu
       await applyFilters(false);
-    }
+    }    
     // ===== BÁO HẾT (KHÔNG CẦN DUYỆT) =====
     async function reportRentedDirect(id) {
       if (!isAdmin()) return;  // chỉ admin được dùng
