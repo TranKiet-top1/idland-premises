@@ -464,23 +464,29 @@
       <h3 class="font-bold text-lg mb-3">Chỉnh sửa mặt bằng</h3>
 
       <div class="grid md:grid-cols-2 gap-3">
-        <div class="form-control md:col-span-2">
-            <label class="label font-bold text-primary">
-                <span class="label-text">Tọa độ bản đồ (Google Maps)</span>
-            </label>
+        <div class="form-control md:col-span-2 border p-3 rounded-lg bg-base-200">
+            <div class="flex justify-between items-center mb-2">
+                <label class="label font-bold text-primary p-0">
+                    <span class="label-text">Tọa độ bản đồ</span>
+                </label>
+                <button type="button" onclick="autoGeocode()" class="btn btn-xs btn-primary text-white">
+                    📍 Lấy tọa độ tự động
+                </button>
+            </div>
+            
             <div class="grid grid-cols-2 gap-2">
                 <div class="form-control">
                     <span class="label-text text-xs">Vĩ độ (Lat)</span>
-                    <input id="edit-lat" type="text" class="input input-bordered input-sm" placeholder="VD: 10.7769" />
+                    <input id="edit-lat" type="text" class="input input-bordered input-sm" placeholder="Trống..." />
                 </div>
                 <div class="form-control">
                     <span class="label-text text-xs">Kinh độ (Lng)</span>
-                    <input id="edit-lng" type="text" class="input input-bordered input-sm" placeholder="VD: 106.7009" />
+                    <input id="edit-lng" type="text" class="input input-bordered input-sm" placeholder="Trống..." />
                 </div>
             </div>
             <label class="label">
-                <span class="label-text-alt text-gray-500">
-                    Mẹo: Mở Google Maps, click chuột phải vào vị trí nhà -> copy dòng số đầu tiên.
+                <span id="geo-status" class="label-text-alt text-gray-500 italic">
+                    Bấm nút trên để tìm vị trí theo địa chỉ đã nhập.
                 </span>
             </label>
         </div>
@@ -2094,7 +2100,70 @@ MB0001/2.jpg"></textarea>
 
       dlg.showModal();
     }
-    
+    // === HÀM TỰ ĐỘNG LẤY TỌA ĐỘ TỪ ĐỊA CHỈ (DÙNG NOMINATIM FREE) ===
+    async function autoGeocode() {
+        const statusEl = document.getElementById("geo-status");
+        const latInput = document.getElementById("edit-lat");
+        const lngInput = document.getElementById("edit-lng");
+
+        // 1. Lấy thông tin địa chỉ từ các ô input đang nhập
+        const street = document.getElementById("edit-street").value.trim();
+        const ward = document.getElementById("edit-ward").value.trim();
+        const district = document.getElementById("edit-district").value.trim();
+        const city = "Hồ Chí Minh"; // Mặc định TP.HCM
+
+        if (!street && !district) {
+            statusEl.textContent = "❌ Vui lòng nhập ít nhất Tên đường và Quận.";
+            statusEl.className = "label-text-alt text-error italic";
+            return;
+        }
+
+        // 2. Tạo câu truy vấn (Ưu tiên: Đường + Quận + TP)
+        // Mẹo: Bỏ số nhà đi để tìm chính xác hơn trên OpenStreetMap (vì data số nhà VN còn thiếu)
+        // Ví dụ: thay vì tìm "591/8 Lê Quang Định", ta tìm "Đường Lê Quang Định, Quận Gò Vấp"
+        const query = `${street}, ${ward}, ${district}, ${city}`;
+        
+        statusEl.textContent = "⏳ Đang tìm kiếm trên bản đồ...";
+        statusEl.className = "label-text-alt text-warning italic";
+
+        try {
+            // Gọi API miễn phí của OpenStreetMap
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data && data.length > 0) {
+                // 3. Có kết quả -> Điền vào ô
+                latInput.value = data[0].lat;
+                lngInput.value = data[0].lon;
+                
+                statusEl.innerHTML = `✅ Đã tìm thấy: <b>${data[0].display_name.split(',')[0]}...</b>`;
+                statusEl.className = "label-text-alt text-success italic";
+            } else {
+                // 4. Không tìm thấy -> Thử tìm lỏng hơn (Chỉ Quận + Phường)
+                statusEl.textContent = "⚠️ Không tìm thấy đường này. Đang thử tìm Quận/Phường...";
+                const fallbackQuery = `${ward}, ${district}, ${city}`;
+                const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fallbackQuery)}&limit=1`;
+                
+                const res2 = await fetch(fallbackUrl);
+                const data2 = await res2.json();
+                
+                if (data2 && data2.length > 0) {
+                     latInput.value = data2[0].lat;
+                     lngInput.value = data2[0].lon;
+                     statusEl.innerHTML = `✅ Tìm theo Phường/Quận: <b>${ward}, ${district}</b>`;
+                     statusEl.className = "label-text-alt text-success italic";
+                } else {
+                     statusEl.textContent = "❌ Không tìm thấy địa điểm này. Hãy nhập tay.";
+                     statusEl.className = "label-text-alt text-error italic";
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = "❌ Lỗi kết nối. Vui lòng thử lại.";
+        }
+    }
     async function saveEditPremise() {
       if (!isAdmin() || !EDITING_ID) return;
       const getVal = (id) => document.getElementById(id).value.trim();
