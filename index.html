@@ -23,7 +23,8 @@
     }
   </style>
 </head>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCZB4z1gM310t1eYcs3qVeukj93WNSRHUc&language=vi"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <body class="bg-base-200">
 
@@ -752,87 +753,106 @@ MB0001/2.jpg"></textarea>
     let MAP_INSTANCE = null;
     let MAP_MARKERS = [];
 
+// ============================================================
+    // CẤU HÌNH BẢN ĐỒ LEAFLET (OPENSTREETMAP - MIỄN PHÍ)
+    // ============================================================
+    let MAP_INSTANCE = null;
+    let MAP_MARKERS = [];
+
+    // 1. Hàm khởi tạo bản đồ
     function initStaffMap() {
+      // Nếu map đã tạo rồi thì không tạo lại
       if (MAP_INSTANCE) return;
+
       const el = document.getElementById("premises-map");
       if (!el) return;
 
-      // Mặc định view trung tâm TP.HCM
-      MAP_INSTANCE = new google.maps.Map(el, {
-        center: { lat: 10.7769, lng: 106.7009 }, 
-        zoom: 13,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: true,
-      });
+      // Tạo map, set trung tâm là TP.HCM (10.7769, 106.7009), zoom 13
+      MAP_INSTANCE = L.map('premises-map').setView([10.7769, 106.7009], 13);
+
+      // QUAN TRỌNG: Thêm lớp nền OpenStreetMap (cái này Google Maps không cần nhưng Leaflet bắt buộc)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(MAP_INSTANCE);
     }
 
+    // 2. Hàm xóa các marker cũ khi lọc lại
     function clearMapMarkers() {
       if (MAP_MARKERS.length > 0) {
-        MAP_MARKERS.forEach((m) => m.setMap(null));
+        MAP_MARKERS.forEach(marker => marker.remove()); // Lệnh xóa của Leaflet
         MAP_MARKERS = [];
       }
     }
 
+    // 3. Hàm vẽ marker lên bản đồ
     function renderMapMarkers(rows) {
-      // Chỉ render nếu đang mở tab Map để tiết kiệm hiệu năng
+      // Nếu đang ở tab Danh sách (ẩn map) thì không cần vẽ ngay để đỡ lag
       const mapView = document.getElementById("map-view");
-      if (mapView.classList.contains("hidden")) return;
+      if (mapView && mapView.classList.contains("hidden")) return;
 
+      // Đảm bảo map đã được khởi tạo
       initStaffMap();
+
+      // FIX LỖI QUAN TRỌNG: Khi chuyển từ tab ẩn sang hiện, map hay bị xám xịt
+      // Lệnh này buộc map vẽ lại kích thước
+      setTimeout(() => {
+         if(MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
+      }, 100);
+
+      // Xóa điểm cũ
       clearMapMarkers();
 
       if (!rows || !rows.length || !MAP_INSTANCE) return;
 
-      let bounds = new google.maps.LatLngBounds();
-      let hasAny = false;
+      // Tạo một nhóm (featureGroup) để lát nữa auto-zoom bao quát hết các điểm
+      const group = new L.featureGroup();
 
       rows.forEach((row) => {
-        // Chỉ vẽ marker nếu có tọa độ
+        // Chỉ vẽ những căn có tọa độ
         if (!row.lat || !row.lng) return;
 
-        const pos = { lat: Number(row.lat), lng: Number(row.lng) };
-        const priceStr = row.price ? money(row.price) : "Thương lượng";
-        const title = buildTitle(row) || "Mặt bằng";
-        
-        // Tạo marker
-        const marker = new google.maps.Marker({
-          position: pos,
-          map: MAP_INSTANCE,
-          title: title, // Tooltip khi hover
-        });
+        const lat = Number(row.lat);
+        const lng = Number(row.lng);
 
-        // Tạo nội dung popup (InfoWindow)
+        // Lấy thông tin hiển thị
+        const priceStr = row.price ? money(row.price) : "Thương lượng";
+        const title = (typeof buildTitle === 'function' ? buildTitle(row) : row.address) || "Mặt bằng";
+        
+        // --- TẠO MARKER ---
+        const marker = L.marker([lat, lng]).addTo(MAP_INSTANCE);
+
+        // --- TẠO POPUP (Nội dung khi bấm vào điểm đỏ) ---
         const infoContent = `
-          <div style="font-family: sans-serif; min-width: 200px; color: #333;">
-            <div style="font-weight: bold; margin-bottom: 5px; font-size: 13px;">${title}</div>
-            <div style="color: #d32f2f; font-weight: bold; margin-bottom: 8px;">${priceStr}</div>
-            <div style="font-size: 12px; margin-bottom: 8px; color: #666;">
-               ${row.address || row.street || "Đang cập nhật..."}
+          <div style="min-width: 200px; font-family: system-ui, sans-serif;">
+            <div style="font-weight: bold; color: #000; margin-bottom: 4px; font-size: 13px;">
+                ${title}
+            </div>
+            <div style="color: #d32f2f; font-weight: bold; margin-bottom: 6px;">
+                ${priceStr}
+            </div>
+            <div style="font-size: 12px; color: #555; margin-bottom: 8px;">
+               ${row.address || row.street || "Đang cập nhật địa chỉ..."}
             </div>
             <button 
               onclick="openDetail('${row.id}')"
-              style="background: #000; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; width: 100%;">
+              class="btn btn-xs btn-primary w-full text-white" 
+              style="width: 100%; padding: 6px; background-color: #4f46e5; color: white; border-radius: 4px; border: none; cursor: pointer;">
               Xem chi tiết
             </button>
           </div>
         `;
 
-        const infoWindow = new google.maps.InfoWindow({ content: infoContent });
+        marker.bindPopup(infoContent);
 
-        marker.addListener("click", () => {
-          // Đóng các popup khác nếu cần (tùy chọn)
-          infoWindow.open(MAP_INSTANCE, marker);
-        });
-
+        // Lưu vào mảng quản lý
         MAP_MARKERS.push(marker);
-        bounds.extend(pos);
-        hasAny = true;
+        group.addLayer(marker);
       });
 
-      // Zoom bản đồ vừa khít các marker
-      if (hasAny) {
-        MAP_INSTANCE.fitBounds(bounds);
+      // Zoom bản đồ vừa khít tất cả các điểm marker đang có
+      if (MAP_MARKERS.length > 0) {
+        MAP_INSTANCE.fitBounds(group.getBounds(), { padding: [50, 50] });
       }
     }
     // BIẾN MỚI CHO ADMIN DUYỆT BÀI
@@ -2459,7 +2479,7 @@ MB0001/2.jpg"></textarea>
       // Rồi mới xử lý login / role / dữ liệu
       initAuth();
     });
-// --- XỬ LÝ CHUYỂN TAB LIST / MAP ---
+// --- XỬ LÝ CHUYỂN TAB LIST / MAP (LEAFLET VERSION) ---
       const btnList = document.getElementById("btn-view-list");
       const btnMap = document.getElementById("btn-view-map");
       const divList = document.getElementById("list-view");
@@ -2467,20 +2487,27 @@ MB0001/2.jpg"></textarea>
 
       function switchView(mode) {
         if (mode === 'list') {
-          divList.classList.remove("hidden");
-          divMap.classList.add("hidden");
-          btnList.classList.add("btn-active");
-          btnMap.classList.remove("btn-active");
+          // Hiện List, Ẩn Map
+          if(divList) divList.classList.remove("hidden");
+          if(divMap) divMap.classList.add("hidden");
+          if(btnList) btnList.classList.add("btn-active");
+          if(btnMap) btnMap.classList.remove("btn-active");
         } else {
-          divList.classList.add("hidden");
-          divMap.classList.remove("hidden");
-          btnList.classList.remove("btn-active");
-          btnMap.classList.add("btn-active");
-          // Khi mở map thì vẽ marker dựa trên list hiện tại
-          renderMapMarkers(LAST_ROWS); 
+          // Hiện Map, Ẩn List
+          if(divList) divList.classList.add("hidden");
+          if(divMap) divMap.classList.remove("hidden");
+          if(btnList) btnList.classList.remove("btn-active");
+          if(btnMap) btnMap.classList.add("btn-active");
+          
+          // QUAN TRỌNG: Vẽ lại map ngay khi mở tab này
+          // LAST_ROWS là biến chứa danh sách mặt bằng đang lọc hiện tại
+          if (typeof LAST_ROWS !== 'undefined') {
+              renderMapMarkers(LAST_ROWS);
+          }
         }
       }
 
+      // Gắn sự kiện click
       if(btnList) btnList.onclick = () => switchView('list');
       if(btnMap) btnMap.onclick = () => switchView('map');
 
