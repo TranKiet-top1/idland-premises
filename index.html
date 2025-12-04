@@ -413,8 +413,8 @@
 
           <div class="flex gap-2">
             <div class="btn-group">
-              <button id="btn-view-list" class="btn btn-sm btn-active">Danh sách</button>
-              <button id="btn-view-map" class="btn btn-sm btn-ghost">Bản đồ</button>
+              <button id="btn-view-list-side" class="btn btn-sm btn-active">Danh sách</button>
+              <button id="btn-view-map-side" class="btn btn-sm btn-ghost">Bản đồ</button>
             </div>
 
             <button id="btn-apply" class="btn btn-sm btn-primary flex-1">
@@ -691,7 +691,14 @@ MB0001/2.jpg"></textarea>
                   <label for="inp-upload-files" class="btn btn-sm btn-primary text-white">
                       📷 Tải ảnh lên
                   </label>
-                  <input type="file" multiple accept="image/*" onchange="handleSelectFiles(this)" />
+                  <input
+                    id="inp-upload-files"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onchange="handleSelectFiles(this)"
+                  />
+
 
               </div>
               
@@ -2677,36 +2684,48 @@ MB0001/2.jpg"></textarea>
       initAuth();
     });
 // --- XỬ LÝ CHUYỂN TAB LIST / MAP (LEAFLET VERSION) ---
-      const btnList = document.getElementById("btn-view-list");
-      const btnMap = document.getElementById("btn-view-map");
-      const divList = document.getElementById("list-view");
-      const divMap = document.getElementById("map-view");
+      const btnListMain = document.getElementById("btn-view-list");
+      const btnMapMain  = document.getElementById("btn-view-map");
+      const btnListSide = document.getElementById("btn-view-list-side");
+      const btnMapSide  = document.getElementById("btn-view-map-side");
+      const divList     = document.getElementById("list-view");
+      const divMap      = document.getElementById("map-view");
+
+      function setActiveViewButtons(mode) {
+        const isList = mode === 'list';
+        const isMap  = mode === 'map';
+
+        if (btnListMain) btnListMain.classList.toggle("btn-active", isList);
+        if (btnMapMain)  btnMapMain.classList.toggle("btn-active", isMap);
+        if (btnListSide) btnListSide.classList.toggle("btn-active", isList);
+        if (btnMapSide)  btnMapSide.classList.toggle("btn-active", isMap);
+      }
 
       function switchView(mode) {
         if (mode === 'list') {
           // Hiện List, Ẩn Map
-          if(divList) divList.classList.remove("hidden");
-          if(divMap) divMap.classList.add("hidden");
-          if(btnList) btnList.classList.add("btn-active");
-          if(btnMap) btnMap.classList.remove("btn-active");
+          if (divList) divList.classList.remove("hidden");
+          if (divMap)  divMap.classList.add("hidden");
+          setActiveViewButtons('list');
         } else {
           // Hiện Map, Ẩn List
-          if(divList) divList.classList.add("hidden");
-          if(divMap) divMap.classList.remove("hidden");
-          if(btnList) btnList.classList.remove("btn-active");
-          if(btnMap) btnMap.classList.add("btn-active");
-          
+          if (divList) divList.classList.add("hidden");
+          if (divMap)  divMap.classList.remove("hidden");
+          setActiveViewButtons('map');
+
           // QUAN TRỌNG: Vẽ lại map ngay khi mở tab này
           // LAST_ROWS là biến chứa danh sách mặt bằng đang lọc hiện tại
           if (typeof LAST_ROWS !== 'undefined') {
-              renderMapMarkers(LAST_ROWS);
+            renderMapMarkers(LAST_ROWS);
           }
         }
       }
 
-      // Gắn sự kiện click
-      if(btnList) btnList.onclick = () => switchView('list');
-      if(btnMap) btnMap.onclick = () => switchView('map');
+      // Gắn sự kiện click cho cả 2 cụm nút
+      if (btnListMain) btnListMain.onclick = () => switchView('list');
+      if (btnMapMain)  btnMapMain.onclick  = () => switchView('map');
+      if (btnListSide) btnListSide.onclick = () => switchView('list');
+      if (btnMapSide)  btnMapSide.onclick  = () => switchView('map');
 
     // --- 2. CÁC HÀM XỬ LÝ GIAO DIỆN ẢNH (GIỮ NGUYÊN) ---
     function handleSelectFiles(input) {
