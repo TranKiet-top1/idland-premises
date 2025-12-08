@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="vi" data-theme="light">
 <head>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+  </script>
+
   <meta charset="UTF-8" />
   <title>ID-Land Premises</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -2237,45 +2245,45 @@ MB0001/2.jpg"></textarea>
     }
 
     // === TỰ ĐỘNG LẤY TỌA ĐỘ (GOOGLE GEOCODING API) ===
-    function autoGeocode() {
-        const statusEl = document.getElementById("geo-status");
-        const geocoder = new google.maps.Geocoder();
+    // function autoGeocode() {
+    //     const statusEl = document.getElementById("geo-status");
+    //     const geocoder = new google.maps.Geocoder();
         
-        const street = document.getElementById("edit-street").value.trim();
-        const ward = document.getElementById("edit-ward").value.trim();
-        const district = document.getElementById("edit-district").value.trim();
+    //     const street = document.getElementById("edit-street").value.trim();
+    //     const ward = document.getElementById("edit-ward").value.trim();
+    //     const district = document.getElementById("edit-district").value.trim();
         
-        if (!street && !district) {
-            alert("Vui lòng nhập Địa chỉ & Quận");
-            return;
-        }
+    //     if (!street && !district) {
+    //         alert("Vui lòng nhập Địa chỉ & Quận");
+    //         return;
+    //     }
 
-        // Google rất thông minh, nên ghép full địa chỉ để tìm
-        const address = `${street}, ${ward}, ${district}, Hồ Chí Minh, Việt Nam`;
+    //     // Google rất thông minh, nên ghép full địa chỉ để tìm
+    //     const address = `${street}, ${ward}, ${district}, Hồ Chí Minh, Việt Nam`;
         
-        statusEl.textContent = "⏳ Đang hỏi Google...";
-        statusEl.className = "label-text-alt text-warning";
+    //     statusEl.textContent = "⏳ Đang hỏi Google...";
+    //     statusEl.className = "label-text-alt text-warning";
 
-        geocoder.geocode({ 'address': address }, function(results, status) {
-            if (status === 'OK' && results[0]) {
-                const loc = results[0].geometry.location;
-                const lat = loc.lat();
-                const lng = loc.lng();
+    //     geocoder.geocode({ 'address': address }, function(results, status) {
+    //         if (status === 'OK' && results[0]) {
+    //             const loc = results[0].geometry.location;
+    //             const lat = loc.lat();
+    //             const lng = loc.lng();
 
-                document.getElementById('edit-lat').value = lat.toFixed(6);
-                document.getElementById('edit-lng').value = lng.toFixed(6);
+    //             document.getElementById('edit-lat').value = lat.toFixed(6);
+    //             document.getElementById('edit-lng').value = lng.toFixed(6);
                 
-                statusEl.innerHTML = `✅ Google tìm thấy: <b>${results[0].formatted_address}</b>. Hãy kéo ghim nếu chưa chuẩn.`;
-                statusEl.className = "label-text-alt text-success";
+    //             statusEl.innerHTML = `✅ Google tìm thấy: <b>${results[0].formatted_address}</b>. Hãy kéo ghim nếu chưa chuẩn.`;
+    //             statusEl.className = "label-text-alt text-success";
 
-                // Vẽ lại mini map với vị trí mới tìm được
-                initEditMap(lat, lng);
-            } else {
-                statusEl.textContent = "❌ Google không tìm ra địa chỉ này: " + status;
-                statusEl.className = "label-text-alt text-error";
-            }
-        });
-    }
+    //             // Vẽ lại mini map với vị trí mới tìm được
+    //             initEditMap(lat, lng);
+    //         } else {
+    //             statusEl.textContent = "❌ Google không tìm ra địa chỉ này: " + status;
+    //             statusEl.className = "label-text-alt text-error";
+    //         }
+    //     });
+    // }
 // --- HÀM LƯU SỬA MẶT BẰNG (ĐÃ SỬA LỖI EDITING_ID & THÊM TỌA ĐỘ) ---
     async function saveEditPremise() {
       // 1. Kiểm tra quyền & ID
