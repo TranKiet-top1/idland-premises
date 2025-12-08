@@ -14,6 +14,41 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
+    /* CSS CHO GHIM GIÁ TIỀN TRÊN BẢN ĐỒ */
+    .price-marker-label {
+      background-color: white;
+      border-radius: 12px;
+      padding: 4px 8px;
+      font-weight: bold;
+      font-size: 12px;
+      color: #333;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      border: 1px solid #ccc;
+      white-space: nowrap;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    .price-marker-label:hover {
+      background-color: #3b82f6; /* Màu xanh primary khi hover */
+      color: white;
+      border-color: #2563eb;
+      transform: scale(1.1);
+      z-index: 999 !important;
+    }
+    /* Mũi tên nhỏ dưới ghim (tùy chọn) */
+    .price-marker-label::after {
+      content: "";
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 4px 4px 0;
+      border-style: solid;
+      border-color: white transparent transparent transparent;
+    }
+    .price-marker-label:hover::after {
+      border-color: #2563eb transparent transparent transparent;
+    }
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
         sans-serif;
@@ -22,19 +57,9 @@
       transform: translateY(-2px);
     }
   </style>
-    <!-- Leaflet (OpenStreetMap) -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""
-  ></script>
 </head>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAMgWoTy19cWHz5fdpvobYDfRNISVUtCmI&libraries=geometry&language=vi"></script>
+
 <body class="bg-base-200">
 
   <section id="auth-section" class="min-h-screen flex flex-col bg-base-200">
@@ -179,6 +204,10 @@
         </div>
 
         <div class="flex flex-wrap gap-2 justify-end">
+          <div class="join">
+            <button id="btn-view-list" class="btn btn-sm join-item btn-active">Danh sách</button>
+            <button id="btn-view-map" class="btn btn-sm join-item">Bản đồ</button>
+          </div>
           <div id="admin-pending-controls" class="hidden flex gap-2">
             <!-- CẦN DUYỆT -->
             <button id="btn-toggle-pending" class="btn btn-warning btn-sm text-white">
@@ -219,7 +248,13 @@
         <button class="btn btn-xs btn-ghost btn-outline" id="btn-clear-quick">
           Xoá lọc nhanh
         </button>
+
+        <!-- NÚT XEM GHIM -->
+        <button class="btn btn-xs btn-outline" id="btn-toggle-favorites">
+          Xem mặt bằng đã ghim
+        </button>
       </div>
+
 
       <div class="grid md:grid-cols-[260px,1fr] gap-4">
         <aside class="bg-base-100 rounded-2xl shadow-sm p-4">
@@ -377,6 +412,11 @@
           </div>
 
           <div class="flex gap-2">
+            <div class="btn-group">
+              <button id="btn-view-list-side" class="btn btn-sm btn-active">Danh sách</button>
+              <button id="btn-view-map-side" class="btn btn-sm btn-ghost">Bản đồ</button>
+            </div>
+
             <button id="btn-apply" class="btn btn-sm btn-primary flex-1">
               Lọc
             </button>
@@ -388,34 +428,21 @@
 
         <section class="flex flex-col gap-3">
           <div class="flex items-center justify-between mb-1 text-xs opacity-70">
-            <span>
-              Hiển thị <span id="count-show">0</span> / <span id="count-total">0</span>
-            </span>
-            <button id="btn-download-csv" class="btn btn-xs btn-ghost">
-              Tải CSV trên Supabase
-            </button>
+            <span>Hiển thị <span id="count-show">0</span> / <span id="count-total">0</span></span>
+            <button id="btn-download-csv" class="btn btn-xs btn-ghost">Tải CSV trên Supabase</button>
           </div>
 
-          <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div id="list-view">
+            <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              </div>
+            <div class="mt-4 flex justify-center">
+              <button id="btn-load-more" class="btn btn-sm btn-ghost">Hết dữ liệu</button>
+            </div>
           </div>
 
-          <div class="mt-4 flex justify-center">
-            <button id="btn-load-more" class="btn btn-sm btn-ghost">
-              Hết dữ liệu
-            </button>
+          <div id="map-view" class="hidden w-full h-[600px] rounded-xl border border-base-300 relative z-0">
+            <div id="premises-map" class="w-full h-full rounded-xl"></div>
           </div>
-
-          <!-- BẢN ĐỒ OPENSTREETMAP -->
-          <div class="mt-6">
-            <h2 class="text-sm font-semibold mb-2">
-              Bản đồ mặt bằng (OpenStreetMap)
-            </h2>
-            <div id="premises-map" class="w-full h-[420px] rounded-2xl overflow-hidden border border-base-300"></div>
-            <p class="mt-1 text-[11px] opacity-60">
-              Chỉ hiển thị những mặt bằng đã có <b>lat / lng</b> trong Supabase.
-            </p>
-          </div>
-
         </section>
       </div>
     </main>
@@ -429,11 +456,39 @@
   </dialog>
 
   <dialog id="editDlg" class="modal">
+
+
     <div class="modal-box max-w-4xl">
       <form method="dialog" class="modal-backdrop absolute inset-0" onclick="document.getElementById('editDlg').close()"></form>
       <h3 class="font-bold text-lg mb-3">Chỉnh sửa mặt bằng</h3>
 
       <div class="grid md:grid-cols-2 gap-3">
+        <div class="form-control md:col-span-2 border p-3 rounded-lg bg-base-200">
+            <div class="flex justify-between items-center mb-2">
+                <label class="label font-bold text-primary p-0">
+                    <span class="label-text">Tọa độ bản đồ</span>
+                </label>
+                <button type="button" onclick="autoGeocode()" class="btn btn-xs btn-primary text-white">
+                    📍 Lấy tọa độ tự động
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2">
+                <div class="form-control">
+                    <span class="label-text text-xs">Vĩ độ (Lat)</span>
+                    <input id="edit-lat" type="text" class="input input-bordered input-sm" placeholder="Trống..." />
+                </div>
+                <div class="form-control">
+                    <span class="label-text text-xs">Kinh độ (Lng)</span>
+                    <input id="edit-lng" type="text" class="input input-bordered input-sm" placeholder="Trống..." />
+                </div>
+            </div>
+            <label class="label">
+                <span id="geo-status" class="label-text-alt text-gray-500 italic">
+                    Bấm nút trên để tìm vị trí theo địa chỉ đã nhập.
+                </span>
+            </label>
+        </div>
         <div class="form-control md:col-span-2">
           <label class="label">
             <span class="label-text">Mã mặt bằng (code)</span>
@@ -636,7 +691,14 @@ MB0001/2.jpg"></textarea>
                   <label for="inp-upload-files" class="btn btn-sm btn-primary text-white">
                       📷 Tải ảnh lên
                   </label>
-                  <input type="file" multiple accept="image/*" onchange="handleSelectFiles(this)" />
+                  <input
+                    id="inp-upload-files"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onchange="handleSelectFiles(this)"
+                  />
+
 
               </div>
               
@@ -756,71 +818,118 @@ MB0001/2.jpg"></textarea>
     let TOTAL_COUNT = 0;
     let LAST_ROWS = [];
     let EDITING_ID = null;
-    // --- Map (OpenStreetMap / Leaflet) ---
-    let MAP = null;
-    let MAP_LAYER = null;
 
-    function ensureMap() {
-      if (MAP) return;
-      const mapDiv = document.getElementById("premises-map");
-      if (!mapDiv) return; // chưa vào màn hình chính
 
-      MAP = L.map("premises-map").setView([10.77, 106.69], 12); // trung tâm HCM
+// ============================================================
+    // CẤU HÌNH BẢN ĐỒ LEAFLET (OPENSTREETMAP - MIỄN PHÍ)
+    // ============================================================
+    let MAP_INSTANCE = null;
+    let MAP_MARKERS = [];
+    // ========== CẤU HÌNH GOOGLE MAPS ==========
+    
+    // 1. Tạo Class hiển thị Giá tiền (Kế thừa OverlayView)
+    class PriceOverlay extends google.maps.OverlayView {
+        constructor(position, text, id) {
+            super();
+            this.position = position;
+            this.text = text;
+            this.id = id;
+            this.div = null;
+        }
+        onAdd() {
+            this.div = document.createElement("div");
+            this.div.className = "price-marker-label"; // Dùng lại class CSS cũ bạn đã thêm
+            this.div.innerHTML = this.text;
+            this.div.style.position = "absolute";
+            this.div.style.cursor = "pointer";
+            
+            // Sự kiện click vào giá tiền -> Mở popup
+            this.div.addEventListener("click", (e) => {
+                e.stopPropagation();
+                openDetail(this.id); // Gọi hàm mở chi tiết của bạn
+            });
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(MAP);
+            const panes = this.getPanes();
+            panes.overlayMouseTarget.appendChild(this.div);
+        }
+        draw() {
+            const overlayProjection = this.getProjection();
+            const pos = overlayProjection.fromLatLngToDivPixel(this.position);
+            if (this.div) {
+                // Căn chỉnh để tâm đốm nằm giữa
+                this.div.style.left = (pos.x - this.div.offsetWidth / 2) + "px";
+                this.div.style.top = (pos.y - this.div.offsetHeight - 10) + "px";
+            }
+        }
+        onRemove() {
+            if (this.div) {
+                this.div.parentNode.removeChild(this.div);
+                this.div = null;
+            }
+        }
+    }
+// 2. Khởi tạo Map chính
+    function initStaffMap() {
+      if (MAP_INSTANCE) return;
+      const el = document.getElementById("premises-map");
+      if (!el) return;
 
-      MAP_LAYER = L.layerGroup().addTo(MAP);
+      MAP_INSTANCE = new google.maps.Map(el, {
+        center: { lat: 10.7769, lng: 106.7009 },
+        zoom: 13,
+        mapTypeControl: false,
+        fullscreenControl: true,
+        streetViewControl: false,
+        styles: [ /* Có thể thêm style json để ẩn bớt POI nếu muốn */ ] 
+      });
     }
 
-    function updateMapMarkers(rows) {
-      ensureMap();
-      if (!MAP || !MAP_LAYER) return;
+    // 3. Vẽ marker giá tiền lên map
+    function renderMapMarkers(rows) {
+      const mapView = document.getElementById("map-view");
+      if (mapView && mapView.classList.contains("hidden")) return;
 
-      MAP_LAYER.clearLayers();
+      initStaffMap();
 
-      const bounds = [];
-      (rows || []).forEach((row) => {
-        const lat = Number(row.lat);
-        const lng = Number(row.lng);
-        if (!lat || !lng || isNaN(lat) || isNaN(lng)) return;
+      // Xóa marker cũ
+      if (MAP_MARKERS.length > 0) {
+        MAP_MARKERS.forEach(m => m.setMap(null));
+        MAP_MARKERS = [];
+      }
 
-        const title = buildTitle(row);
-        const priceText = money(row.price);
-        const addr = maskAddress(row);
+      if (!rows || !rows.length || !MAP_INSTANCE) return;
 
-        const popupHtml = `
-          <div class="text-xs">
-            <div class="font-semibold mb-1">${title}</div>
-            <div class="mb-1">${addr || ""}</div>
-            <div class="font-bold text-primary mb-1">${priceText}</div>
-            <button
-              class="btn btn-xs btn-primary"
-              onclick="window.__openFromMap && window.__openFromMap('${row.id}')"
-            >
-              Xem chi tiết
-            </button>
-          </div>
-        `;
+      let bounds = new google.maps.LatLngBounds();
+      let hasPoint = false;
 
-        const marker = L.marker([lat, lng]).bindPopup(popupHtml);
-        marker.addTo(MAP_LAYER);
+      rows.forEach((row) => {
+        if (!row.lat || !row.lng) return;
+        const lat = parseFloat(row.lat);
+        const lng = parseFloat(row.lng);
+        const pos = new google.maps.LatLng(lat, lng);
 
-        bounds.push([lat, lng]);
+        // Xử lý hiển thị giá rút gọn
+        let displayPrice = "TL";
+        if (row.price) {
+           if (row.price >= 1000000000) displayPrice = (row.price / 1000000000).toFixed(1) + " Tỷ";
+           else if (row.price >= 1000000) displayPrice = (row.price / 1000000).toFixed(1) + " Tr";
+           else displayPrice = new Intl.NumberFormat('vi-VN').format(row.price);
+           displayPrice = displayPrice.replace(".0 ", " ");
+        }
+
+        // Tạo Marker Giá tiền (Dùng Class PriceOverlay vừa tạo ở bước 2)
+        const overlay = new PriceOverlay(pos, displayPrice, row.id);
+        overlay.setMap(MAP_INSTANCE);
+        MAP_MARKERS.push(overlay);
+        
+        bounds.extend(pos);
+        hasPoint = true;
       });
 
-      if (bounds.length) {
-        MAP.fitBounds(bounds, { padding: [24, 24] });
+      if (hasPoint) {
+        MAP_INSTANCE.fitBounds(bounds);
       }
     }
-
-    // Cho popup trên map mở dialog chi tiết
-    window.__openFromMap = (id) => {
-      openDetail(id);
-    };
-    
     // BIẾN MỚI CHO ADMIN DUYỆT BÀI
     let SHOW_PENDING = false;
     // 👉 chế độ xem danh sách tin nhân sự đã báo hết (admin)
@@ -924,6 +1033,105 @@ MB0001/2.jpg"></textarea>
 
     function isAdmin() { return CURRENT_ROLE === "admin"; }
     function isStaff() { return CURRENT_ROLE === "staff"; }
+    // --- GHIM MẶT BẰNG THEO NHÂN SỰ (LƯU LOCAL) ---
+    let FAVORITES_MODE = false;
+
+    function getFavoriteStorageKey() {
+      if (CURRENT_USER && CURRENT_USER.id) {
+        return "idland_favorites_" + CURRENT_USER.id;
+      }
+      // fallback nếu chưa login (ít dùng)
+      return "idland_favorites_guest";
+    }
+
+    function getFavoriteIds() {
+      try {
+        const raw = localStorage.getItem(getFavoriteStorageKey());
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) {
+        console.warn("getFavoriteIds error", e);
+        return [];
+      }
+    }
+
+    function saveFavoriteIds(ids) {
+      try {
+        localStorage.setItem(getFavoriteStorageKey(), JSON.stringify(ids));
+      } catch (e) {
+        console.warn("saveFavoriteIds error", e);
+      }
+    }
+
+    function toggleFavorite(e, id) {
+      if (e) e.stopPropagation(); // ⬅ để khi bấm sao không bị mở popup
+
+      if (!CURRENT_USER) {
+        toast("Vui lòng đăng nhập để ghim sản phẩm.");
+        return;
+      }
+
+      let ids = getFavoriteIds();
+      const idx = ids.indexOf(id);
+      let isFav = false;
+
+      if (idx === -1) {
+        ids.push(id);
+        isFav = true;
+      } else {
+        ids.splice(idx, 1);
+        isFav = false;
+      }
+
+      saveFavoriteIds(ids);
+
+      // Cập nhật icon / màu cho tất cả nút sao của id này
+      document.querySelectorAll(`.fav-btn[data-id="${id}"]`).forEach(btn => {
+        btn.classList.toggle("btn-error", isFav);
+        btn.classList.toggle("text-white", isFav);
+        btn.classList.toggle("btn-ghost", !isFav);
+        btn.textContent = isFav ? "★" : "☆";
+      });
+
+      // Nếu đang ở chế độ chỉ xem ghim thì render lại
+      if (FAVORITES_MODE) {
+        const favSet = new Set(ids);
+        const filtered = (LAST_ROWS || []).filter(r => favSet.has(r.id));
+        renderCards(filtered, true);
+        const showEl = document.getElementById("count-show");
+        if (showEl) showEl.textContent = filtered.length;
+      }
+    }
+
+
+    function toggleFavoriteMode() {
+      FAVORITES_MODE = !FAVORITES_MODE;
+      const btn = document.getElementById("btn-toggle-favorites");
+      if (!btn) return;
+
+      if (FAVORITES_MODE) {
+        btn.classList.add("btn-active");
+        btn.textContent = "Đang xem: Mặt bằng đã ghim (thoát)";
+
+        const favSet = new Set(getFavoriteIds());
+        const filtered = (LAST_ROWS || []).filter(r => favSet.has(r.id));
+        renderCards(filtered, true);
+
+        const showEl = document.getElementById("count-show");
+        if (showEl) showEl.textContent = filtered.length;
+      } else {
+        btn.classList.remove("btn-active");
+        btn.textContent = "Xem mặt bằng đã ghim";
+
+        renderCards(LAST_ROWS || [], true);
+        const showEl = document.getElementById("count-show");
+        if (showEl) {
+          showEl.textContent = Math.min((PAGE + 1) * PAGE_SIZE, TOTAL_COUNT);
+        }
+      }
+    }
+
 
     function maskAddress(row) {
       const full = row.address || "";
@@ -1197,18 +1405,18 @@ MB0001/2.jpg"></textarea>
       } else {
         renderCards(LAST_ROWS, false);
       }
-
-      // Cập nhật bản đồ OpenStreetMap
-      updateMapMarkers(LAST_ROWS);
-
       if (typeof scanGridImages === "function") {
         scanGridImages(LAST_ROWS).catch(err =>
           console.error("scanGridImages error", err)
         );
       }
-
-
-
+      document.getElementById("count-total").textContent = TOTAL_COUNT;
+      document.getElementById("count-show").textContent = Math.min(
+        (PAGE + 1) * PAGE_SIZE,
+        TOTAL_COUNT
+      );
+      // CẬP NHẬT MAP (Nếu đang mở map)
+      renderMapMarkers(LAST_ROWS);
       const btnMore = document.getElementById("btn-load-more");
       if ((PAGE + 1) * PAGE_SIZE >= TOTAL_COUNT) {
         btnMore.textContent = "Hết dữ liệu";
@@ -1225,20 +1433,34 @@ MB0001/2.jpg"></textarea>
 
       if (!rows || rows.length === 0) {
         if (PAGE === 0) {
-          grid.innerHTML = `<div class="col-span-full text-center text-sm opacity-70 py-10">Chưa có mặt bằng nào khớp bộ lọc hiện tại.</div>`;
+          grid.innerHTML = `
+            <div class="col-span-full text-center text-sm opacity-70 py-10">
+              Chưa có mặt bằng nào khớp bộ lọc hiện tại.
+            </div>`;
         }
         return;
       }
 
-      const html = rows.map((row) => {
-        // Xử lý ảnh (Logic cũ)
+      // Lấy danh sách ghim
+      const favSet = new Set(getFavoriteIds());
+
+      // 👉 ƯU TIÊN HÀNG ĐƯỢC GHIM LÊN TRÊN
+      const sortedRows = [...rows].sort((a, b) => {
+        const af = favSet.has(a.id);
+        const bf = favSet.has(b.id);
+        if (af === bf) return 0;
+        return af ? -1 : 1; // ghim lên trước
+      });
+
+      const html = sortedRows.map((row) => {
+        // Xử lý ảnh
         let firstPath = null;
         if (Array.isArray(row.images) && row.images.length > 0) firstPath = row.images[0];
         else if (typeof row.images === "string" && row.images.trim()) {
-             try { 
-                 if(row.images.startsWith("[")) firstPath = JSON.parse(row.images)[0];
-                 else firstPath = row.images.split(/[\n;,]+/)[0];
-             } catch(e){}
+          try {
+            if (row.images.startsWith("[")) firstPath = JSON.parse(row.images)[0];
+            else firstPath = row.images.split(/[\n;,]+/)[0];
+          } catch (e) {}
         }
         const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
 
@@ -1249,48 +1471,74 @@ MB0001/2.jpg"></textarea>
         const creatorEmail = row.profiles?.email || "";
         const shortName = creatorEmail.split("@")[0];
 
-        // Badge Vị trí
+        // Badge vị trí
         let locationBadge = "";
         const roadType = row.road_type || (row.frontage ? "Mặt tiền" : "Hẻm");
-        if (roadType === "Mặt tiền") locationBadge = `<span class="badge badge-xs badge-error text-white border-none">Mặt tiền</span>`;
-        else if (roadType === "Hẻm xe hơi") locationBadge = `<span class="badge badge-xs badge-info text-white border-none">Hẻm xe hơi</span>`;
-        else locationBadge = `<span class="badge badge-xs badge-ghost border-none opacity-70">Nhà hẻm</span>`;
+        if (roadType === "Mặt tiền") {
+          locationBadge = `<span class="badge badge-xs badge-error text-white border-none">Mặt tiền</span>`;
+        } else if (roadType === "Hẻm xe hơi") {
+          locationBadge = `<span class="badge badge-xs badge-info text-white border-none">Hẻm xe hơi</span>`;
+        } else {
+          locationBadge = `<span class="badge badge-xs badge-ghost border-none opacity-70">Nhà hẻm</span>`;
+        }
 
-        const hhBadge = row.commission ? `<span class="badge badge-xs badge-success text-white border-none ml-1">${row.commission}</span>` : '';
-                // Nếu nhân sự đã báo hết mà admin chưa duyệt
+        const hhBadge = row.commission
+          ? `<span class="badge badge-xs badge-success text-white border-none ml-1">${row.commission}</span>`
+          : "";
+
         const staffReportBadge =
           row.rented_reported_at && row.status !== "rented"
             ? `<span class="badge badge-xs badge-warning border-none ml-1">NS báo hết</span>`
             : "";
 
-        
         let approveBtn = "";
         if (SHOW_PENDING && isAdmin()) {
-            approveBtn = `<button onclick="approveOne('${row.id}', event)" class="btn btn-xs btn-success w-full mt-2 text-white">✔ Duyệt ngay</button>`;
+          approveBtn = `
+            <button onclick="approveOne('${row.id}', event)" 
+              class="btn btn-xs btn-success w-full mt-2 text-white">
+              ✔ Duyệt ngay
+            </button>`;
         }
 
+        // Trạng thái ghim
+        const isFav = favSet.has(row.id);
+        const favBtnClass = isFav ? "btn-error text-white" : "btn-ghost";
+        const favIcon = isFav ? "★" : "☆";
+
         return `
-          <article class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden" data-id="${row.id}">
+          <article 
+            class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden"
+            data-id="${row.id}">
+            
             <figure class="h-52 bg-base-200 flex items-center justify-center relative">
-              
-              <div id="thumb-box-${row.code}" class="w-full h-full flex items-center justify-center ${imgUrl ? '' : 'opacity-60'}">
-                  ${
-                    imgUrl
-                      ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
-                      : `<div class="text-xs">(Đang quét ảnh...)</div>`
-                  }
+              <div id="thumb-box-${row.code}" 
+                class="w-full h-full flex items-center justify-center ${imgUrl ? "" : "opacity-60"}">
+                ${
+                  imgUrl
+                    ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
+                    : `<div class="text-xs">(Đang quét ảnh...)</div>`
+                }
               </div>
 
-               <div class="absolute top-2 right-2 shadow-sm flex items-center">
-                 ${locationBadge}
-                 ${isAdmin() ? hhBadge : ''}
-                 ${isAdmin() ? staffReportBadge : ''}
-               </div>
+              <div class="absolute top-2 right-2 shadow-sm flex items-center gap-1">
+                <button 
+                  type="button"
+                  class="fav-btn btn btn-sm ${favBtnClass} btn-circle border-none text-lg"
+                  data-id="${row.id}"
+                  title="Ghim / bỏ ghim"
+                  onclick="toggleFavorite(event, '${row.id}')">
+                  ${favIcon}
+                </button>
+                ${locationBadge}
+                ${isAdmin() ? hhBadge : ""}
+                ${isAdmin() ? staffReportBadge : ""}
+              </div>
 
-               <div class="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[10px] p-1 px-2 truncate">
-                  Đăng bởi: <b>${shortName || 'Ẩn danh'}</b>
-               </div>
+              <div class="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[10px] p-1 px-2 truncate">
+                Đăng bởi: <b>${shortName || "Ẩn danh"}</b>
+              </div>
             </figure>
+
             <div class="card-body p-4 gap-2">
               <h3 class="font-semibold text-sm line-clamp-2">${buildTitle(row)}</h3>
               <div class="flex items-center flex-wrap gap-2 text-[11px] opacity-70">
@@ -1314,15 +1562,23 @@ MB0001/2.jpg"></textarea>
 
       grid.insertAdjacentHTML("beforeend", html.join(""));
 
-      grid.querySelectorAll("[data-id]").forEach((el) => {
-        el.onclick = () => openDetail(el.getAttribute("data-id"));
+      // 👉 GẮN CLICK ĐỂ MỞ POPUP
+      grid.querySelectorAll(".premise-card").forEach((el) => {
+        el.onclick = () => {
+          const id = el.getAttribute("data-id");
+          if (id) openDetail(id);
+        };
       });
+
+      // Quét ảnh nếu có hàm scanGridImages
       if (typeof scanGridImages === "function") {
-        scanGridImages(rows).catch(err => console.error("scanGridImages error", err));
-      }      
-      // --- GỌI HÀM QUÉT ẢNH TỰ ĐỘNG ---
-      scanGridImages(rows);
+        scanGridImages(sortedRows).catch(err =>
+          console.error("scanGridImages error", err)
+        );
+      }
     }
+
+
 
     // === HÀM MỚI: LẤY QUẬN TỪ HCM_DATA ===
     function buildDistrictWardOptions() {
@@ -1792,6 +2048,9 @@ MB0001/2.jpg"></textarea>
       setVal("edit-contact-phone", item.contact_phone || "");
       setVal("edit-commission", item.commission_note || "");
       setVal("edit-detail", item.detail || "");
+      // ... các dòng setVal cũ
+      setVal("edit-lat", item.lat || ""); // <--- THÊM
+      setVal("edit-lng", item.lng || ""); // <--- THÊM
 
       const statusSelect = document.getElementById("edit-status");
       if (statusSelect) {
@@ -1834,12 +2093,114 @@ MB0001/2.jpg"></textarea>
 
       dlg.showModal();
     }
-    
-    async function saveEditPremise() {
-      if (!isAdmin() || !EDITING_ID) return;
-      const getVal = (id) => document.getElementById(id).value.trim();
-      const getNum = (id) => { const v = getVal(id).replace(/[^\d.]/g, ""); return v ? Number(v) : 0; };
+// === GOOGLE MINI MAP TRONG FORM SỬA ===
+    let EDIT_MAP = null;
+    let EDIT_MARKER = null;
 
+    function initEditMap(lat, lng) {
+        // Mặc định HCM nếu chưa có
+        const defLat = lat || 10.7769;
+        const defLng = lng || 106.7009;
+        const center = { lat: parseFloat(defLat), lng: parseFloat(defLng) };
+
+        if (!EDIT_MAP) {
+            EDIT_MAP = new google.maps.Map(document.getElementById('edit-map-preview'), {
+                center: center,
+                zoom: 15,
+                mapTypeControl: false,
+                streetViewControl: false
+            });
+        } else {
+            // Map đã có -> chỉ cần center lại và trigger resize
+            EDIT_MAP.setCenter(center);
+            EDIT_MAP.setZoom(16);
+            google.maps.event.trigger(EDIT_MAP, 'resize');
+        }
+
+        // Xóa marker cũ
+        if (EDIT_MARKER) EDIT_MARKER.setMap(null);
+
+        // Tạo marker kéo thả được
+        if (lat && lng) {
+            EDIT_MARKER = new google.maps.Marker({
+                position: center,
+                map: EDIT_MAP,
+                draggable: true, // QUAN TRỌNG: Cho phép kéo
+                animation: google.maps.Animation.DROP,
+                title: "Kéo thả tôi để chỉnh vị trí!"
+            });
+
+            // Sự kiện: Kéo xong thả ra -> Cập nhật ô input
+            EDIT_MARKER.addListener('dragend', function() {
+                const pos = EDIT_MARKER.getPosition();
+                document.getElementById('edit-lat').value = pos.lat().toFixed(6);
+                document.getElementById('edit-lng').value = pos.lng().toFixed(6);
+            });
+        }
+    }
+
+    // === TỰ ĐỘNG LẤY TỌA ĐỘ (GOOGLE GEOCODING API) ===
+    function autoGeocode() {
+        const statusEl = document.getElementById("geo-status");
+        const geocoder = new google.maps.Geocoder();
+        
+        const street = document.getElementById("edit-street").value.trim();
+        const ward = document.getElementById("edit-ward").value.trim();
+        const district = document.getElementById("edit-district").value.trim();
+        
+        if (!street && !district) {
+            alert("Vui lòng nhập Địa chỉ & Quận");
+            return;
+        }
+
+        // Google rất thông minh, nên ghép full địa chỉ để tìm
+        const address = `${street}, ${ward}, ${district}, Hồ Chí Minh, Việt Nam`;
+        
+        statusEl.textContent = "⏳ Đang hỏi Google...";
+        statusEl.className = "label-text-alt text-warning";
+
+        geocoder.geocode({ 'address': address }, function(results, status) {
+            if (status === 'OK' && results[0]) {
+                const loc = results[0].geometry.location;
+                const lat = loc.lat();
+                const lng = loc.lng();
+
+                document.getElementById('edit-lat').value = lat.toFixed(6);
+                document.getElementById('edit-lng').value = lng.toFixed(6);
+                
+                statusEl.innerHTML = `✅ Google tìm thấy: <b>${results[0].formatted_address}</b>. Hãy kéo ghim nếu chưa chuẩn.`;
+                statusEl.className = "label-text-alt text-success";
+
+                // Vẽ lại mini map với vị trí mới tìm được
+                initEditMap(lat, lng);
+            } else {
+                statusEl.textContent = "❌ Google không tìm ra địa chỉ này: " + status;
+                statusEl.className = "label-text-alt text-error";
+            }
+        });
+    }
+// --- HÀM LƯU SỬA MẶT BẰNG (ĐÃ SỬA LỖI EDITING_ID & THÊM TỌA ĐỘ) ---
+    async function saveEditPremise() {
+      // 1. Kiểm tra quyền & ID
+      if (!isAdmin()) {
+          toast("Bạn không phải Admin!");
+          return;
+      }
+      if (!EDITING_ID) { // Sửa lỗi: Phải dùng EDITING_ID (viết hoa)
+          toast("Lỗi: Không tìm thấy ID mặt bằng đang sửa.");
+          return;
+      }
+
+      const getVal = (id) => {
+          const el = document.getElementById(id);
+          return el ? el.value.trim() : "";
+      };
+      const getNum = (id) => { 
+          const v = getVal(id).replace(/[^\d.]/g, ""); 
+          return v ? Number(v) : null; 
+      };
+
+      // 2. Lấy dữ liệu từ Form
       const payload = {
         code: getVal("edit-code"),
         address: getVal("edit-address"),
@@ -1847,6 +2208,7 @@ MB0001/2.jpg"></textarea>
         district: getVal("edit-district"),
         ward: getVal("edit-ward"),
         street: getVal("edit-street"),
+        
         price: getNum("edit-price"),
         area: getNum("edit-area"),
         width: getNum("edit-width"),
@@ -1854,18 +2216,31 @@ MB0001/2.jpg"></textarea>
         floors: getNum("edit-floors"),
         pn: getNum("edit-bedrooms"),
         wc: getNum("edit-wc"),
+        
         ket_cau: getVal("edit-ket-cau"),
         contact_phone: getVal("edit-contact-phone"),
+        
+        // Checkbox & Select
         frontage: document.getElementById("edit-frontage").checked,
         status: getVal("edit-status"),
+        road_type: document.getElementById("edit-road-type").value,
+        
+        // Hoa hồng & Mô tả
         commission_note: getVal("edit-commission"),
-        images: getVal("edit-images").split("\n").map(s => s.trim()).filter(Boolean),
+        commission: getVal("edit-commission-text"),
         detail: getVal("edit-detail"),
+        
+        // Xử lý ảnh (mảng text)
+        images: getVal("edit-images").split("\n").map(s => s.trim()).filter(Boolean),
+        
         updated_at: new Date().toISOString(),
-        road_type: document.getElementById("edit-road-type").value, // MỚI
-        commission: getVal("edit-commission-text"), // MỚI
+
+        // --- MỚI: LƯU TỌA ĐỘ (LAT/LNG) ---
+        lat: getVal("edit-lat") ? parseFloat(getVal("edit-lat")) : null,
+        lng: getVal("edit-lng") ? parseFloat(getVal("edit-lng")) : null,
       };
-      // Nếu admin chỉnh trạng thái khác "rented" -> xoá ngày báo hết & yêu cầu chạy lại
+
+      // Xử lý logic trạng thái (Nếu admin đổi trạng thái khác 'rented' thì reset ngày báo hết)
       if (payload.status && payload.status !== "rented") {
         payload.rented_reported_at = null;
         payload.rented_confirmed_at = null;
@@ -1873,16 +2248,26 @@ MB0001/2.jpg"></textarea>
         payload.reactivate_confirmed_at = null;
       }
 
+      // 3. Gửi lên Supabase
+      // Sửa lỗi: dùng EDITING_ID (viết hoa) thay vì editingId
       const { error } = await supabase
         .from("premises")
         .update(payload)
-        .eq("id", editingId);
+        .eq("id", EDITING_ID);
 
-      if (error) { toast("Lỗi: " + error.message); return; }
-      toast("Đã lưu thay đổi!");
+      if (error) { 
+          console.error(error);
+          toast("Lỗi khi lưu: " + error.message); 
+          return; 
+      }
+
+      // 4. Thành công
+      toast("Đã lưu thay đổi thành công!");
       document.getElementById("editDlg").close();
+      
+      // Load lại dữ liệu
       await applyFilters(false);
-    }
+    }    
     // ===== BÁO HẾT (KHÔNG CẦN DUYỆT) =====
     async function reportRentedDirect(id) {
       if (!isAdmin()) return;  // chỉ admin được dùng
@@ -2271,6 +2656,11 @@ MB0001/2.jpg"></textarea>
         document.getElementById("filter-ward").value = "";
         applyFilters(true);
       });
+      // Nút xem danh sách mặt bằng đã ghim
+      const btnToggleFavorites = document.getElementById("btn-toggle-favorites");
+      if (btnToggleFavorites) {
+        btnToggleFavorites.addEventListener("click", toggleFavoriteMode);
+      }
 
       // ===== DEMO NOTICE BUTTONS =====
       const demoAgreeBtn = document.getElementById("btn-demo-agree");
@@ -2293,7 +2683,49 @@ MB0001/2.jpg"></textarea>
       // Rồi mới xử lý login / role / dữ liệu
       initAuth();
     });
+// --- XỬ LÝ CHUYỂN TAB LIST / MAP (LEAFLET VERSION) ---
+      const btnListMain = document.getElementById("btn-view-list");
+      const btnMapMain  = document.getElementById("btn-view-map");
+      const btnListSide = document.getElementById("btn-view-list-side");
+      const btnMapSide  = document.getElementById("btn-view-map-side");
+      const divList     = document.getElementById("list-view");
+      const divMap      = document.getElementById("map-view");
 
+      function setActiveViewButtons(mode) {
+        const isList = mode === 'list';
+        const isMap  = mode === 'map';
+
+        if (btnListMain) btnListMain.classList.toggle("btn-active", isList);
+        if (btnMapMain)  btnMapMain.classList.toggle("btn-active", isMap);
+        if (btnListSide) btnListSide.classList.toggle("btn-active", isList);
+        if (btnMapSide)  btnMapSide.classList.toggle("btn-active", isMap);
+      }
+
+      function switchView(mode) {
+        if (mode === 'list') {
+          // Hiện List, Ẩn Map
+          if (divList) divList.classList.remove("hidden");
+          if (divMap)  divMap.classList.add("hidden");
+          setActiveViewButtons('list');
+        } else {
+          // Hiện Map, Ẩn List
+          if (divList) divList.classList.add("hidden");
+          if (divMap)  divMap.classList.remove("hidden");
+          setActiveViewButtons('map');
+
+          // QUAN TRỌNG: Vẽ lại map ngay khi mở tab này
+          // LAST_ROWS là biến chứa danh sách mặt bằng đang lọc hiện tại
+          if (typeof LAST_ROWS !== 'undefined') {
+            renderMapMarkers(LAST_ROWS);
+          }
+        }
+      }
+
+      // Gắn sự kiện click cho cả 2 cụm nút
+      if (btnListMain) btnListMain.onclick = () => switchView('list');
+      if (btnMapMain)  btnMapMain.onclick  = () => switchView('map');
+      if (btnListSide) btnListSide.onclick = () => switchView('list');
+      if (btnMapSide)  btnMapSide.onclick  = () => switchView('map');
 
     // --- 2. CÁC HÀM XỬ LÝ GIAO DIỆN ẢNH (GIỮ NGUYÊN) ---
     function handleSelectFiles(input) {
