@@ -2539,7 +2539,13 @@ MB0001/2.jpg"></textarea>
       const divList = document.getElementById("list-view");
       const divMap = document.getElementById("map-view");
 
+      // --- SỬA LỖI: HÀM CHUYỂN TAB MỚI ---
       function switchView(mode) {
+        const btnList = document.getElementById("btn-view-list");
+        const btnMap = document.getElementById("btn-view-map");
+        const divList = document.getElementById("list-view");
+        const divMap = document.getElementById("map-view");
+
         if (mode === 'list') {
           // Hiện List, Ẩn Map
           if(divList) divList.classList.remove("hidden");
@@ -2552,10 +2558,19 @@ MB0001/2.jpg"></textarea>
           if(divMap) divMap.classList.remove("hidden");
           if(btnList) btnList.classList.remove("btn-active");
           if(btnMap) btnMap.classList.add("btn-active");
-          
-          // QUAN TRỌNG: Vẽ lại map ngay khi mở tab này
-          // LAST_ROWS là biến chứa danh sách mặt bằng đang lọc hiện tại
-          if (typeof LAST_ROWS !== 'undefined') {
+
+          // BƯỚC 1: Khởi tạo map ngay lập tức (không chờ dữ liệu)
+          initStaffMap();
+
+          // BƯỚC 2: Buộc bản đồ tính lại kích thước để tránh bị màu xám
+          setTimeout(() => {
+             if(MAP_INSTANCE) {
+               MAP_INSTANCE.invalidateSize();
+             }
+          }, 200);
+
+          // BƯỚC 3: Vẽ marker nếu đã có dữ liệu từ trước
+          if (typeof LAST_ROWS !== 'undefined' && LAST_ROWS.length > 0) {
               renderMapMarkers(LAST_ROWS);
           }
         }
