@@ -3017,83 +3017,95 @@ async function scanGridImages(rows) {
     // --- BIẾN TOÀN CỤC ĐỂ ĐIỀU KHIỂN ---
     let STOP_SYNC = false;
 
-    async function startSyncCoordinates() {
-      if (!isAdmin()) {
-        alert("Chỉ Admin mới được dùng tính năng này!");
-        return;
-      }
+    // --- THUẬT TOÁN QUÉT TỌA ĐỘ THÔNG MINH (BẢN CẬP NHẬT) ---
 
-      // 1. Lấy danh sách các mặt bằng chưa có tọa độ (lat là null)
+    async function startSyncCoordinates() {
+      if (!isAdmin()) { alert("Chỉ Admin mới được dùng!"); return; }
+
       const btn = document.getElementById("btn-start-sync");
-      const statusBox = document.getElementById("sync-status");
       const logBox = document.getElementById("sync-log");
       
+      // Reset giao diện
+      document.getElementById("sync-status").classList.remove("hidden");
       btn.disabled = true;
       STOP_SYNC = false;
-      statusBox.classList.remove("hidden");
-      logBox.innerHTML = "<div>Đang tải danh sách cần cập nhật...</div>";
+      logBox.innerHTML = "<div>Đang tải danh sách...</div>";
 
-      // Lọc những hàng có lat = null
-      const { data: list, error } = await supabase
+      // Lấy danh sách chưa có tọa độ
+      const { data: list } = await supabase
         .from("premises")
-        .select("id, address, district, ward, street, city")
+        .select("id, address, district, ward, street")
         .is("lat", null);
 
-      if (error || !list || list.length === 0) {
-        logBox.innerHTML += `<div class="text-success">Tất cả mặt bằng đã có tọa độ! Không cần quét.</div>`;
-        btn.disabled = false;
-        return;
+      if (!list || list.length === 0) {
+        logBox.innerHTML += `<div class="text-success">Đã cập nhật hết!</div>`;
+        btn.disabled = false; return;
       }
 
       document.getElementById("sync-total").innerText = list.length;
       let processed = 0;
 
-      // 2. Chạy vòng lặp từng cái một
       for (const item of list) {
-        if (STOP_SYNC) {
-          logBox.innerHTML += `<div class="text-error font-bold">--- ĐÃ DỪNG BỞI NGƯỜI DÙNG ---</div>`;
-          break;
-        }
-
+        if (STOP_SYNC) break;
         processed++;
         document.getElementById("sync-count").innerText = processed;
         document.getElementById("sync-bar").style.width = (processed / list.length * 100) + "%";
 
-        // Tạo địa chỉ tìm kiếm: ưu tiên Số nhà + Đường, nếu không có thì lấy Tên đường
-        const searchPart = item.address || item.street || "";
-        const fullQuery = `${searchPart}, ${item.ward || ""}, ${item.district || ""}, TP.HCM`;
-
-        logBox.innerHTML += `<div>Đang quét: ${searchPart}...</div>`;
-        logBox.scrollTop = logBox.scrollHeight;
-
-        try {
-          // GỌI API (Thêm delay giả lập để không bị block)
-          const coords = await fetchOpenStreetMap(fullQuery);
-          
-          if (coords) {
-            // Cập nhật vào Database
-            await supabase
-              .from("premises")
-              .update({ lat: coords.lat, lng: coords.lon }) // API trả về 'lon', DB của bạn là 'lng'
-              .eq("id", item.id);
-              
-            logBox.innerHTML += `<div class="text-success"> -> OK: ${coords.lat}, ${coords.lon}</div>`;
-          } else {
-            logBox.innerHTML += `<div class="text-warning"> -> Không tìm thấy vị trí</div>`;
-          }
-
-        } catch (err) {
-          console.error(err);
-          logBox.innerHTML += `<div class="text-error"> -> Lỗi mạng</div>`;
+        // --- LOGIC XỬ LÝ ĐỊA CHỈ THÔNG MINH ---
+        // 1. Lấy tên đường gốc (ưu tiên cột street, nếu ko có thì cắt từ address)
+        let streetRaw = item.street;
+        if (!streetRaw && item.address) {
+           // Cố gắng loại bỏ số nhà: "123/4 Nguyễn Trãi" -> "Nguyễn Trãi"
+           streetRaw = item.address.replace(/^[0-9\/A-Za-z]+\s+(.*)$/, "$1"); 
+           // Loại bỏ chữ "Góc", "Hẻm" ở đầu nếu có
+           streetRaw = streetRaw.replace(/^(Góc|Hẻm|Nhà)\s+/i, "");
+        }
+        
+        const district = item.district || "";
+        const city = "Hồ Chí Minh";
+        
+        // Tạo các phương án tìm kiếm (Queries)
+        const queries = [];
+        
+        // PA1: Tìm chính xác (Address + District)
+        if (item.address) queries.push(`${item.address}, ${district}, ${city}`);
+        
+        // PA2: Tìm "Đường" + Tên đường + Phường + Quận (Khả năng trúng cao nhất)
+        if (streetRaw) {
+            queries.push(`Đường ${streetRaw}, ${item.ward || ""}, ${district}, ${city}`);
+            queries.push(`Đường ${streetRaw}, ${district}, ${city}`); // Bỏ phường
         }
 
-        // --- QUAN TRỌNG: NGỦ 1.5 GIÂY TRƯỚC KHI SANG CÁI TIẾP THEO ---
-        await new Promise(r => setTimeout(r, 1500));
+        logBox.innerHTML += `<div>Đang thử: ${item.address || streetRaw}...</div>`;
+        logBox.scrollTop = logBox.scrollHeight;
+
+        let found = null;
+        
+        // --- CHẠY VÒNG LẶP THỬ CÁC PHƯƠNG ÁN ---
+        for (const q of queries) {
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    found = data[0];
+                    break; // Tìm thấy rồi thì dừng ngay
+                }
+            } catch(e) {}
+            await new Promise(r => setTimeout(r, 1200)); // Delay nhẹ giữa các lần thử
+        }
+
+        if (found) {
+            await supabase.from("premises").update({ lat: found.lat, lng: found.lon }).eq("id", item.id);
+            logBox.innerHTML += `<div class="text-success text-[10px]"> -> OK: ${found.display_name.substring(0,30)}...</div>`;
+        } else {
+            logBox.innerHTML += `<div class="text-error text-[10px]"> -> Bó tay (Check lại tên đường)</div>`;
+        }
       }
 
       btn.disabled = false;
-      alert("Hoàn tất quá trình quét!");
-      applyFilters(true); // Tải lại danh sách ngoài trang chủ
+      alert("Hoàn tất!");
+      applyFilters(true);
     }
 
     // Hàm gọi API riêng lẻ
