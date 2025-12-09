@@ -616,6 +616,21 @@ MB0001/2.jpg"></textarea>
                  <span class="label-text text-xs">Tên đường (để lọc)</span>
                  <input id="add-street" type="text" class="input input-sm input-bordered"/>
              </div>
+              <div class="form-control mb-2">
+                  <span class="label-text text-xs font-bold">Tọa độ (Lat / Lng)</span>
+                  <div class="join w-full">
+                      <input id="add-lat" type="text" class="input input-sm input-bordered join-item w-1/3" placeholder="Vĩ độ (Lat)" />
+                      <input id="add-lng" type="text" class="input input-sm input-bordered join-item w-1/3" placeholder="Kinh độ (Lng)" />
+                      <button type="button" class="btn btn-sm btn-accent join-item w-1/3 text-white" onclick="autoFetchCoords()">
+                          📍 Lấy tọa độ
+                      </button>
+                  </div>
+                  <label class="label cursor-pointer justify-start gap-2 mt-1">
+                      <span class="label-text-alt text-gray-500">
+                          *Mẹo: Click chuột phải trên Google Maps chọn dòng đầu tiên để copy số.
+                      </span>
+                  </label>
+              </div>
              <div class="form-control mt-3">
                  <span class="label-text text-xs font-bold text-primary">Giá thuê (VNĐ) *</span>
                  <input id="add-price" type="text" class="input input-sm input-bordered font-bold" onkeyup="formatCurrencyInput(this)" placeholder="0"/>
@@ -1688,7 +1703,52 @@ MB0001/2.jpg"></textarea>
 
       return parts.join(" - ").toUpperCase();
     }
+    // --- HÀM MỚI: TỰ ĐỘNG TÌM TỌA ĐỘ TỪ ĐỊA CHỈ ---
+    async function autoFetchCoords() {
+        const address = document.getElementById("add-address").value;
+        const district = document.getElementById("add-district").value;
+        const city = "Hồ Chí Minh";
 
+        if (!address || !district) {
+            alert("Vui lòng nhập Địa chỉ và chọn Quận trước!");
+            return;
+        }
+
+        // Tạo query tìm kiếm
+        const query = `${address}, ${district}, ${city}, Vietnam`;
+        const btn = document.querySelector("button[onclick='autoFetchCoords()']");
+        const originalText = btn.innerText;
+        
+        try {
+            btn.innerText = "Đang tìm...";
+            btn.disabled = true;
+
+            // Gọi API Nominatim (OpenStreetMap) - Miễn phí
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (data && data.length > 0) {
+                document.getElementById("add-lat").value = data[0].lat;
+                document.getElementById("add-lng").value = data[0].lon;
+                // Thông báo nhỏ
+                const toast = document.getElementById("toast"); // Tận dụng toast cũ
+                if(toast) { 
+                    document.getElementById("toast-text").innerText = "Đã tìm thấy tọa độ!";
+                    toast.classList.remove("hidden");
+                    setTimeout(() => toast.classList.add("hidden"), 2000);
+                }
+            } else {
+                alert("Không tìm thấy tọa độ tự động. Vui lòng nhập thủ công từ Google Maps.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Lỗi khi gọi API bản đồ.");
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    }
     // ===== CHI TIẾT & SỬA =====
     // ===== CHI TIẾT & SỬA (ĐÃ NÂNG CẤP TỰ QUÉT ẢNH STORAGE) =====
     async function openDetail(id) {
@@ -2709,6 +2769,8 @@ MB0001/2.jpg"></textarea>
                 district: document.getElementById("add-district").value,
                 ward: document.getElementById("add-ward").value,
                 street: getVal("add-street"),
+                lat: document.getElementById("add-lat").value || null,
+                lng: document.getElementById("add-lng").value || null,
                 price: priceNum,
                 area: Number(getVal("add-area")) || null,
                 width: Number(getVal("add-width")) || null,
