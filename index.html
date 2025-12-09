@@ -1706,47 +1706,90 @@ MB0001/2.jpg"></textarea>
 
       return parts.join(" - ").toUpperCase();
     }
-    // --- HÀM MỚI: TỰ ĐỘNG TÌM TỌA ĐỘ TỪ ĐỊA CHỈ ---
+    // --- CẬP NHẬT: HÀM TÌM TỌA ĐỘ THÔNG MINH (FALLBACK) ---
     async function autoFetchCoords() {
-        const address = document.getElementById("add-address").value;
-        const district = document.getElementById("add-district").value;
+        const addressInput = document.getElementById("add-address").value; // VD: 490/8 Lê Văn Sỹ
+        const district = document.getElementById("add-district").value;    // VD: Quận 3
+        const streetInput = document.getElementById("add-street").value;   // VD: Lê Văn Sỹ (nếu có nhập)
         const city = "Hồ Chí Minh";
 
-        if (!address || !district) {
-            alert("Vui lòng nhập Địa chỉ và chọn Quận trước!");
+        if (!district) {
+            alert("Vui lòng chọn Quận trước!");
             return;
         }
 
-        // Tạo query tìm kiếm
-        const query = `${address}, ${district}, ${city}, Vietnam`;
         const btn = document.querySelector("button[onclick='autoFetchCoords()']");
         const originalText = btn.innerText;
-        
-        try {
-            btn.innerText = "Đang tìm...";
-            btn.disabled = true;
+        btn.innerText = "Đang dò...";
+        btn.disabled = true;
 
-            // Gọi API Nominatim (OpenStreetMap) - Miễn phí
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
-            const res = await fetch(url);
-            const data = await res.json();
-
-            if (data && data.length > 0) {
-                document.getElementById("add-lat").value = data[0].lat;
-                document.getElementById("add-lng").value = data[0].lon;
-                // Thông báo nhỏ
-                const toast = document.getElementById("toast"); // Tận dụng toast cũ
-                if(toast) { 
-                    document.getElementById("toast-text").innerText = "Đã tìm thấy tọa độ!";
-                    toast.classList.remove("hidden");
-                    setTimeout(() => toast.classList.add("hidden"), 2000);
-                }
-            } else {
-                alert("Không tìm thấy tọa độ tự động. Vui lòng nhập thủ công từ Google Maps.");
+        // Hàm con để gọi API
+        const callApi = async (query) => {
+            try {
+                console.log("Đang tìm: " + query);
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+                const res = await fetch(url);
+                const data = await res.json();
+                return (data && data.length > 0) ? data[0] : null;
+            } catch (e) {
+                return null;
             }
+        };
+
+        try {
+            let result = null;
+
+            // --- CHIẾN THUẬT 1: Tìm chính xác cả số nhà ---
+            // Ưu tiên lấy tên đường từ ô "Tên đường" nếu nhân viên có nhập, vì nó chuẩn hơn
+            let streetName = streetInput; 
+            if (!streetName && addressInput) {
+                // Cố gắng đoán tên đường từ địa chỉ (Bỏ số nhà ở đầu)
+                // VD: "490/8 Lê Văn Sỹ" -> lấy "Lê Văn Sỹ" (cách đơn giản)
+                const parts = addressInput.split(" ");
+                if (parts.length > 1 && /^\d/.test(parts[0])) { 
+                    parts.shift(); // Bỏ phần số (VD: 490/8)
+                    streetName = parts.join(" ");
+                } else {
+                    streetName = addressInput;
+                }
+            }
+
+            // Thử tìm full địa chỉ trước: "490/8 Lê Văn Sỹ, Quận 3, Hồ Chí Minh"
+            const fullQuery = `${addressInput}, ${district}, ${city}`;
+            result = await callApi(fullQuery);
+
+            // --- CHIẾN THUẬT 2: Nếu thất bại, tìm theo TÊN ĐƯỜNG + QUẬN ---
+            if (!result && streetName) {
+                toast("Không tìm thấy số nhà, đang tìm theo tên đường...");
+                // Query: "Đường Lê Văn Sỹ, Quận 3, Hồ Chí Minh"
+                const streetQuery = `${streetName}, ${district}, ${city}`;
+                result = await callApi(streetQuery);
+            }
+
+            // --- KẾT QUẢ ---
+            if (result) {
+                const lat = result.lat;
+                const lng = result.lon; // API trả về 'lon'
+
+                // 1. Điền vào ô input
+                document.getElementById("add-lat").value = lat;
+                document.getElementById("add-lng").value = lng;
+
+                // 2. Cập nhật bản đồ chọn (Picker Map) nếu đã cài đặt ở bước trước
+                if (typeof PICKER_MAP !== 'undefined' && PICKER_MAP && PICKER_MARKER) {
+                    const newLatLng = new L.LatLng(lat, lng);
+                    PICKER_MARKER.setLatLng(newLatLng);
+                    PICKER_MAP.setView(newLatLng, 16);
+                }
+
+                toast(`Đã ghim tại: ${result.display_name.split(',')[0]}`);
+            } else {
+                alert("Không tìm thấy cả đường lẫn số nhà. Vui lòng nhập thủ công hoặc kiểm tra lại tên đường.");
+            }
+
         } catch (e) {
             console.error(e);
-            alert("Lỗi khi gọi API bản đồ.");
+            toast("Lỗi kết nối bản đồ.");
         } finally {
             btn.innerText = originalText;
             btn.disabled = false;
