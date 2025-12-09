@@ -1264,37 +1264,122 @@ MB0001/2.jpg"></textarea>
       };
     }
 
-    // --- HÀM TẢI DỮ LIỆU CHÍNH (Đã sửa lỗi JOIN) ---
+    // --- CẬP NHẬT: applyFilters (VẼ FULL BẢN ĐỒ) ---
+
     async function applyFilters(resetPage = false) {
       if (resetPage) PAGE = 0;
-
       const f = getFilterValues();
 
-      // THỬ LẤY DỮ LIỆU + JOIN PROFILES (Lấy email người tạo)
-      let query = supabase
-        .from("premises")
-        .select("*, profiles(email)", { count: "exact" });
+      // 1. Tạo Query cơ sở (Dùng chung cho cả List và Map)
+      // Hàm này giúp áp dụng các bộ lọc giống hệt nhau cho cả 2 luồng dữ liệu
+      const buildBaseQuery = () => {
+          let q = supabase.from("premises").select("*", { count: "exact" });
+          
+          // -- Logic Admin/User --
+          if (SHOW_PENDING && isAdmin()) q = q.eq("is_approved", false);
+          else q = q.eq("is_approved", true);
 
-      // --- LOGIC DUYỆT BÀI ---
-      if (SHOW_PENDING && isAdmin()) {
-          query = query.eq("is_approved", false);
+          // -- Bộ lọc --
+          if (f.keyword) {
+            const kw = "%" + f.keyword + "%";
+            q = q.or(`address.ilike.${kw},street.ilike.${kw},ward.ilike.${kw},district.ilike.${kw},code.ilike.${kw}`);
+          }
+          if (f.district) q = q.eq("district", f.district);
+          if (f.ward) q = q.eq("ward", f.ward);
+          if (f.status) q = q.eq("status", f.status);
+          if (f.priceMin != null) q = q.gte("price", f.priceMin * 1000000);
+          if (f.priceMax != null) q = q.lte("price", f.priceMax * 1000000);
+          if (f.areaMin != null) q = q.gte("area", f.areaMin);
+          if (f.areaMax != null) q = q.lte("area", f.areaMax);
+          if (f.pn) {
+             if (f.pn.includes(">")) q = q.gt("pn", parseInt(f.pn.replace(">","")));
+             else q = q.eq("pn", parseInt(f.pn));
+          }
+          if (f.wc) {
+             if (f.wc.includes(">")) q = q.gt("wc", parseInt(f.wc.replace(">","")));
+             else q = q.eq("wc", parseInt(f.wc));
+          }
+          if (f.floors) {
+             if (f.floors.includes(">")) q = q.gt("floors", parseInt(f.floors.replace(">","")));
+             else q = q.eq("floors", parseInt(f.floors));
+          }
+          if (f.frontageType === "mt") q = q.eq("frontage", true);
+
+          return q;
+      };
+
+      // --- NHIỆM VỤ 1: LẤY DỮ LIỆU CHO DANH SÁCH (CÓ PHÂN TRANG) ---
+      const from = PAGE * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      
+      let listQuery = buildBaseQuery()
+        .order("updated_at", { ascending: false })
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      const { data, error, count } = await listQuery;
+
+      if (error) {
+        console.error(error);
+        toast("Lỗi tải dữ liệu: " + error.message);
+        return;
+      }
+
+      // Xử lý dữ liệu danh sách (Client filter Hẻm/HXH...)
+      let rows = data || [];
+      if (f.frontageType === "hem" || f.frontageType === "hxh") {
+         rows = rows.filter((row) => {
+            const isFront = row.frontage === true;
+            const txt = ((row.address || "") + " " + (row.detail || "")).toLowerCase();
+            if (f.frontageType === "hxh") return !isFront && (txt.includes("hxh") || txt.includes("xe hơi"));
+            if (f.frontageType === "hem") return !isFront && !txt.includes("hxh") && !txt.includes("xe hơi");
+            return true;
+         });
+      }
+
+      // Sắp xếp trạng thái
+      const STATUS_ORDER = { available: 0, deposited: 1, rented: 2 };
+      rows.sort((a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99));
+
+      LAST_ROWS = rows;
+      TOTAL_COUNT = count || 0;
+
+      // Render Danh sách
+      if (PAGE === 0) renderCards(LAST_ROWS, true);
+      else renderCards(LAST_ROWS, false);
+
+      // Cập nhật số lượng
+      document.getElementById("count-total").textContent = TOTAL_COUNT;
+      document.getElementById("count-show").textContent = Math.min((PAGE + 1) * PAGE_SIZE, TOTAL_COUNT);
+      
+      const btnMore = document.getElementById("btn-load-more");
+      if ((PAGE + 1) * PAGE_SIZE >= TOTAL_COUNT) {
+          btnMore.textContent = "Hết dữ liệu";
+          btnMore.classList.add("btn-disabled");
       } else {
-          query = query.eq("is_approved", true);
+          btnMore.textContent = "Tải thêm";
+          btnMore.classList.remove("btn-disabled");
       }
-      // --- CHẾ ĐỘ XEM BÁO HẾT / DUYỆT CHẠY LẠI (ADMIN) ---
-      if (isAdmin()) {
-        if (SHOW_REPORTED) {
-          // chỉ những tin đã báo hết, admin chưa xác nhận
-          query = query
-            .not("rented_reported_at", "is", null)
-            .is("rented_confirmed_at", null);
-        } else if (SHOW_REACTIVATE) {
-          // chỉ những tin yêu cầu chạy lại, admin chưa xác nhận
-          query = query
-            .not("reactivate_reported_at", "is", null)
-            .is("reactivate_confirmed_at", null);
-        }
+
+      // --- NHIỆM VỤ 2: LẤY DỮ LIỆU CHO BẢN ĐỒ (KHÔNG PHÂN TRANG) ---
+      // Chỉ chạy khi ở trang 0 hoặc khi lọc lại, để tránh gọi API quá nhiều
+      if (PAGE === 0) {
+          // Chỉ lấy các trường cần thiết cho bản đồ để nhẹ (id, lat, lng, price, address)
+          // Lưu ý: .select() đè lên select("*") của buildBaseQuery, nhưng logic filter giữ nguyên
+          let mapQuery = buildBaseQuery() 
+            .select("id, lat, lng, price, address, street, district, ward") 
+            .not("lat", "is", null); // Chỉ lấy cái nào có tọa độ
+
+          const { data: mapData } = await mapQuery;
+          
+          // Vẽ bản đồ với dữ liệu mapData (chứa toàn bộ kết quả) thay vì rows (chỉ 24 cái)
+          if (mapData && mapData.length > 0) {
+              renderMapMarkers(mapData);
+          } else {
+              clearMapMarkers();
+          }
       }
+    }
       // --- ÁP DỤNG FILTER ---
       if (f.keyword) {
         const kw = "%" + f.keyword + "%";
