@@ -2223,7 +2223,7 @@ MB0001/2.jpg"></textarea>
       const { error } = await supabase
         .from("premises")
         .update(payload)
-        .eq("id", editingId);
+        .eq("id", EDITING_ID); // <--- SỬA LẠI THÀNH BIẾN TOÀN CỤC VIẾT HOA
 
       if (error) { toast("Lỗi: " + error.message); return; }
       toast("Đã lưu thay đổi!");
