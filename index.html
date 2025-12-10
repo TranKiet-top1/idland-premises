@@ -840,27 +840,36 @@ MB0001/2.jpg"></textarea>
     }
 
     // 3. Hàm vẽ marker lên bản đồ
-// 3. Hàm vẽ marker (HIỂN THỊ GIÁ TIỀN)
+    // --- CẬP NHẬT: VẼ MAP CÓ GOM NHÓM (CLUSTER) ---
     function renderMapMarkers(rows) {
-      // Nếu đang ở tab Danh sách (ẩn map) thì không cần vẽ ngay
       const mapView = document.getElementById("map-view");
+      // Nếu đang ẩn map thì không vẽ để tiết kiệm tài nguyên
       if (mapView && mapView.classList.contains("hidden")) return;
 
       initStaffMap();
 
-      // Fix lỗi map xám
+      // Fix lỗi map xám khi mới hiện ra
       setTimeout(() => {
          if(MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
       }, 100);
-    // Xóa layer cũ
+
+      // 1. Xóa các marker cũ (Nếu có layer group cũ thì xóa đi)
       if (window.markerClusterGroup) {
           MAP_INSTANCE.removeLayer(window.markerClusterGroup);
       }
-      clearMapMarkers();
+
+      // 2. Tạo nhóm Cluster mới
+      // disableClusteringAtZoom: 17 nghĩa là khi zoom sát vào (mức 17) sẽ hiện ghim rời
+      // spiderfyOnMaxZoom: true nghĩa là nếu cùng 1 chỗ thì tỏa ra
+      window.markerClusterGroup = L.markerClusterGroup({
+          maxClusterRadius: 50, // Bán kính gom nhóm (pixel)
+          spiderfyOnMaxZoom: true,
+          showCoverageOnHover: false,
+          zoomToBoundsOnClick: true,
+          disableClusteringAtZoom: 18 // Zoom hết cỡ mới tách ra
+      });
 
       if (!rows || !rows.length || !MAP_INSTANCE) return;
-
-      const group = new L.featureGroup();
 
       rows.forEach((row) => {
         if (!row.lat || !row.lng) return;
@@ -868,69 +877,58 @@ MB0001/2.jpg"></textarea>
         const lat = Number(row.lat);
         const lng = Number(row.lng);
 
-        // Xử lý hiển thị giá: Rút gọn cho đẹp (VD: 10.5 Triệu -> 10.5 Tr)
-        let displayPrice = "Thương lượng";
+        // Xử lý hiển thị giá: Rút gọn (VD: 10.5 Tr)
+        let displayPrice = "TL";
         if (row.price) {
            if (row.price >= 1000000000) {
-             displayPrice = (row.price / 1000000000).toFixed(1) + " Tỷ";
+             displayPrice = (row.price / 1000000000).toFixed(1) + " tỷ";
            } else if (row.price >= 1000000) {
-             displayPrice = (row.price / 1000000).toFixed(1) + " Tr";
+             displayPrice = (row.price / 1000000).toFixed(1) + " tr";
            } else {
              displayPrice = new Intl.NumberFormat('vi-VN').format(row.price);
            }
-           // Bỏ số .0 nếu có (VD: 10.0 Tr -> 10 Tr)
            displayPrice = displayPrice.replace(".0 ", " ");
         }
 
-        const title = (typeof buildTitle === 'function' ? buildTitle(row) : row.address) || "Mặt bằng";
-        
-        // --- TẠO ICON GIÁ TIỀN (Custom DivIcon) ---
+        // Tạo Icon giá tiền
         const priceIcon = L.divIcon({
-          className: '', // Để trống để không nhận style mặc định của Leaflet
-          html: `<div class="price-marker-label">${displayPrice}</div>`,
-          iconSize: [null, null], // Auto size theo nội dung text
-          iconAnchor: [20, 10]    // Căn chỉnh vị trí ghim
+          className: '', 
+          html: `<div class="price-marker-label" style="font-size:11px; padding:2px 6px;">${displayPrice}</div>`,
+          iconSize: [null, null], 
+          iconAnchor: [20, 10]    
         });
 
-        const marker = L.marker([lat, lng], { icon: priceIcon }).addTo(MAP_INSTANCE);
+        // Tạo Marker
+        const marker = L.marker([lat, lng], { icon: priceIcon });
 
-        // --- TẠO POPUP ---
+        // Nội dung Popup khi bấm vào
+        const title = (typeof buildTitle === 'function' ? buildTitle(row) : row.address) || "Mặt bằng";
         const infoContent = `
-          <div style="min-width: 200px; font-family: system-ui, sans-serif;">
-            <div style="font-weight: bold; color: #000; margin-bottom: 4px; font-size: 13px;">
-                ${title}
-            </div>
-            <div style="color: #d32f2f; font-weight: bold; margin-bottom: 6px;">
-                ${money(row.price)}
-            </div>
-            <div style="font-size: 12px; color: #555; margin-bottom: 8px;">
-               ${row.address || row.street || "Đang cập nhật địa chỉ..."}
-            </div>
+          <div style="min-width: 200px; font-family: sans-serif;">
+            <div style="font-weight: bold; font-size: 13px; margin-bottom:4px;">${title}</div>
+            <div style="color: #d32f2f; font-weight: bold;">${money(row.price)}</div>
+            <div style="font-size: 11px; color: #555; margin-bottom:8px;">${row.address}</div>
             <button 
               onclick="openDetail('${row.id}')"
-              class="btn btn-xs btn-primary w-full text-white" 
-              style="width: 100%; padding: 6px; background-color: #4f46e5; color: white; border-radius: 4px; border: none; cursor: pointer;">
+              class="btn btn-xs btn-primary w-full text-white">
               Xem chi tiết
             </button>
           </div>
         `;
-
         marker.bindPopup(infoContent);
 
-        // Hiệu ứng: Khi hover vào marker thì hiện đè lên các marker khác
-        marker.on('mouseover', function (e) {
-            this.setZIndexOffset(1000);
-        });
-        marker.on('mouseout', function (e) {
-            this.setZIndexOffset(0);
-        });
-
-        MAP_MARKERS.push(marker);
-        group.addLayer(marker);
+        // QUAN TRỌNG: Thêm marker vào nhóm Cluster (chứ không add trực tiếp lên map)
+        window.markerClusterGroup.addLayer(marker);
       });
 
-      if (MAP_MARKERS.length > 0) {
-        MAP_INSTANCE.fitBounds(group.getBounds(), { padding: [50, 50] });
+      // 3. Cuối cùng mới thêm nhóm Cluster lên bản đồ
+      MAP_INSTANCE.addLayer(window.markerClusterGroup);
+
+      // Tự động zoom bản đồ để thấy toàn bộ các ghim
+      if (rows.length > 0) {
+          try {
+            MAP_INSTANCE.fitBounds(window.markerClusterGroup.getBounds(), { padding: [50, 50] });
+          } catch(e) {}
       }
     }
     // BIẾN MỚI CHO ADMIN DUYỆT BÀI
