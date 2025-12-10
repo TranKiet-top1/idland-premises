@@ -6,56 +6,38 @@ div id="admin-pending-controls"<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <link
-    href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css"
-    rel="stylesheet"
-  />
-
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" />
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
   <style>
-    /* CSS CHO GHIM GIÁ TIỀN TRÊN BẢN ĐỒ */
+    /* CSS CHO GHIM GIÁ TIỀN */
     .price-marker-label {
       background-color: white;
-      border-radius: 12px;
-      padding: 4px 8px;
+      border-radius: 4px; /* Bo góc nhẹ */
+      padding: 2px 6px;
       font-weight: bold;
-      font-size: 12px;
+      font-size: 11px;
       color: #333;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      border: 1px solid #ccc;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      border: 1px solid #999;
       white-space: nowrap;
       text-align: center;
-      transition: transform 0.2s;
     }
     .price-marker-label:hover {
-      background-color: #3b82f6; /* Màu xanh primary khi hover */
+      background-color: #3b82f6;
       color: white;
       border-color: #2563eb;
-      transform: scale(1.1);
-      z-index: 999 !important;
+      z-index: 9999 !important;
     }
-    /* Mũi tên nhỏ dưới ghim (tùy chọn) */
-    .price-marker-label::after {
-      content: "";
-      position: absolute;
-      bottom: -4px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-width: 4px 4px 0;
-      border-style: solid;
-      border-color: white transparent transparent transparent;
-    }
-    .price-marker-label:hover::after {
-      border-color: #2563eb transparent transparent transparent;
-    }
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
-    }
-    .premise-card:hover {
-      transform: translateY(-2px);
-    }
+    body { font-family: system-ui, -apple-system, sans-serif; }
+    .premise-card:hover { transform: translateY(-2px); }
   </style>
 </head>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -841,91 +823,98 @@ MB0001/2.jpg"></textarea>
     }
 
     // 3. Hàm vẽ marker lên bản đồ
-    // --- CẬP NHẬT: VẼ MAP AN TOÀN (TỰ ĐỘNG XỬ LÝ KHI LỖI) ---
+    // --- CẬP NHẬT: VẼ MAP GOM NHÓM (PHIÊN BẢN CHUẨN) ---
     function renderMapMarkers(rows) {
       const mapView = document.getElementById("map-view");
       if (mapView && mapView.classList.contains("hidden")) return;
 
+      // 1. Khởi tạo map nếu chưa có
       initStaffMap();
 
-      // Fix lỗi map xám
+      // 2. Fix lỗi map bị xám/lệch khung hình
       setTimeout(() => {
          if(MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
-      }, 100);
+      }, 200);
 
-      // Xóa layer cũ (cả group thường và cluster)
-      if (window.currentLayerGroup) {
-          MAP_INSTANCE.removeLayer(window.currentLayerGroup);
-          window.currentLayerGroup = null;
+      // 3. Xóa các ghim cũ (quan trọng để không bị chồng lấn khi lọc lại)
+      if (window.markerClusterGroup) {
+          MAP_INSTANCE.removeLayer(window.markerClusterGroup);
+          window.markerClusterGroup = null; // Reset biến
       }
-
+      
+      // Kiểm tra dữ liệu đầu vào
       if (!rows || !rows.length || !MAP_INSTANCE) return;
 
-      // --- KIỂM TRA: CÓ THƯ VIỆN CLUSTER KHÔNG? ---
-      const useCluster = (typeof L.markerClusterGroup === 'function');
-      
-      if (useCluster) {
-          // CÓ THƯ VIỆN -> Dùng Cluster
-          window.currentLayerGroup = L.markerClusterGroup({
-              maxClusterRadius: 50,
-              spiderfyOnMaxZoom: true,
-              showCoverageOnHover: false,
-              disableClusteringAtZoom: 18
+      // 4. Tạo nhóm Cluster mới
+      try {
+          window.markerClusterGroup = L.markerClusterGroup({
+              maxClusterRadius: 40,        // Bán kính gom nhóm nhỏ lại chút cho chính xác
+              spiderfyOnMaxZoom: true,     // Tỏa ra khi zoom hết cỡ
+              showCoverageOnHover: false,  // Tắt cái vòng xanh khi rê chuột
+              disableClusteringAtZoom: 18  // Zoom sát đất (mức 18) thì không gom nữa
           });
-      } else {
-          // KHÔNG CÓ THƯ VIỆN -> Dùng Group thường (Để không bị chết map)
-          console.warn("Thư viện Cluster chưa tải được, đang dùng chế độ hiển thị thường.");
-          window.currentLayerGroup = new L.featureGroup();
+      } catch (err) {
+          console.error("Lỗi khởi tạo Cluster:", err);
+          // Fallback nếu thư viện lỗi: dùng Group thường để map không bị trắng
+          window.markerClusterGroup = L.featureGroup();
       }
 
       rows.forEach((row) => {
+        // Chỉ vẽ những căn có tọa độ
         if (!row.lat || !row.lng) return;
+        
         const lat = Number(row.lat);
         const lng = Number(row.lng);
 
-        // Xử lý giá tiền
+        // Xử lý hiển thị giá tiền (Rút gọn: 12.5 Tỷ, 15 Tr)
         let displayPrice = "TL";
         if (row.price) {
            if (row.price >= 1000000000) displayPrice = (row.price / 1000000000).toFixed(1) + " tỷ";
            else if (row.price >= 1000000) displayPrice = (row.price / 1000000).toFixed(1) + " tr";
            else displayPrice = new Intl.NumberFormat('vi-VN').format(row.price);
-           displayPrice = displayPrice.replace(".0 ", " ");
+           
+           displayPrice = displayPrice.replace(".0 ", " "); // Bỏ số 0 lẻ (12.0 -> 12)
         }
 
+        // Tạo Icon HTML (nhãn giá tiền)
         const priceIcon = L.divIcon({
           className: '', 
-          html: `<div class="price-marker-label" style="background:white; border:1px solid #999; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:11px; white-space:nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${displayPrice}</div>`,
+          html: `<div class="price-marker-label">${displayPrice}</div>`,
           iconSize: [null, null], 
-          iconAnchor: [20, 10]    
+          iconAnchor: [20, 10] // Căn chỉnh ghim vào giữa
         });
 
+        // Tạo Marker
         const marker = L.marker([lat, lng], { icon: priceIcon });
 
-        // Popup
+        // Nội dung Popup khi bấm vào ghim
         const title = (typeof buildTitle === 'function' ? buildTitle(row) : row.address) || "Mặt bằng";
         const infoContent = `
-          <div style="min-width: 200px; font-family: sans-serif;">
-            <div style="font-weight: bold; font-size: 13px; margin-bottom:4px;">${title}</div>
-            <div style="color: #d32f2f; font-weight: bold;">${money(row.price)}</div>
-            <div style="font-size: 11px; color: #555; margin-bottom:8px;">${row.address}</div>
+          <div style="min-width: 220px; font-family: sans-serif;">
+            <div style="font-weight: bold; font-size: 13px; margin-bottom:5px; line-height:1.4;">${title}</div>
+            <div style="color: #d32f2f; font-weight: bold; font-size: 14px;">${money(row.price)}</div>
+            <div style="font-size: 11px; color: #666; margin-bottom:8px;">${row.address || 'Đang cập nhật địa chỉ'}</div>
             <button onclick="openDetail('${row.id}')" class="btn btn-xs btn-primary w-full text-white">Xem chi tiết</button>
           </div>
         `;
         marker.bindPopup(infoContent);
 
-        // Thêm vào Group
-        window.currentLayerGroup.addLayer(marker);
+        // QUAN TRỌNG: Thêm marker vào nhóm Cluster
+        window.markerClusterGroup.addLayer(marker);
       });
 
-      // Đưa lên bản đồ
-      MAP_INSTANCE.addLayer(window.currentLayerGroup);
+      // 5. Đưa toàn bộ nhóm lên bản đồ
+      MAP_INSTANCE.addLayer(window.markerClusterGroup);
 
-      // Zoom vừa khít
-      try {
-          if (rows.length > 0) {
-              MAP_INSTANCE.fitBounds(window.currentLayerGroup.getBounds(), { padding: [50, 50] });
-          }
-      } catch(e) {}
+      // 6. Tự động zoom bản đồ để thấy tất cả các ghim
+      if (rows.length > 0) {
+          try {
+            const bounds = window.markerClusterGroup.getBounds();
+            if(bounds.isValid()) {
+                MAP_INSTANCE.fitBounds(bounds, { padding: [50, 50] });
+            }
+          } catch(e) {}
+      }
     }
     // 👉 chế độ xem danh sách tin yêu cầu chạy lại (admin)
     let SHOW_REACTIVATE = false;
