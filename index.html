@@ -59,10 +59,11 @@ div id="admin-pending-controls"<!DOCTYPE html>
   </style>
 </head>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <body class="bg-base-200">
 
@@ -840,129 +841,91 @@ MB0001/2.jpg"></textarea>
     }
 
     // 3. Hàm vẽ marker lên bản đồ
-    // --- CẬP NHẬT: VẼ MAP CÓ GOM NHÓM (CLUSTER) ---
+    // --- CẬP NHẬT: VẼ MAP AN TOÀN (TỰ ĐỘNG XỬ LÝ KHI LỖI) ---
     function renderMapMarkers(rows) {
       const mapView = document.getElementById("map-view");
-      // Nếu đang ẩn map thì không vẽ để tiết kiệm tài nguyên
       if (mapView && mapView.classList.contains("hidden")) return;
 
       initStaffMap();
 
-      // Fix lỗi map xám khi mới hiện ra
+      // Fix lỗi map xám
       setTimeout(() => {
          if(MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
       }, 100);
 
-      // 1. Xóa các marker cũ (Nếu có layer group cũ thì xóa đi)
-      if (window.markerClusterGroup) {
-          MAP_INSTANCE.removeLayer(window.markerClusterGroup);
+      // Xóa layer cũ (cả group thường và cluster)
+      if (window.currentLayerGroup) {
+          MAP_INSTANCE.removeLayer(window.currentLayerGroup);
+          window.currentLayerGroup = null;
       }
-
-      // 2. Tạo nhóm Cluster mới
-      // disableClusteringAtZoom: 17 nghĩa là khi zoom sát vào (mức 17) sẽ hiện ghim rời
-      // spiderfyOnMaxZoom: true nghĩa là nếu cùng 1 chỗ thì tỏa ra
-      window.markerClusterGroup = L.markerClusterGroup({
-          maxClusterRadius: 50, // Bán kính gom nhóm (pixel)
-          spiderfyOnMaxZoom: true,
-          showCoverageOnHover: false,
-          zoomToBoundsOnClick: true,
-          disableClusteringAtZoom: 18 // Zoom hết cỡ mới tách ra
-      });
 
       if (!rows || !rows.length || !MAP_INSTANCE) return;
 
+      // --- KIỂM TRA: CÓ THƯ VIỆN CLUSTER KHÔNG? ---
+      const useCluster = (typeof L.markerClusterGroup === 'function');
+      
+      if (useCluster) {
+          // CÓ THƯ VIỆN -> Dùng Cluster
+          window.currentLayerGroup = L.markerClusterGroup({
+              maxClusterRadius: 50,
+              spiderfyOnMaxZoom: true,
+              showCoverageOnHover: false,
+              disableClusteringAtZoom: 18
+          });
+      } else {
+          // KHÔNG CÓ THƯ VIỆN -> Dùng Group thường (Để không bị chết map)
+          console.warn("Thư viện Cluster chưa tải được, đang dùng chế độ hiển thị thường.");
+          window.currentLayerGroup = new L.featureGroup();
+      }
+
       rows.forEach((row) => {
         if (!row.lat || !row.lng) return;
-
         const lat = Number(row.lat);
         const lng = Number(row.lng);
 
-        // Xử lý hiển thị giá: Rút gọn (VD: 10.5 Tr)
+        // Xử lý giá tiền
         let displayPrice = "TL";
         if (row.price) {
-           if (row.price >= 1000000000) {
-             displayPrice = (row.price / 1000000000).toFixed(1) + " tỷ";
-           } else if (row.price >= 1000000) {
-             displayPrice = (row.price / 1000000).toFixed(1) + " tr";
-           } else {
-             displayPrice = new Intl.NumberFormat('vi-VN').format(row.price);
-           }
+           if (row.price >= 1000000000) displayPrice = (row.price / 1000000000).toFixed(1) + " tỷ";
+           else if (row.price >= 1000000) displayPrice = (row.price / 1000000).toFixed(1) + " tr";
+           else displayPrice = new Intl.NumberFormat('vi-VN').format(row.price);
            displayPrice = displayPrice.replace(".0 ", " ");
         }
 
-        // Tạo Icon giá tiền
         const priceIcon = L.divIcon({
           className: '', 
-          html: `<div class="price-marker-label" style="font-size:11px; padding:2px 6px;">${displayPrice}</div>`,
+          html: `<div class="price-marker-label" style="background:white; border:1px solid #999; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:11px; white-space:nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${displayPrice}</div>`,
           iconSize: [null, null], 
           iconAnchor: [20, 10]    
         });
 
-        // Tạo Marker
         const marker = L.marker([lat, lng], { icon: priceIcon });
 
-        // Nội dung Popup khi bấm vào
+        // Popup
         const title = (typeof buildTitle === 'function' ? buildTitle(row) : row.address) || "Mặt bằng";
         const infoContent = `
           <div style="min-width: 200px; font-family: sans-serif;">
             <div style="font-weight: bold; font-size: 13px; margin-bottom:4px;">${title}</div>
             <div style="color: #d32f2f; font-weight: bold;">${money(row.price)}</div>
             <div style="font-size: 11px; color: #555; margin-bottom:8px;">${row.address}</div>
-            <button 
-              onclick="openDetail('${row.id}')"
-              class="btn btn-xs btn-primary w-full text-white">
-              Xem chi tiết
-            </button>
+            <button onclick="openDetail('${row.id}')" class="btn btn-xs btn-primary w-full text-white">Xem chi tiết</button>
           </div>
         `;
         marker.bindPopup(infoContent);
 
-        // QUAN TRỌNG: Thêm marker vào nhóm Cluster (chứ không add trực tiếp lên map)
-        window.markerClusterGroup.addLayer(marker);
+        // Thêm vào Group
+        window.currentLayerGroup.addLayer(marker);
       });
 
-      // 3. Cuối cùng mới thêm nhóm Cluster lên bản đồ
-      MAP_INSTANCE.addLayer(window.markerClusterGroup);
+      // Đưa lên bản đồ
+      MAP_INSTANCE.addLayer(window.currentLayerGroup);
 
-      // Tự động zoom bản đồ để thấy toàn bộ các ghim
-      if (rows.length > 0) {
-          try {
-            MAP_INSTANCE.fitBounds(window.markerClusterGroup.getBounds(), { padding: [50, 50] });
-          } catch(e) {}
-      }
-    }
-    // BIẾN MỚI CHO ADMIN DUYỆT BÀI
-    let SHOW_PENDING = false;
-    // 👉 chế độ xem danh sách tin nhân sự đã báo hết (admin)
-    let SHOW_REPORTED = false;
-    // Đếm số mặt bằng nhân sự đã báo hết nhưng admin chưa xác nhận
-    async function checkRentedReportCount() {
-      const { count } = await supabase
-        .from("premises")
-        .select("*", { count: "exact", head: true })
-        .not("rented_reported_at", "is", null)
-        .is("rented_confirmed_at", null);
-
-      const cnt = count || 0;
-      const span = document.getElementById("count-rented-reports");
-      if (span) span.textContent = cnt;
-    }
-
-    function toggleReportedMode() {
-      SHOW_REPORTED = !SHOW_REPORTED;
-      const btn = document.getElementById("btn-toggle-rented-reports");
-      if (!btn) return;
-
-      if (SHOW_REPORTED) {
-        btn.classList.add("btn-active");
-        btn.textContent = "Đang xem Báo hết (Thoát)";
-      } else {
-        btn.classList.remove("btn-active");
-        btn.innerHTML =
-          `Báo hết <span class="badge badge-sm bg-white text-error ml-1 border-none" id="count-rented-reports">...</span>`;
-        checkRentedReportCount();
-      }
-      applyFilters(true);
+      // Zoom vừa khít
+      try {
+          if (rows.length > 0) {
+              MAP_INSTANCE.fitBounds(window.currentLayerGroup.getBounds(), { padding: [50, 50] });
+          }
+      } catch(e) {}
     }
     // 👉 chế độ xem danh sách tin yêu cầu chạy lại (admin)
     let SHOW_REACTIVATE = false;
