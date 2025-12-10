@@ -499,7 +499,23 @@ div id="admin-pending-controls"<!DOCTYPE html>
           <label class="label"><span class="label-text">Tên đường</span></label>
           <input id="edit-street" type="text" class="input input-bordered w-full" />
         </div>
-
+        <div class="form-control md:col-span-2">
+          <label class="label">
+            <span class="label-text font-bold text-primary">Cập nhật Tọa độ (Lat / Lng)</span>
+          </label>
+          <div class="join w-full">
+            <input id="edit-lat" type="text" class="input input-bordered join-item w-1/3" placeholder="Lat (Vĩ độ)" />
+            <input id="edit-lng" type="text" class="input input-bordered join-item w-1/3" placeholder="Lng (Kinh độ)" />
+            <button type="button" class="btn btn-accent join-item w-1/3 text-white" onclick="autoFetchCoordsForEdit()">
+              📍 Dò lại theo địa chỉ
+            </button>
+          </div>
+          <label class="label">
+            <span class="label-text-alt text-gray-500">
+              Admin có thể nhập thủ công hoặc bấm nút "Dò lại" để lấy tọa độ từ địa chỉ bên trên.
+            </span>
+          </label>
+        </div>
         <div class="form-control">
           <label class="label"><span class="label-text">Giá thuê (đ)</span></label>
           <input id="edit-price" type="number" class="input input-bordered w-full" />
@@ -2120,7 +2136,8 @@ MB0001/2.jpg"></textarea>
       setVal("edit-contact-phone", item.contact_phone || "");
       setVal("edit-commission", item.commission_note || "");
       setVal("edit-detail", item.detail || "");
-
+      setVal("edit-lat", item.lat || "");
+      setVal("edit-lng", item.lng || "");
       const statusSelect = document.getElementById("edit-status");
       if (statusSelect) {
         statusSelect.value = item.status || "available";
@@ -2192,6 +2209,8 @@ MB0001/2.jpg"></textarea>
         updated_at: new Date().toISOString(),
         road_type: document.getElementById("edit-road-type").value, // MỚI
         commission: getVal("edit-commission-text"), // MỚI
+        lat: getVal("edit-lat") ? Number(getVal("edit-lat")) : null,
+        lng: getVal("edit-lng") ? Number(getVal("edit-lng")) : null,
       };
       // Nếu admin chỉnh trạng thái khác "rented" -> xoá ngày báo hết & yêu cầu chạy lại
       if (payload.status && payload.status !== "rented") {
@@ -3123,6 +3142,62 @@ async function scanGridImages(rows) {
       } catch (e) {
         return null;
       }
+    }
+    // HÀM DÒ TỌA ĐỘ CHO FORM SỬA (ADMIN)
+    async function autoFetchCoordsForEdit() {
+        const address = document.getElementById("edit-address").value;
+        const district = document.getElementById("edit-district").value;
+        const street = document.getElementById("edit-street").value;
+        const city = document.getElementById("edit-city").value || "Hồ Chí Minh";
+
+        if (!district) {
+            alert("Vui lòng nhập Quận trong form sửa trước!");
+            return;
+        }
+
+        const btn = document.querySelector("button[onclick='autoFetchCoordsForEdit()']");
+        const oldText = btn.innerText;
+        btn.innerText = "Đang dò...";
+        btn.disabled = true;
+
+        try {
+            // Logic tìm kiếm giống hệt lúc thêm mới
+            let query = `${address}, ${district}, ${city}`;
+            // Nếu địa chỉ quá ngắn hoặc không có số nhà, ưu tiên tìm theo đường
+            if (!address || (address.split(' ').length < 2 && street)) {
+                 query = `${street}, ${district}, ${city}`;
+            }
+
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (data && data.length > 0) {
+                document.getElementById("edit-lat").value = data[0].lat;
+                document.getElementById("edit-lng").value = data[0].lon;
+                toast(`Đã tìm thấy: ${data[0].display_name.split(',')[0]}`);
+            } else {
+                // Thử lại lần 2 chỉ với Tên đường + Quận (fallback)
+                if (street) {
+                    const url2 = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(street + ", " + district + ", " + city)}&limit=1`;
+                    const res2 = await fetch(url2);
+                    const data2 = await res2.json();
+                    if (data2 && data2.length > 0) {
+                         document.getElementById("edit-lat").value = data2[0].lat;
+                         document.getElementById("edit-lng").value = data2[0].lon;
+                         toast(`Đã tìm thấy (theo đường): ${data2[0].display_name.split(',')[0]}`);
+                         return;
+                    }
+                }
+                alert("Không tìm thấy tọa độ. Vui lòng nhập tay hoặc kiểm tra lại địa chỉ.");
+            }
+        } catch (e) {
+            console.error(e);
+            toast("Lỗi kết nối bản đồ.");
+        } finally {
+            btn.innerText = oldText;
+            btn.disabled = false;
+        }
     }
   </script>
   <dialog id="toolDlg" class="modal">
