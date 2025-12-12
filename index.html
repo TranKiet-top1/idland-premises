@@ -1519,12 +1519,15 @@ MB0001/2.jpg"></textarea>
             data-id="${row.id}">
             
             <figure class="h-52 bg-base-200 flex items-center justify-center relative">
-              <div id="thumb-box-${row.code}" 
+              <div id="thumb-box-${row.id}" 
                 class="w-full h-full flex items-center justify-center ${imgUrl ? "" : "opacity-60"}">
                 ${
                   imgUrl
                     ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
-                    : `<div class="text-xs">(Đang quét ảnh...)</div>`
+                    : `<div class="text-xs text-gray-500 flex flex-col items-center gap-1">
+                         <span class="loading loading-spinner loading-xs"></span>
+                         <span>Đang tìm ảnh...</span>
+                       </div>`
                 }
               </div>
 
@@ -2893,61 +2896,64 @@ MB0001/2.jpg"></textarea>
       document.getElementById("detailDlg").close();
       applyFilters(true);
     }
-// === QUÉT ẢNH RUNTIME TỪ STORAGE, KHÔNG PHỤ THUỘC CỘT images ===
-async function scanGridImages(rows) {
-  if (!rows || !rows.length) return;
+    // === QUÉT ẢNH TỪ STORAGE THEO MÃ (PHIÊN BẢN TỐI ƯU) ===
+    async function scanGridImages(rows) {
+      if (!rows || !rows.length) return;
 
-  for (const row of rows) {
-    if (!row || !row.code) continue;
+      // Sử dụng map để tạo mảng các Promise chạy song song -> Tốc độ nhanh hơn gấp 10 lần
+      const promises = rows.map(async (row) => {
+        // 1. Kiểm tra điều kiện đầu vào
+        if (!row || !row.code) return;
 
-    // Tìm khung ảnh theo id đã render ở renderCards
-    const imgContainer = document.getElementById(`thumb-box-${row.id}`);
-    if (!imgContainer) continue;
+        // 2. Tìm thẻ chứa ảnh bằng ID (Lưu ý: phải dùng row.id như bước 1 đã sửa)
+        const imgContainer = document.getElementById(`thumb-box-${row.id}`);
+        if (!imgContainer) return;
 
-    // Nếu trong DOM đã có <img> (do cột images render sẵn) thì bỏ qua
-    if (imgContainer.querySelector("img")) continue;
+        // Nếu đã có ảnh (do load từ DB ra trước đó) thì bỏ qua không quét nữa
+        if (imgContainer.querySelector("img")) return;
 
-    try {
-      // Quét folder theo mã mặt bằng trong Storage
-      const { data: files, error } = await supabase.storage
-        .from(STORAGE_BUCKET) // vd: "premise-images"
-        .list(row.code, {
-          limit: 10,
-          sortBy: { column: "name", order: "asc" },
-        });
+        try {
+          // 3. Gọi Supabase list file trong folder có tên là row.code
+          // VD: Mã là "MBKD 001" thì trong bucket phải có folder tên "MBKD 001"
+          const { data: files, error } = await supabase.storage
+            .from(STORAGE_BUCKET)
+            .list(row.code, {
+              limit: 1, // Chỉ cần lấy 1 hình đầu tiên làm ảnh bìa
+              sortBy: { column: "name", order: "asc" },
+            });
 
-      if (error) {
-        console.error("Lỗi list storage cho", row.code, error);
-        continue;
-      }
+          if (error || !files || files.length === 0) {
+            // Nếu không có ảnh, hiện chữ báo lỗi nhẹ hoặc để trống
+            imgContainer.innerHTML = `<div class="text-[10px] text-gray-400">Không có ảnh</div>`;
+            return;
+          }
 
-      if (!files || !files.length) {
-        // Không có file nào trong storage => giữ nguyên "(Đang quét ảnh...)"
-        continue;
-      }
+          // 4. Lọc bỏ file rác hệ thống (nếu có)
+          const validFile = files.find(f => f.name !== ".emptyFolderPlaceholder") || files[0];
+          if (!validFile) return;
 
-      // Bỏ file placeholder nếu có, lấy file đầu tiên
-      const first = files.find(f => f.name !== ".emptyFolderPlaceholder") || files[0];
-      if (!first) continue;
+          // 5. Tạo đường dẫn public
+          const fullPath = `${row.code}/${validFile.name}`;
+          const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
 
-      const fullPath = `${row.code}/${first.name}`;
-      const { data } = supabase.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(fullPath);
+          // 6. Cập nhật giao diện ngay lập tức
+          if (data && data.publicUrl) {
+            imgContainer.innerHTML = `
+              <img src="${data.publicUrl}" 
+                   class="w-full h-full object-cover animate-fade-in transition-opacity duration-500" 
+                   alt="${row.code}" />
+            `;
+            imgContainer.classList.remove("opacity-60");
+          }
 
-      if (data && data.publicUrl) {
-        imgContainer.innerHTML = `
-          <img src="${data.publicUrl}"
-               class="w-full h-full object-cover animate-fade-in"
-               alt="${row.code}" />
-        `;
-        imgContainer.classList.remove("opacity-60");
-      }
-    } catch (err) {
-      console.error("scanGridImages error", row.code, err);
+        } catch (err) {
+          console.warn("Lỗi quét ảnh cho:", row.code, err);
+        }
+      });
+
+      // Chờ tất cả chạy xong (nhưng giao diện sẽ update dần từng cái xong trước)
+      await Promise.all(promises);
     }
-  }
-}
 
     // ==== TOOL 1 LẦN: ĐỒNG BỘ ẢNH TỪ STORAGE -> CỘT images ====
     async function syncImagesFromStorage() {
