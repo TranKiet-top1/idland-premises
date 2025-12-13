@@ -1461,6 +1461,8 @@ MB0001/2.jpg"></textarea>
       });
 
       const html = sortedRows.map((row) => {
+        // --- 1. KHAI BÁO BIẾN (Phần này rất quan trọng, thiếu là trắng trang) ---
+        
         // Xử lý ảnh
         let firstPath = null;
         if (Array.isArray(row.images) && row.images.length > 0) firstPath = row.images[0];
@@ -1472,6 +1474,7 @@ MB0001/2.jpg"></textarea>
         }
         const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
 
+        // Xử lý các thông số
         const pnVal = pickField(row, ["pn", "so_pn", "bedrooms", "rooms"]);
         const wcVal = pickField(row, ["wc", "bathrooms"]);
         const floorsVal = pickField(row, ["floors"]);
@@ -1479,21 +1482,7 @@ MB0001/2.jpg"></textarea>
         const creatorEmail = row.profiles?.email || "";
         const shortName = creatorEmail.split("@")[0];
 
-        // Badge vị trí
-        let locationBadge = "";
-        const roadType = row.road_type || (row.frontage ? "Mặt tiền" : "Hẻm");
-        if (roadType === "Mặt tiền") {
-          locationBadge = `<span class="badge badge-xs badge-error text-white border-none">Mặt tiền</span>`;
-        } else if (roadType === "Hẻm xe hơi") {
-          locationBadge = `<span class="badge badge-xs badge-info text-white border-none">Hẻm xe hơi</span>`;
-        } else {
-          locationBadge = `<span class="badge badge-xs badge-ghost border-none opacity-70">Nhà hẻm</span>`;
-        }
-
-        const hhBadge = row.commission
-          ? `<span class="badge badge-xs badge-success text-white border-none ml-1">${row.commission}</span>`
-          : "";
-
+        // Xử lý nút bấm admin
         const staffReportBadge =
           row.rented_reported_at && row.status !== "rented"
             ? `<span class="badge badge-xs badge-warning border-none ml-1">NS báo hết</span>`
@@ -1503,28 +1492,29 @@ MB0001/2.jpg"></textarea>
         if (SHOW_PENDING && isAdmin()) {
           approveBtn = `
             <button onclick="approveOne('${row.id}', event)" 
-              class="btn btn-xs btn-success w-full mt-2 text-white">
-              ✔ Duyệt ngay
+              class="btn btn-xs btn-success text-white px-2">
+              ✔ Duyệt
             </button>`;
         }
 
         // Trạng thái ghim
         const isFav = favSet.has(row.id);
-        const favBtnClass = isFav ? "btn-error text-white" : "btn-ghost";
+        const favBtnClass = isFav ? "btn-error text-white" : "btn-ghost text-gray-400";
         const favIcon = isFav ? "★" : "☆";
 
-        // ... bên trên giữ nguyên ...
+
+        // --- 2. HTML GIAO DIỆN (Đã tối ưu màu sắc chữ để không bị chìm) ---
         return `
           <article 
-            class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden flex flex-row md:flex-col h-[130px] md:h-auto"
+            class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden flex flex-row h-[120px] md:h-auto mb-3"
             data-id="${row.id}">
             
-            <figure class="w-[130px] md:w-full md:h-52 bg-base-200 shrink-0 relative">
+            <figure class="w-[130px] md:w-full md:h-52 bg-gray-100 shrink-0 relative">
               <div id="thumb-box-${row.id}" 
-                class="w-full h-full flex items-center justify-center ${imgUrl ? "" : "opacity-60"}">
+                class="w-full h-full flex items-center justify-center">
                 ${
                   imgUrl
-                    ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
+                    ? `<img src="${imgUrl}" alt="Ảnh" class="w-full h-full object-cover" />`
                     : `<div class="text-[10px] text-gray-400 flex flex-col items-center"><span>No IMG</span></div>`
                 }
               </div>
@@ -1532,7 +1522,7 @@ MB0001/2.jpg"></textarea>
               <div class="hidden md:flex absolute top-2 right-2 shadow-sm items-center gap-1">
                 <button 
                   type="button"
-                  class="fav-btn btn btn-sm ${favBtnClass} btn-circle border-none text-lg"
+                  class="fav-btn btn btn-sm ${favBtnClass} btn-circle border-none text-lg bg-white/80 hover:bg-white"
                   data-id="${row.id}"
                   onclick="toggleFavorite(event, '${row.id}')">
                   ${favIcon}
@@ -1545,40 +1535,44 @@ MB0001/2.jpg"></textarea>
               </div>
             </figure>
 
-            <div class="card-body p-3 gap-1 md:p-4 md:gap-2 flex-1 min-w-0 justify-between">
+            <div class="flex-1 p-3 flex flex-col justify-between min-w-0 bg-white">
               
               <div>
-                <h3 class="font-semibold text-xs md:text-sm line-clamp-2 leading-tight mb-1 text-gray-800">${buildTitle(row)}</h3>
+                <h3 class="font-bold text-xs md:text-sm line-clamp-2 leading-tight text-gray-800 mb-1">
+                    ${buildTitle(row) || "Mặt bằng chưa có tiêu đề"}
+                </h3>
                 
-                <div class="flex items-center gap-1 text-[10px] text-gray-500 truncate">
-                   <span>📍 ${row.ward ? row.ward + ", " : ""}${row.district}</span>
+                <div class="flex items-center gap-1 text-[11px] text-gray-500 truncate mb-1">
+                   <span>📍 ${[row.ward, row.district].filter(Boolean).join(", ")}</span>
                 </div>
                 
-                <div class="flex flex-wrap items-center gap-2 text-[10px] mt-1 text-gray-600">
-                  ${row.area ? `<span class="bg-gray-100 px-1 rounded border">${row.area}m²</span>` : ""}
+                <div class="flex flex-wrap items-center gap-2 text-[10px] text-gray-600 font-medium">
+                  ${row.area ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${row.area}m²</span>` : ""}
                   ${row.width ? `<span>${row.width}x${row.length}</span>` : ""}
                   ${pnVal ? `<span class="hidden md:inline">• ${pnVal}PN</span>` : ""}
-                  ${floorsVal ? `<span class="hidden md:inline">• ${floorsVal}T</span>` : ""}
                 </div>
               </div>
 
               <div class="flex items-end justify-between mt-1">
                 <div>
-                   <div class="text-primary font-bold text-sm md:text-lg leading-none">${money(row.price)}</div>
-                   <div class="text-[9px] opacity-60 mt-1 hidden md:block">${updatedLabel}</div>
+                   <div class="text-blue-600 font-extrabold text-sm md:text-lg leading-none">
+                     ${money(row.price)}
+                   </div>
+                   <div class="text-[10px] text-gray-400 mt-1 hidden md:block">${updatedLabel}</div>
                 </div>
                 
                 <div class="flex gap-1 md:hidden">
                    ${approveBtn ? approveBtn : ""}
                    <button 
                       type="button"
-                      class="fav-btn btn btn-xs btn-circle ${isFav ? 'btn-error text-white' : 'btn-ghost border-gray-300'} text-base"
+                      class="fav-btn btn btn-xs btn-circle btn-ghost border border-gray-200 ${isFav ? 'text-yellow-500' : 'text-gray-300'}"
                       data-id="${row.id}"
                       onclick="toggleFavorite(event, '${row.id}')">
-                      ${favIcon}
+                      ${isFav ? '★' : '☆'}
                     </button>
                 </div>
-                ${!isStaff() && approveBtn ? "" : `<div class="hidden md:block">${approveBtn}</div>`}
+                
+                ${!isStaff() && approveBtn ? `<div class="hidden md:block">${approveBtn}</div>` : ""}
               </div>
               
             </div>
