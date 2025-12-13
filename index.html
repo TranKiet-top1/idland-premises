@@ -3212,6 +3212,38 @@ MB0001/2.jpg"></textarea>
         logo.classList.remove("h-10");
       }
     });
+    // --- CẤP CỨU: KHÔI PHỤC CHỨC NĂNG LỌC QUẬN ---
+    setTimeout(() => {
+        // 1. Nạp lại danh sách Quận từ dữ liệu nguồn
+        if (typeof buildDistrictWardOptions === 'function') {
+            console.log("Đang nạp lại danh sách Quận...");
+            buildDistrictWardOptions();
+        }
+
+        // 2. Kết nối lại sự kiện: Chọn Quận -> Tự đổi Phường & Lọc bài
+        const districtSelect = document.getElementById("filter-district");
+        if (districtSelect) {
+            // Xóa sự kiện cũ (để tránh bị trùng) rồi gán mới
+            const newSelect = districtSelect.cloneNode(true);
+            districtSelect.parentNode.replaceChild(newSelect, districtSelect);
+            
+            newSelect.addEventListener("change", function() {
+                // Cập nhật phường tương ứng
+                if (typeof updateWardOptions === 'function') {
+                    updateWardOptions();
+                }
+                // Gọi hàm lọc
+                if (typeof applyFilters === 'function') {
+                    applyFilters(true);
+                }
+            });
+            
+            // Nếu đang có quận được chọn sẵn (ví dụ load lại trang), hãy nạp phường luôn
+            if (newSelect.value) {
+                 if (typeof updateWardOptions === 'function') updateWardOptions();
+            }
+        }
+    }, 1000); // Chờ 1 giây để đảm bảo HTML đã vẽ xong
   </script>
   <dialog id="toolDlg" class="modal">
     <div class="modal-box">
