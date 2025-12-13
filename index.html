@@ -135,9 +135,11 @@
       <div id="login-card" class="card w-full max-w-md bg-base-100 shadow-xl ml-auto hidden">
         <div class="card-body">
           <div class="flex items-center gap-2 mb-4">
-            <div class="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white font-bold">
-              ID
-            </div>
+            <img 
+              src="logo.png" 
+              alt="Logo ID Land" 
+              class="h-12 w-auto object-contain" 
+            />
             <div>
               <h2 class="card-title">Đăng nhập nhân sự</h2>
               <p class="text-xs opacity-70">
@@ -899,7 +901,7 @@ MB0001/2.jpg"></textarea>
           zoomToBoundsOnClick: true, // Click vào nhóm sẽ zoom vào
           
           // Tùy chỉnh icon của nhóm (Optional - nếu muốn đẹp hơn mặc định)
-          /*
+          
           iconCreateFunction: function(cluster) {
               return L.divIcon({ 
                   html: '<div style="background:#3b82f6; color:white; border-radius:50%; width:30px; height:30px; display:flex; justify-content:center; align-items:center; font-weight:bold; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.3)">' + cluster.getChildCount() + '</div>', 
@@ -907,7 +909,7 @@ MB0001/2.jpg"></textarea>
                   iconSize: L.point(30, 30) 
               });
           }
-          */
+          
       });
 
       rows.forEach((row) => {
