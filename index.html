@@ -60,7 +60,34 @@ div id="admin-pending-controls"<!DOCTYPE html>
       max-width: 95vw !important;  /* 95% chiều rộng màn hình, bạn có thể điều chỉnh thành 90vw, 98vw hoặc 100vw nếu muốn rộng hơn */
       width: 95% !important;       /* Override width để đảm bảo responsive */
     }
-    
+    .quick-filter-container {
+      display: flex;
+      overflow-x: auto;
+      white-space: nowrap;
+      gap: 0.5rem;
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.5rem;
+      -webkit-overflow-scrolling: touch; 
+      scrollbar-width: none; /* Ẩn thanh cuộn Firefox */
+    }
+    .quick-filter-container::-webkit-scrollbar {
+      display: none; /* Ẩn thanh cuộn Chrome/Safari */
+    }
+
+    /* 2. CSS cho Sidebar (Drawer) trên Mobile */
+    #mobile-filter-drawer {
+      transition: opacity 0.3s, visibility 0.3s;
+    }
+    #mobile-filter-drawer.hidden-drawer {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #mobile-filter-drawer:not(.hidden-drawer) {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
   </style>
 </head>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -252,190 +279,122 @@ div id="admin-pending-controls"<!DOCTYPE html>
 
       </div>
 
-      <div class="flex flex-wrap items-center gap-2 mb-3">
-        <span class="text-xs opacity-70">Lọc nhanh:</span>
-        <button class="btn btn-xs" data-quick="available">Còn trống</button>
-        <button class="btn btn-xs" data-quick="deposited">Giữ cọc</button>
-        <button class="btn btn-xs" data-quick-district="Quận 1">Quận 1</button>
-        <button class="btn btn-xs" data-quick-district="Quận 10">Quận 10</button>
-        <button class="btn btn-xs btn-ghost btn-outline" id="btn-clear-quick">
+      <div class="quick-filter-container items-center gap-2 mb-3 px-1">
+        <span class="text-xs opacity-70 whitespace-nowrap">Lọc nhanh:</span>
+        <button class="btn btn-xs flex-shrink-0" data-quick="available">Còn trống</button>
+        <button class="btn btn-xs flex-shrink-0" data-quick="deposited">Giữ cọc</button>
+        <button class="btn btn-xs flex-shrink-0" data-quick-district="Quận 1">Quận 1</button>
+        <button class="btn btn-xs flex-shrink-0" data-quick-district="Quận 3">Quận 3</button>
+        <button class="btn btn-xs flex-shrink-0" data-quick-district="Quận 10">Quận 10</button>
+        <button class="btn btn-xs flex-shrink-0" data-quick-district="Bình Thạnh">Bình Thạnh</button>
+        <button class="btn btn-xs flex-shrink-0" data-quick-district="Phú Nhuận">Phú Nhuận</button>
+        <button class="btn btn-xs btn-ghost btn-outline flex-shrink-0" id="btn-clear-quick">
           Xoá lọc nhanh
         </button>
-
-        <!-- NÚT XEM GHIM -->
-        <button class="btn btn-xs btn-outline" id="btn-toggle-favorites">
-          Xem mặt bằng đã ghim
+        
+        <button class="btn btn-xs btn-outline flex-shrink-0 ml-auto" id="btn-toggle-favorites">
+          Xem ghim
         </button>
       </div>
 
 
-      <div class="grid md:grid-cols-[260px,1fr] gap-4">
-        <aside class="bg-base-100 rounded-2xl shadow-sm p-4">
-          <div class="flex items-center gap-2 mb-3">
-            <span class="w-2 h-2 rounded-full bg-success"></span>
-            <h2 class="font-semibold text-sm">Bộ lọc</h2>
-          </div>
+      <div class="grid md:grid-cols-[260px,1fr] gap-4 relative">
+        
+        <div class="md:hidden mb-2">
+          <button 
+            class="btn btn-outline btn-sm w-full flex items-center justify-center gap-2"
+            onclick="document.getElementById('mobile-filter-drawer').classList.remove('hidden-drawer')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+            Bộ lọc tìm kiếm chi tiết
+          </button>
+        </div>
 
-          <div class="form-control mb-3">
-            <label class="label">
-              <span class="label-text text-xs">Từ khoá</span>
-            </label>
-            <input
-              id="filter-keyword"
-              type="text"
-              placeholder="VD: Trần Hưng Đạo, Q5..."
-              class="input input-sm input-bordered"
-            />
-          </div>
-
-          <div class="form-control mb-3">
-            <label class="label">
-              <span class="label-text text-xs">Quận</span>
-            </label>
-            <select id="filter-district" class="select select-sm select-bordered">
-              <option value="">Tất cả</option>
-            </select>
-          </div>
-
-          <div class="form-control mb-3">
-            <label class="label">
-              <span class="label-text text-xs">Phường</span>
-            </label>
-            <select id="filter-ward" class="select select-sm select-bordered">
-              <option value="">Tất cả</option>
-            </select>
-          </div>
-
-          <div class="grid grid-cols-1 gap-2 mb-3">
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text text-xs">Số PN</span>
-              </label>
-              <select id="filter-pn" class="select select-sm select-bordered">
-                <option value="">Tất cả</option>
-                <option value="1">1 PN</option>
-                <option value="2">2 PN</option>
-                <option value="3">3 PN</option>
-                <option value="4">4 PN</option>
-                <option value="5">5 PN</option>
-                <option value="6">6 PN</option>
-                <option value=">6">> 6 PN</option>
-              </select>
+        <aside 
+          id="mobile-filter-drawer"
+          class="
+            hidden-drawer md:block md:opacity-100 md:visible md:pointer-events-auto
+            fixed md:static inset-0 z-[999] md:z-auto bg-black/50 md:bg-transparent transition-all
+          "
+        >
+          <div class="
+            bg-base-100 h-full w-[85%] max-w-sm ml-auto 
+            md:w-auto md:h-auto md:bg-base-100 md:rounded-2xl md:shadow-sm md:p-4
+            flex flex-col p-4 shadow-2xl md:shadow-none overflow-y-auto
+          ">
+            
+            <div class="flex md:hidden items-center justify-between mb-4 border-b pb-2">
+              <span class="font-bold text-lg">Bộ lọc</span>
+              <button class="btn btn-sm btn-circle btn-ghost" onclick="document.getElementById('mobile-filter-drawer').classList.add('hidden-drawer')">✕</button>
             </div>
 
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text text-xs">Số WC</span>
-              </label>
-              <select id="filter-wc" class="select select-sm select-bordered">
-                <option value="">Tất cả</option>
-                <option value="1">1 WC</option>
-                <option value="2">2 WC</option>
-                <option value="3">3 WC</option>
-                <option value="4">4 WC</option>
-                <option value="5">5 WC</option>
-                <option value=">5">> 5 WC</option>
-              </select>
+            <div class="flex items-center gap-2 mb-3 hidden md:flex">
+              <span class="w-2 h-2 rounded-full bg-success"></span>
+              <h2 class="font-semibold text-sm">Bộ lọc</h2>
             </div>
 
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text text-xs">Số tầng</span>
-              </label>
-              <select id="filter-floors" class="select select-sm select-bordered">
-                <option value="">Tất cả</option>
-                <option value="1">1 tầng</option>
-                <option value="2">2 tầng</option>
-                <option value="3">3 tầng</option>
-                <option value="4">4 tầng</option>
-                <option value="5">5 tầng</option>
-                <option value=">5">> 5 tầng</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2 mb-3">
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text text-xs">Giá tối thiểu</span>
-              </label>
-              <input
-                id="filter-price-min"
-                type="number"
-                class="input input-sm input-bordered"
-              />
-            </div>
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text text-xs">Giá tối đa</span>
-              </label>
-              <input
-                id="filter-price-max"
-                type="number"
-                class="input input-sm input-bordered"
-              />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2 mb-3">
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text text-xs">DT tối thiểu (m²)</span>
-              </label>
-              <input
-                id="filter-area-min"
-                type="number"
-                class="input input-sm input-bordered"
-              />
-            </div>
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text text-xs">DT tối đa (m²)</span>
-              </label>
-              <input
-                id="filter-area-max"
-                type="number"
-                class="input input-sm input-bordered"
-              />
-            </div>
-          </div>
-
-          <div class="form-control mb-3">
-            <label class="label">
-              <span class="label-text text-xs">Vị trí</span>
-            </label>
-            <select id="filter-frontage-type" class="select select-sm select-bordered">
-              <option value="">Tất cả</option>
-              <option value="hem">Nhà hẻm</option>
-              <option value="hxh">Hẻm xe hơi</option>
-              <option value="mt">Mặt tiền</option>
-            </select>
-          </div>
-
-          <div class="form-control mb-4">
-            <label class="label">
-              <span class="label-text text-xs">Tình trạng</span>
-            </label>
-            <select id="filter-status" class="select select-sm select-bordered">
-              <option value="">Tất cả</option>
-              <option value="available">Còn trống</option>
-              <option value="deposited">Giữ cọc</option>
-              <option value="rented">Đã thuê</option>
-            </select>
-          </div>
-
-          <div class="flex gap-2">
-            <div class="btn-group">
-              <button id="btn-view-list" class="btn btn-sm btn-active">Danh sách</button>
-              <button id="btn-view-map" class="btn btn-sm btn-ghost">Bản đồ</button>
+            <div class="form-control mb-3">
+              <label class="label"><span class="label-text text-xs">Từ khoá</span></label>
+              <input id="filter-keyword" type="text" placeholder="VD: Trần Hưng Đạo..." class="input input-sm input-bordered" />
             </div>
 
-            <button id="btn-apply" class="btn btn-sm btn-primary flex-1">
-              Lọc
-            </button>
-            <button id="btn-reset" class="btn btn-sm btn-ghost">
-              Xoá lọc
-            </button>
+            <div class="form-control mb-3">
+              <label class="label"><span class="label-text text-xs">Quận</span></label>
+              <select id="filter-district" class="select select-sm select-bordered"><option value="">Tất cả</option></select>
+            </div>
+
+            <div class="form-control mb-3">
+              <label class="label"><span class="label-text text-xs">Phường</span></label>
+              <select id="filter-ward" class="select select-sm select-bordered"><option value="">Tất cả</option></select>
+            </div>
+
+            <div class="grid grid-cols-1 gap-2 mb-3">
+               <div class="form-control">
+                  <label class="label"><span class="label-text text-xs">Số PN</span></label>
+                  <select id="filter-pn" class="select select-sm select-bordered">
+                    <option value="">Tất cả</option>
+                    <option value="1">1 PN</option><option value="2">2 PN</option><option value="3">3 PN</option><option value="4">4 PN</option><option value="5">5 PN</option><option value="6">6 PN</option><option value=">6">> 6 PN</option>
+                  </select>
+               </div>
+               </div>
+
+            <div class="grid grid-cols-2 gap-2 mb-3">
+              <div class="form-control">
+                <label class="label"><span class="label-text text-xs">Giá tối thiểu</span></label>
+                <input id="filter-price-min" type="number" class="input input-sm input-bordered" />
+              </div>
+              <div class="form-control">
+                <label class="label"><span class="label-text text-xs">Giá tối đa</span></label>
+                <input id="filter-price-max" type="number" class="input input-sm input-bordered" />
+              </div>
+            </div>
+
+             <div class="grid grid-cols-2 gap-2 mb-3">
+                <div class="form-control"><label class="label"><span class="label-text text-xs">DT Min</span></label><input id="filter-area-min" type="number" class="input input-sm input-bordered" /></div>
+                <div class="form-control"><label class="label"><span class="label-text text-xs">DT Max</span></label><input id="filter-area-max" type="number" class="input input-sm input-bordered" /></div>
+             </div>
+             <div class="form-control mb-3">
+                <label class="label"><span class="label-text text-xs">Vị trí</span></label>
+                <select id="filter-frontage-type" class="select select-sm select-bordered"><option value="">Tất cả</option><option value="hem">Nhà hẻm</option><option value="hxh">Hẻm xe hơi</option><option value="mt">Mặt tiền</option></select>
+             </div>
+             <div class="form-control mb-4">
+                <label class="label"><span class="label-text text-xs">Tình trạng</span></label>
+                <select id="filter-status" class="select select-sm select-bordered"><option value="">Tất cả</option><option value="available">Còn trống</option><option value="deposited">Giữ cọc</option><option value="rented">Đã thuê</option></select>
+             </div>
+
+
+            <div class="mt-auto pt-4 flex gap-2 md:block md:mt-0 md:pt-0 sticky bottom-0 bg-base-100 md:static">
+               <div class="btn-group hidden md:flex mb-2">
+                  <button id="btn-view-list" class="btn btn-sm btn-active">Danh sách</button>
+                  <button id="btn-view-map" class="btn btn-sm btn-ghost">Bản đồ</button>
+               </div>
+               
+               <div class="flex gap-2 w-full">
+                  <button id="btn-reset" class="btn btn-sm btn-ghost flex-1 md:flex-none">Xoá lọc</button>
+                  <button id="btn-apply" class="btn btn-sm btn-primary flex-1" onclick="document.getElementById('mobile-filter-drawer').classList.add('hidden-drawer')">Lọc ngay</button>
+               </div>
+            </div>
+
           </div>
         </aside>
 
@@ -1513,58 +1472,74 @@ MB0001/2.jpg"></textarea>
         const favBtnClass = isFav ? "btn-error text-white" : "btn-ghost";
         const favIcon = isFav ? "★" : "☆";
 
+        // ... bên trên giữ nguyên ...
         return `
           <article 
-            class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden"
+            class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden flex flex-row md:flex-col h-[130px] md:h-auto"
             data-id="${row.id}">
             
-            <figure class="h-52 bg-base-200 flex items-center justify-center relative">
+            <figure class="w-[130px] md:w-full md:h-52 bg-base-200 shrink-0 relative">
               <div id="thumb-box-${row.id}" 
                 class="w-full h-full flex items-center justify-center ${imgUrl ? "" : "opacity-60"}">
                 ${
                   imgUrl
                     ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
-                    : `<div class="text-xs text-gray-500 flex flex-col items-center gap-1">
-                         <span class="loading loading-spinner loading-xs"></span>
-                         <span>Đang tìm ảnh...</span>
-                       </div>`
+                    : `<div class="text-[10px] text-gray-400 flex flex-col items-center"><span>No IMG</span></div>`
                 }
               </div>
 
-              <div class="absolute top-2 right-2 shadow-sm flex items-center gap-1">
+              <div class="hidden md:flex absolute top-2 right-2 shadow-sm items-center gap-1">
                 <button 
                   type="button"
                   class="fav-btn btn btn-sm ${favBtnClass} btn-circle border-none text-lg"
                   data-id="${row.id}"
-                  title="Ghim / bỏ ghim"
                   onclick="toggleFavorite(event, '${row.id}')">
                   ${favIcon}
                 </button>
-                
                 ${isAdmin() ? staffReportBadge : ""}
               </div>
 
-              <div class="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[10px] p-1 px-2 truncate">
+              <div class="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[10px] p-1 px-2 truncate hidden md:block">
                 Đăng bởi: <b>${shortName || "Ẩn danh"}</b>
               </div>
             </figure>
 
-            <div class="card-body p-4 gap-2">
-              <h3 class="font-semibold text-sm line-clamp-2">${buildTitle(row)}</h3>
-              <div class="flex items-center flex-wrap gap-2 text-[11px] opacity-70">
-                <span>${[row.ward, row.district].filter(Boolean).join(" • ")}</span>
+            <div class="card-body p-3 gap-1 md:p-4 md:gap-2 flex-1 min-w-0 justify-between">
+              
+              <div>
+                <h3 class="font-semibold text-xs md:text-sm line-clamp-2 leading-tight mb-1 text-gray-800">${buildTitle(row)}</h3>
+                
+                <div class="flex items-center gap-1 text-[10px] text-gray-500 truncate">
+                   <span>📍 ${row.ward ? row.ward + ", " : ""}${row.district}</span>
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-2 text-[10px] mt-1 text-gray-600">
+                  ${row.area ? `<span class="bg-gray-100 px-1 rounded border">${row.area}m²</span>` : ""}
+                  ${row.width ? `<span>${row.width}x${row.length}</span>` : ""}
+                  ${pnVal ? `<span class="hidden md:inline">• ${pnVal}PN</span>` : ""}
+                  ${floorsVal ? `<span class="hidden md:inline">• ${floorsVal}T</span>` : ""}
+                </div>
               </div>
-              <div class="flex flex-wrap items-center gap-2 text-[11px] mt-1">
-                ${row.area ? `<span>${row.area} m²</span>` : ""}
-                ${row.width && row.length ? `<span>${row.width}×${row.length} m</span>` : ""}
-                ${pnVal ? `<span>${pnVal} PN</span>` : ""}
-                ${floorsVal ? `<span>${floorsVal} tầng</span>` : ""}
+
+              <div class="flex items-end justify-between mt-1">
+                <div>
+                   <div class="text-primary font-bold text-sm md:text-lg leading-none">${money(row.price)}</div>
+                   <div class="text-[9px] opacity-60 mt-1 hidden md:block">${updatedLabel}</div>
+                </div>
+                
+                <div class="flex gap-1 md:hidden">
+                   ${approveBtn ? approveBtn : ""}
+                   <button 
+                      type="button"
+                      class="fav-btn btn btn-xs btn-circle ${isFav ? 'btn-error text-white' : 'btn-ghost border-gray-300'} text-base"
+                      data-id="${row.id}"
+                      onclick="toggleFavorite(event, '${row.id}')">
+                      ${favIcon}
+                    </button>
+                </div>
+                ${!isStaff() && approveBtn ? "" : `<div class="hidden md:block">${approveBtn}</div>`}
               </div>
-              <div class="flex items-center justify-between mt-1">
-                <div class="text-primary font-extrabold text-lg">${money(row.price)}</div>
-                <div class="text-[10px] opacity-60">${updatedLabel}</div>
-              </div>
-              ${approveBtn}
+              
             </div>
           </article>
         `;
