@@ -202,7 +202,7 @@ div id="admin-pending-controls"<!DOCTYPE html>
       </div>
     </div>
 
-    <main class="flex-1 max-w-6xl mx-auto w-full px-2 sm:px-4 py-4">
+    <main class="flex-1 max-w-6xl mx-auto w-full px-2 md:px-4 py-4">
       <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h1 class="text-xl sm:text-2xl font-bold">
@@ -1461,10 +1461,9 @@ MB0001/2.jpg"></textarea>
       });
 
       const html = sortedRows.map((row) => {
-        // --- 1. PHẦN TÍNH TOÁN (QUAN TRỌNG - KHÔNG ĐƯỢC XÓA) ---
-        // Nếu thiếu phần này, nội dung sẽ bị trắng trơn
+        // --- 1. TÍNH TOÁN DỮ LIỆU (KHÔNG ĐƯỢC XÓA) ---
         
-        // Xử lý ảnh
+        // Ảnh
         let firstPath = null;
         if (Array.isArray(row.images) && row.images.length > 0) firstPath = row.images[0];
         else if (typeof row.images === "string" && row.images.trim()) {
@@ -1475,48 +1474,52 @@ MB0001/2.jpg"></textarea>
         }
         const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
 
-        // Xử lý thông số
+        // Thông số
         const pnVal = pickField(row, ["pn", "so_pn", "bedrooms", "rooms"]);
         const wcVal = pickField(row, ["wc", "bathrooms"]);
-        const floorsVal = pickField(row, ["floors"]);
+        const floorsVal = pickField(row, ["floors"]); // Số tầng
         const updatedLabel = formatDateVN(row.updated_at || row.created_at);
         const creatorEmail = row.profiles?.email || "";
         const shortName = creatorEmail.split("@")[0];
 
-        // Badge trạng thái Admin
+        // Badge Admin
         const staffReportBadge =
           row.rented_reported_at && row.status !== "rented"
             ? `<span class="badge badge-xs badge-warning border-none ml-1">NS báo hết</span>`
             : "";
 
-        // Nút Duyệt (Admin)
+        // Nút Duyệt
         let approveBtn = "";
         if (SHOW_PENDING && isAdmin()) {
           approveBtn = `
             <button onclick="approveOne('${row.id}', event)" 
-              class="btn btn-xs btn-success text-white px-2 z-20 relative shadow">
+              class="btn btn-xs btn-success text-white px-2 shadow-sm z-20 relative">
               ✔ Duyệt
             </button>`;
         }
 
-        // Trạng thái Ghim
+        // Ghim
         const isFav = favSet.has(row.id);
         const favBtnClass = isFav ? "btn-error text-white" : "btn-ghost text-gray-400 hover:bg-gray-100";
         const favIcon = isFav ? "★" : "☆";
 
-        // --- 2. PHẦN GIAO DIỆN (MOBILE NGANG - PC DỌC) ---
+        // Tiêu đề & Địa chỉ
+        const title = buildTitle(row) || "Đang cập nhật...";
+        const address = [row.ward, row.district].filter(Boolean).join(", ");
+
+        // --- 2. GIAO DIỆN HTML (ĐÃ TỐI ƯU MOBILE) ---
         return `
           <article 
-            class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden flex flex-row md:flex-col h-[130px] md:h-auto group relative"
+            class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden flex flex-row md:flex-col h-[125px] md:h-auto group relative mb-1"
             data-id="${row.id}">
             
-            <figure class="w-[130px] md:w-full md:h-52 bg-gray-100 shrink-0 relative border-r md:border-r-0 md:border-b border-gray-100">
+            <figure class="w-[120px] md:w-full md:h-52 bg-gray-100 shrink-0 relative border-r md:border-r-0 md:border-b border-gray-100">
               <div id="thumb-box-${row.id}" 
                 class="w-full h-full flex items-center justify-center overflow-hidden">
                 ${
                   imgUrl
-                    ? `<img src="${imgUrl}" alt="Ảnh BĐS" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />`
-                    : `<div class="text-[10px] text-gray-400 flex flex-col items-center gap-1"><span class="text-xl">📷</span><span>No Image</span></div>`
+                    ? `<img src="${imgUrl}" alt="Ảnh" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />`
+                    : `<div class="text-[10px] text-gray-400 flex flex-col items-center gap-1"><span class="text-xl">📷</span><span>No IMG</span></div>`
                 }
               </div>
 
@@ -1525,44 +1528,39 @@ MB0001/2.jpg"></textarea>
                   type="button"
                   class="fav-btn btn btn-sm ${favBtnClass} btn-circle border-none text-lg shadow-sm bg-white/90"
                   data-id="${row.id}"
-                  title="Ghim tin này"
                   onclick="toggleFavorite(event, '${row.id}')">
                   ${favIcon}
                 </button>
                 ${isAdmin() ? staffReportBadge : ""}
               </div>
-
-              <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/70 to-transparent text-white text-[10px] p-2 pt-4 truncate hidden md:block">
-                Đăng bởi: <b>${shortName || "Ẩn danh"}</b>
-              </div>
             </figure>
 
-            <div class="flex-1 p-3 flex flex-col justify-between min-w-0 bg-white relative">
+            <div class="flex-1 p-2 md:p-3 flex flex-col justify-between min-w-0 bg-white relative">
               
               <div>
                 <h3 class="font-bold text-xs md:text-sm line-clamp-2 leading-tight text-gray-800 mb-1 group-hover:text-primary transition-colors">
-                    ${buildTitle(row) || "Đang cập nhật tiêu đề..."}
+                    ${title}
                 </h3>
                 
-                <div class="flex items-center gap-1 text-[11px] text-gray-500 truncate mb-1">
-                   <span class="shrink-0">📍</span>
-                   <span class="truncate">${[row.ward, row.district].filter(Boolean).join(", ")}</span>
+                <div class="flex items-center gap-1 text-[10px] md:text-xs text-gray-500 truncate mb-1">
+                   <span class="shrink-0 opacity-70">📍</span>
+                   <span class="truncate">${address}</span>
                 </div>
                 
-                <div class="flex flex-wrap items-center gap-2 text-[10px] text-gray-600 font-medium mt-1">
-                  ${row.area ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-700 border border-gray-200">${row.area} m²</span>` : ""}
-                  ${row.width ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-700 border border-gray-200">${row.width} x ${row.length}</span>` : ""}
-                  ${pnVal ? `<span class="hidden md:inline text-gray-400">• ${pnVal} PN</span>` : ""}
+                <div class="flex flex-wrap items-center gap-1.5 text-[10px] text-gray-600 font-medium">
+                  ${row.area ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 whitespace-nowrap">${row.area} m²</span>` : ""}
+                  ${row.width ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 whitespace-nowrap">${row.width}x${row.length}</span>` : ""}
+                  ${pnVal ? `<span class="hidden md:inline text-gray-400">• ${pnVal}PN</span>` : ""}
                 </div>
               </div>
 
-              <div class="flex items-end justify-between mt-1 pt-2 border-t md:border-t-0 border-gray-50">
+              <div class="flex items-end justify-between mt-1 pt-1 md:pt-2 md:border-t border-gray-50">
                 <div>
                    <div class="text-blue-600 font-extrabold text-sm md:text-lg leading-none">
                      ${money(row.price)}
                    </div>
-                   <div class="text-[10px] text-gray-400 mt-1 hidden md:block">
-                     Cập nhật: ${updatedLabel}
+                   <div class="text-[9px] text-gray-400 mt-0.5 hidden md:block">
+                     ${updatedLabel}
                    </div>
                 </div>
                 
@@ -1576,7 +1574,7 @@ MB0001/2.jpg"></textarea>
                       ${isFav ? '★' : '☆'}
                     </button>
                 </div>
-                
+
                 ${!isStaff() && approveBtn ? `<div class="hidden md:block">${approveBtn}</div>` : ""}
               </div>
               
@@ -1587,16 +1585,15 @@ MB0001/2.jpg"></textarea>
 
       grid.insertAdjacentHTML("beforeend", html.join(""));
 
-      // Gắn sự kiện click mở chi tiết
+      // Gắn sự kiện click
       grid.querySelectorAll(".premise-card").forEach((el) => {
         el.onclick = (e) => {
-          if(e.target.closest('button')) return; // Không mở nếu bấm vào nút con
+          if(e.target.closest('button')) return;
           const id = el.getAttribute("data-id");
           if (id) openDetail(id);
         };
       });
 
-      // Quét ảnh (nếu cần)
       if (typeof scanGridImages === "function") {
         scanGridImages(sortedRows).catch(err => console.error(err));
       }
