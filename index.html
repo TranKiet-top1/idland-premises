@@ -1452,7 +1452,7 @@ MB0001/2.jpg"></textarea>
       // Lấy danh sách ghim
       const favSet = new Set(getFavoriteIds());
 
-      // Sắp xếp: Tin ghim lên đầu
+      // Sắp xếp
       const sortedRows = [...rows].sort((a, b) => {
         const af = favSet.has(a.id);
         const bf = favSet.has(b.id);
@@ -1461,9 +1461,8 @@ MB0001/2.jpg"></textarea>
       });
 
       const html = sortedRows.map((row) => {
-        // --- 1. TÍNH TOÁN DỮ LIỆU (KHÔNG ĐƯỢC XÓA) ---
-        
-        // Ảnh
+        // --- PHẦN TÍNH TOÁN (KHÔNG ĐƯỢC XÓA) ---
+        // 1. Ảnh
         let firstPath = null;
         if (Array.isArray(row.images) && row.images.length > 0) firstPath = row.images[0];
         else if (typeof row.images === "string" && row.images.trim()) {
@@ -1474,23 +1473,29 @@ MB0001/2.jpg"></textarea>
         }
         const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
 
-        // Thông số
-        const pnVal = pickField(row, ["pn", "so_pn", "bedrooms", "rooms"]);
-        const wcVal = pickField(row, ["wc", "bathrooms"]);
-        const floorsVal = pickField(row, ["floors"]); // Số tầng
+        // 2. Thông tin (Tiêu đề, PN, WC...)
+        // Lấy tiêu đề, nếu lỗi thì hiển thị địa chỉ thay thế
+        let title = "Đang cập nhật";
+        try { title = buildTitle(row); } catch(e) {}
+        if (!title || title === "") title = row.address || "Mặt bằng chưa có tên";
+
+        const pnVal = row.pn || row.so_pn || row.bedrooms || row.rooms || "";
+        const floorsVal = row.floors || "";
+        
+        // 3. Admin & User
         const updatedLabel = formatDateVN(row.updated_at || row.created_at);
         const creatorEmail = row.profiles?.email || "";
-        const shortName = creatorEmail.split("@")[0];
+        const shortName = creatorEmail.split("@")[0] || "Admin";
 
-        // Badge Admin
+        // 4. Badge Admin
         const staffReportBadge =
           row.rented_reported_at && row.status !== "rented"
             ? `<span class="badge badge-xs badge-warning border-none ml-1">NS báo hết</span>`
             : "";
 
-        // Nút Duyệt
+        // 5. Nút Duyệt
         let approveBtn = "";
-        if (SHOW_PENDING && isAdmin()) {
+        if (typeof SHOW_PENDING !== 'undefined' && SHOW_PENDING && isAdmin()) {
           approveBtn = `
             <button onclick="approveOne('${row.id}', event)" 
               class="btn btn-xs btn-success text-white px-2 shadow-sm z-20 relative">
@@ -1498,19 +1503,15 @@ MB0001/2.jpg"></textarea>
             </button>`;
         }
 
-        // Ghim
+        // 6. Ghim
         const isFav = favSet.has(row.id);
         const favBtnClass = isFav ? "btn-error text-white" : "btn-ghost text-gray-400 hover:bg-gray-100";
         const favIcon = isFav ? "★" : "☆";
 
-        // Tiêu đề & Địa chỉ
-        const title = buildTitle(row) || "Đang cập nhật...";
-        const address = [row.ward, row.district].filter(Boolean).join(", ");
-
-        // --- 2. GIAO DIỆN HTML (ĐÃ TỐI ƯU MOBILE) ---
+        // --- GIAO DIỆN HTML ---
         return `
           <article 
-            class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden flex flex-row md:flex-col h-[125px] md:h-auto group relative mb-1"
+            class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden flex flex-row md:flex-col h-[125px] md:h-auto group relative mb-2"
             data-id="${row.id}">
             
             <figure class="w-[120px] md:w-full md:h-52 bg-gray-100 shrink-0 relative border-r md:border-r-0 md:border-b border-gray-100">
@@ -1518,43 +1519,37 @@ MB0001/2.jpg"></textarea>
                 class="w-full h-full flex items-center justify-center overflow-hidden">
                 ${
                   imgUrl
-                    ? `<img src="${imgUrl}" alt="Ảnh" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />`
-                    : `<div class="text-[10px] text-gray-400 flex flex-col items-center gap-1"><span class="text-xl">📷</span><span>No IMG</span></div>`
+                    ? `<img src="${imgUrl}" alt="img" class="w-full h-full object-cover" />`
+                    : `<div class="text-[10px] text-gray-400 flex flex-col items-center gap-1"><span>📷 No IMG</span></div>`
                 }
               </div>
-
+              
               <div class="hidden md:flex absolute top-2 right-2 z-10 items-center gap-1">
-                <button 
-                  type="button"
-                  class="fav-btn btn btn-sm ${favBtnClass} btn-circle border-none text-lg shadow-sm bg-white/90"
-                  data-id="${row.id}"
-                  onclick="toggleFavorite(event, '${row.id}')">
-                  ${favIcon}
-                </button>
-                ${isAdmin() ? staffReportBadge : ""}
+                 ${staffReportBadge}
+                 <button class="fav-btn btn btn-sm ${favBtnClass} btn-circle border-none text-lg shadow-sm bg-white/90"
+                  onclick="toggleFavorite(event, '${row.id}')">${favIcon}</button>
               </div>
             </figure>
 
             <div class="flex-1 p-2 md:p-3 flex flex-col justify-between min-w-0 bg-white relative">
-              
               <div>
-                <h3 class="font-bold text-xs md:text-sm line-clamp-2 leading-tight text-gray-800 mb-1 group-hover:text-primary transition-colors">
+                <h3 class="font-bold text-xs md:text-sm line-clamp-2 leading-tight text-gray-800 mb-1">
                     ${title}
                 </h3>
                 
                 <div class="flex items-center gap-1 text-[10px] md:text-xs text-gray-500 truncate mb-1">
-                   <span class="shrink-0 opacity-70">📍</span>
-                   <span class="truncate">${address}</span>
+                   <span class="opacity-70">📍</span>
+                   <span class="truncate">${[row.ward, row.district].filter(Boolean).join(", ")}</span>
                 </div>
                 
-                <div class="flex flex-wrap items-center gap-1.5 text-[10px] text-gray-600 font-medium">
-                  ${row.area ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 whitespace-nowrap">${row.area} m²</span>` : ""}
-                  ${row.width ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 whitespace-nowrap">${row.width}x${row.length}</span>` : ""}
-                  ${pnVal ? `<span class="hidden md:inline text-gray-400">• ${pnVal}PN</span>` : ""}
+                <div class="flex flex-wrap items-center gap-1 text-[10px] text-gray-600 font-medium">
+                  ${row.area ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${row.area}m²</span>` : ""}
+                  ${row.width ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${row.width}x${row.length}</span>` : ""}
+                  ${pnVal ? `<span class="text-gray-400 ml-1">• ${pnVal}PN</span>` : ""}
                 </div>
               </div>
 
-              <div class="flex items-end justify-between mt-1 pt-1 md:pt-2 md:border-t border-gray-50">
+              <div class="flex items-end justify-between mt-1 pt-1 border-t md:border-none border-gray-50">
                 <div>
                    <div class="text-blue-600 font-extrabold text-sm md:text-lg leading-none">
                      ${money(row.price)}
@@ -1565,26 +1560,20 @@ MB0001/2.jpg"></textarea>
                 </div>
                 
                 <div class="flex gap-2 md:hidden items-center">
-                   ${approveBtn ? approveBtn : ""}
-                   <button 
-                      type="button"
-                      class="fav-btn btn btn-xs btn-circle btn-ghost border border-gray-200 ${isFav ? 'text-yellow-500' : 'text-gray-300'}"
-                      data-id="${row.id}"
-                      onclick="toggleFavorite(event, '${row.id}')">
-                      ${isFav ? '★' : '☆'}
-                    </button>
+                   ${approveBtn}
+                   <button class="fav-btn btn btn-xs btn-circle btn-ghost border border-gray-200 ${isFav ? 'text-yellow-500' : 'text-gray-300'}"
+                      onclick="toggleFavorite(event, '${row.id}')">${isFav ? '★' : '☆'}</button>
                 </div>
-
+                
                 ${!isStaff() && approveBtn ? `<div class="hidden md:block">${approveBtn}</div>` : ""}
               </div>
-              
             </div>
           </article>
         `;
       });
 
       grid.insertAdjacentHTML("beforeend", html.join(""));
-
+      
       // Gắn sự kiện click
       grid.querySelectorAll(".premise-card").forEach((el) => {
         el.onclick = (e) => {
@@ -1595,45 +1584,7 @@ MB0001/2.jpg"></textarea>
       });
 
       if (typeof scanGridImages === "function") {
-        scanGridImages(sortedRows).catch(err => console.error(err));
-      }
-    }
-
-
-
-    // === HÀM MỚI: LẤY QUẬN TỪ HCM_DATA ===
-    function buildDistrictWardOptions() {
-      const selectDistrict = document.getElementById("filter-district");
-      // Bỏ chữ "window." đi để truy cập trực tiếp vào biến HCM_DATA
-      if (!selectDistrict || !HCM_DATA) return;
-
-      // Lưu lại giá trị đang chọn (nếu có)
-      const current = selectDistrict.value;
-
-      // Lấy danh sách quận từ HCM_DATA và sort theo tiếng Việt
-      const districts = Object.keys(HCM_DATA).sort((a, b) =>
-        a.localeCompare(b, "vi")
-      );
-
-      // Reset lại dropdown
-      selectDistrict.innerHTML = '<option value="">Tất cả</option>';
-
-      // Đổ option quận
-      districts.forEach((d) => {
-        const opt = document.createElement("option");
-        opt.value = d;
-        opt.textContent = d;
-        selectDistrict.appendChild(opt);
-      });
-
-      // Nếu trước đó đã chọn quận và quận đó vẫn tồn tại → set lại
-      if (current && districts.includes(current)) {
-        selectDistrict.value = current;
-      }
-
-      // Cập nhật lại danh sách phường theo quận đang chọn
-      if (typeof updateWardOptions === "function") {
-        updateWardOptions();
+        scanGridImages(sortedRows).catch(() => {});
       }
     }
 
