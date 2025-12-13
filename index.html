@@ -1504,18 +1504,20 @@ MB0001/2.jpg"></textarea>
         if (typeof SHOW_PENDING !== 'undefined' && SHOW_PENDING && isAdmin()) {
           approveBtn = `
             <button onclick="approveOne('${row.id}', event)" 
-              class="btn btn-xs btn-success text-white px-2 shadow-sm z-20 relative ml-auto">
+              class="btn btn-xs btn-success text-white px-2 shadow-sm z-30 relative ml-auto">
               ✔ Duyệt
             </button>`;
         }
 
-        // --- XỬ LÝ NÚT GHIM (QUAN TRỌNG) ---
+        // --- XỬ LÝ NÚT GHIM (ĐÃ SỬA LỖI) ---
         const isFav = favSet.has(row.id);
-        // Style nút ghim: Tròn, nền trắng, đổ bóng để nổi bật trên ảnh
+        
+        // QUAN TRỌNG: Phải có data-id="${row.id}" thì JS mới đổi màu nút được
         const favBtnHtml = `
             <button 
               type="button"
-              class="fav-btn btn btn-sm btn-circle border-none shadow-md ${isFav ? 'bg-white text-yellow-500' : 'bg-white/80 text-gray-400 hover:bg-white text-lg'}"
+              class="fav-btn btn btn-sm btn-circle border-none shadow-md ${isFav ? 'bg-white text-yellow-500' : 'bg-white/90 text-gray-400 hover:bg-white text-lg'}"
+              data-id="${row.id}" 
               onclick="toggleFavorite(event, '${row.id}')"
               title="${isFav ? 'Bỏ ghim' : 'Ghim tin này'}"
             >
@@ -1539,7 +1541,7 @@ MB0001/2.jpg"></textarea>
                 }
               </div>
               
-              <div class="absolute top-1.5 right-1.5 z-10 flex flex-col gap-1 items-end">
+              <div class="absolute top-1.5 right-1.5 z-20 flex flex-col gap-1 items-end pointer-events-auto">
                  ${staffReportBadge}
                  ${favBtnHtml}
               </div>
@@ -1585,8 +1587,11 @@ MB0001/2.jpg"></textarea>
       // Gắn sự kiện click vào thẻ
       grid.querySelectorAll(".premise-card").forEach((el) => {
         el.onclick = (e) => {
-          // Nếu bấm trúng nút ghim hoặc nút duyệt -> KHÔNG mở chi tiết
-          if(e.target.closest('button')) return;
+          // QUAN TRỌNG: Ngăn chặn click nếu bấm vào nút ghim (button)
+          if(e.target.closest('button')) {
+              e.stopPropagation(); 
+              return;
+          }
           
           const id = el.getAttribute("data-id");
           if (id) openDetail(id);
