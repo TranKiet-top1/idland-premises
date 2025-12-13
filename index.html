@@ -218,30 +218,26 @@ div id="admin-pending-controls"<!DOCTYPE html>
             <button id="btn-view-list" class="btn btn-sm join-item btn-active">Danh sách</button>
             <button id="btn-view-map" class="btn btn-sm join-item">Bản đồ</button>
           </div>
-          <div id="admin-pending-controls" class="hidden flex gap-2">
-            <!-- CẦN DUYỆT -->
-            <button id="btn-toggle-pending" class="btn btn-warning btn-sm text-white">
+          <div id="admin-pending-controls" class="hidden flex gap-2 overflow-x-auto whitespace-nowrap pb-2 md:pb-0 max-w-[100vw] md:max-w-auto px-2 md:px-0">
+            <button id="btn-toggle-pending" class="btn btn-warning btn-sm text-white shrink-0">
               Cần duyệt
               <span class="badge badge-sm bg-white text-warning ml-1 border-none" id="count-pending">0</span>
             </button>
 
-            <!-- BÁO HẾT -->
-            <button id="btn-toggle-rented-reports" class="btn btn-error btn-sm text-white">
+            <button id="btn-toggle-rented-reports" class="btn btn-error btn-sm text-white shrink-0">
               Báo hết
               <span class="badge badge-sm bg-white text-error ml-1 border-none" id="count-rented-reports">0</span>
             </button>
 
-            <!-- DUYỆT CHẠY LẠI (MỚI) -->
-            <button id="btn-toggle-reactivate" class="btn btn-info btn-sm text-white">
+            <button id="btn-toggle-reactivate" class="btn btn-info btn-sm text-white shrink-0">
               Duyệt chạy lại
               <span class="badge badge-sm bg-white text-info ml-1 border-none" id="count-reactivate">0</span>
             </button>
 
-            <!-- DUYỆT TẤT CẢ -->
-            <button id="btn-approve-all" class="btn btn-success btn-sm text-white hidden">
+            <button id="btn-approve-all" class="btn btn-success btn-sm text-white hidden shrink-0">
               ✔ Duyệt tất cả
             </button>
-            <button onclick="document.getElementById('toolDlg').showModal()" class="btn btn-neutral btn-sm text-white">
+            <button onclick="document.getElementById('toolDlg').showModal()" class="btn btn-neutral btn-sm text-white shrink-0">
               🛠 Công cụ
             </button>
           </div>
