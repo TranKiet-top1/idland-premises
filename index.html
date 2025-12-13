@@ -76,12 +76,13 @@
 
   <section id="auth-section" class="min-h-screen flex flex-col bg-base-200">
     <!-- THANH NAVBAR TRANG CHỦ -->
-    <header class="navbar bg-base-100 shadow-sm px-4">
-      <div class="flex-1 flex items-center gap-2">
+    <header id="landing-navbar" class="navbar bg-base-100 shadow-sm px-4 sticky top-0 z-50 transition-all duration-300 py-4 border-b border-base-200">
+      <div class="flex-1 flex items-center gap-3">
         <img 
+          id="landing-logo" 
           src="logo.png" 
-          alt="Logo ID Land" 
-          class="h-9 w-auto object-contain" 
+          alt="ID Land" 
+          class="h-16 w-auto object-contain transition-all duration-300" 
         />
         <div>
           <div class="font-bold text-lg leading-tight">ID-Land Premises</div>
