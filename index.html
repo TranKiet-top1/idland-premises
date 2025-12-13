@@ -452,7 +452,7 @@
         <section class="flex flex-col gap-3">
           <div class="flex items-center justify-between mb-1 text-xs opacity-70">
             <span>Hiển thị <span id="count-show">0</span> / <span id="count-total">0</span></span>
-            <button id="btn-download-csv" class="btn btn-xs btn-ghost">Tải CSV trên Supabase</button>
+            
           </div>
 
           <div id="list-view">
@@ -1498,7 +1498,7 @@ MB0001/2.jpg"></textarea>
       const html = sortedRows.map((row) => {
         // --- 1. TÍNH TOÁN DỮ LIỆU ---
         
-        // Ảnh
+        // Ảnh (Ưu tiên lấy từ DB)
         let firstPath = null;
         if (Array.isArray(row.images) && row.images.length > 0) firstPath = row.images[0];
         else if (typeof row.images === "string" && row.images.trim()) {
@@ -1534,10 +1534,8 @@ MB0001/2.jpg"></textarea>
             </button>`;
         }
 
-        // --- XỬ LÝ NÚT GHIM (ĐÃ SỬA LỖI) ---
+        // --- XỬ LÝ NÚT GHIM ---
         const isFav = favSet.has(row.id);
-        
-        // QUAN TRỌNG: Phải có data-id="${row.id}" thì JS mới đổi màu nút được
         const favBtnHtml = `
             <button 
               type="button"
@@ -1607,24 +1605,27 @@ MB0001/2.jpg"></textarea>
         `;
       });
 
+      // Chèn HTML vào lưới
       grid.insertAdjacentHTML("beforeend", html.join(""));
       
-      // Gắn sự kiện click vào thẻ
+      // Gắn sự kiện click
       grid.querySelectorAll(".premise-card").forEach((el) => {
         el.onclick = (e) => {
-          // QUAN TRỌNG: Ngăn chặn click nếu bấm vào nút ghim (button)
           if(e.target.closest('button')) {
               e.stopPropagation(); 
               return;
           }
-          
           const id = el.getAttribute("data-id");
           if (id) openDetail(id);
         };
       });
 
+      // === CẬP NHẬT QUAN TRỌNG: Thêm setTimeout ===
+      // Chờ 300ms để đảm bảo các thẻ div đã được vẽ xong rồi mới quét ảnh
       if (typeof scanGridImages === "function") {
-        scanGridImages(sortedRows).catch(() => {});
+        setTimeout(() => {
+            scanGridImages(sortedRows).catch(err => console.warn("Lỗi quét ảnh:", err));
+        }, 300);
       }
     }
     // --- HÀM KHÔI PHỤC: NẠP DANH SÁCH QUẬN VÀO BỘ LỌC ---
