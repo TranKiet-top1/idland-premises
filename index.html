@@ -1449,7 +1449,7 @@ MB0001/2.jpg"></textarea>
         return;
       }
 
-      // Lấy danh sách ghim để ưu tiên hiển thị
+      // Lấy danh sách ghim
       const favSet = new Set(getFavoriteIds());
 
       // Sắp xếp: Tin ghim lên đầu
@@ -1461,9 +1461,10 @@ MB0001/2.jpg"></textarea>
       });
 
       const html = sortedRows.map((row) => {
-        // --- PHẦN 1: TÍNH TOÁN DỮ LIỆU (QUAN TRỌNG - KHÔNG ĐƯỢC XÓA) ---
+        // --- 1. PHẦN TÍNH TOÁN (QUAN TRỌNG - KHÔNG ĐƯỢC XÓA) ---
+        // Nếu thiếu phần này, nội dung sẽ bị trắng trơn
         
-        // 1. Xử lý ảnh
+        // Xử lý ảnh
         let firstPath = null;
         if (Array.isArray(row.images) && row.images.length > 0) firstPath = row.images[0];
         else if (typeof row.images === "string" && row.images.trim()) {
@@ -1474,41 +1475,39 @@ MB0001/2.jpg"></textarea>
         }
         const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
 
-        // 2. Xử lý thông số (PN, WC, Tầng...)
+        // Xử lý thông số
         const pnVal = pickField(row, ["pn", "so_pn", "bedrooms", "rooms"]);
         const wcVal = pickField(row, ["wc", "bathrooms"]);
         const floorsVal = pickField(row, ["floors"]);
         const updatedLabel = formatDateVN(row.updated_at || row.created_at);
-        
-        // 3. Xử lý người đăng
         const creatorEmail = row.profiles?.email || "";
         const shortName = creatorEmail.split("@")[0];
 
-        // 4. Badge trạng thái Admin
+        // Badge trạng thái Admin
         const staffReportBadge =
           row.rented_reported_at && row.status !== "rented"
             ? `<span class="badge badge-xs badge-warning border-none ml-1">NS báo hết</span>`
             : "";
 
-        // 5. Nút Duyệt (cho Admin)
+        // Nút Duyệt (Admin)
         let approveBtn = "";
         if (SHOW_PENDING && isAdmin()) {
           approveBtn = `
             <button onclick="approveOne('${row.id}', event)" 
-              class="btn btn-xs btn-success text-white px-2 z-20 relative">
+              class="btn btn-xs btn-success text-white px-2 z-20 relative shadow">
               ✔ Duyệt
             </button>`;
         }
 
-        // 6. Trạng thái Ghim
+        // Trạng thái Ghim
         const isFav = favSet.has(row.id);
         const favBtnClass = isFav ? "btn-error text-white" : "btn-ghost text-gray-400 hover:bg-gray-100";
         const favIcon = isFav ? "★" : "☆";
 
-        // --- PHẦN 2: GIAO DIỆN HTML (MOBILE NGANG - PC DỌC) ---
+        // --- 2. PHẦN GIAO DIỆN (MOBILE NGANG - PC DỌC) ---
         return `
           <article 
-            class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden flex flex-row md:flex-col h-[130px] md:h-auto group"
+            class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden flex flex-row md:flex-col h-[130px] md:h-auto group relative"
             data-id="${row.id}">
             
             <figure class="w-[130px] md:w-full md:h-52 bg-gray-100 shrink-0 relative border-r md:border-r-0 md:border-b border-gray-100">
@@ -1546,20 +1545,20 @@ MB0001/2.jpg"></textarea>
                 </h3>
                 
                 <div class="flex items-center gap-1 text-[11px] text-gray-500 truncate mb-1">
-                   <svg class="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                   <span>${[row.ward, row.district].filter(Boolean).join(", ")}</span>
+                   <span class="shrink-0">📍</span>
+                   <span class="truncate">${[row.ward, row.district].filter(Boolean).join(", ")}</span>
                 </div>
                 
-                <div class="flex flex-wrap items-center gap-2 text-[10px] text-gray-600 font-medium mt-2">
-                  ${row.area ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">${row.area} m²</span>` : ""}
-                  ${row.width ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">${row.width} x ${row.length}</span>` : ""}
+                <div class="flex flex-wrap items-center gap-2 text-[10px] text-gray-600 font-medium mt-1">
+                  ${row.area ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-700 border border-gray-200">${row.area} m²</span>` : ""}
+                  ${row.width ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-700 border border-gray-200">${row.width} x ${row.length}</span>` : ""}
                   ${pnVal ? `<span class="hidden md:inline text-gray-400">• ${pnVal} PN</span>` : ""}
                 </div>
               </div>
 
-              <div class="flex items-end justify-between mt-2 pt-2 border-t md:border-t-0 border-gray-50">
+              <div class="flex items-end justify-between mt-1 pt-2 border-t md:border-t-0 border-gray-50">
                 <div>
-                   <div class="text-primary font-extrabold text-sm md:text-lg leading-none">
+                   <div class="text-blue-600 font-extrabold text-sm md:text-lg leading-none">
                      ${money(row.price)}
                    </div>
                    <div class="text-[10px] text-gray-400 mt-1 hidden md:block">
@@ -1580,6 +1579,7 @@ MB0001/2.jpg"></textarea>
                 
                 ${!isStaff() && approveBtn ? `<div class="hidden md:block">${approveBtn}</div>` : ""}
               </div>
+              
             </div>
           </article>
         `;
@@ -1590,14 +1590,13 @@ MB0001/2.jpg"></textarea>
       // Gắn sự kiện click mở chi tiết
       grid.querySelectorAll(".premise-card").forEach((el) => {
         el.onclick = (e) => {
-          // Nếu bấm vào nút ghim hoặc nút duyệt thì không mở chi tiết
-          if(e.target.closest('button')) return;
+          if(e.target.closest('button')) return; // Không mở nếu bấm vào nút con
           const id = el.getAttribute("data-id");
           if (id) openDetail(id);
         };
       });
 
-      // Quét ảnh nền (nếu cần)
+      // Quét ảnh (nếu cần)
       if (typeof scanGridImages === "function") {
         scanGridImages(sortedRows).catch(err => console.error(err));
       }
