@@ -1471,8 +1471,9 @@ MB0001/2.jpg"></textarea>
       });
 
       const html = sortedRows.map((row) => {
-        // --- PHẦN TÍNH TOÁN (KHÔNG ĐƯỢC XÓA) ---
-        // 1. Ảnh
+        // --- 1. TÍNH TOÁN DỮ LIỆU ---
+        
+        // Ảnh
         let firstPath = null;
         if (Array.isArray(row.images) && row.images.length > 0) firstPath = row.images[0];
         else if (typeof row.images === "string" && row.images.trim()) {
@@ -1483,42 +1484,46 @@ MB0001/2.jpg"></textarea>
         }
         const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
 
-        // 2. Thông tin (Tiêu đề, PN, WC...)
-        // Lấy tiêu đề, nếu lỗi thì hiển thị địa chỉ thay thế
+        // Tiêu đề
         let title = "Đang cập nhật";
         try { title = buildTitle(row); } catch(e) {}
         if (!title || title === "") title = row.address || "Mặt bằng chưa có tên";
 
+        // Thông số
         const pnVal = row.pn || row.so_pn || row.bedrooms || row.rooms || "";
-        const floorsVal = row.floors || "";
-        
-        // 3. Admin & User
         const updatedLabel = formatDateVN(row.updated_at || row.created_at);
-        const creatorEmail = row.profiles?.email || "";
-        const shortName = creatorEmail.split("@")[0] || "Admin";
 
-        // 4. Badge Admin
+        // Badge Admin
         const staffReportBadge =
           row.rented_reported_at && row.status !== "rented"
             ? `<span class="badge badge-xs badge-warning border-none ml-1">NS báo hết</span>`
             : "";
 
-        // 5. Nút Duyệt
+        // Nút Duyệt
         let approveBtn = "";
         if (typeof SHOW_PENDING !== 'undefined' && SHOW_PENDING && isAdmin()) {
           approveBtn = `
             <button onclick="approveOne('${row.id}', event)" 
-              class="btn btn-xs btn-success text-white px-2 shadow-sm z-20 relative">
+              class="btn btn-xs btn-success text-white px-2 shadow-sm z-20 relative ml-auto">
               ✔ Duyệt
             </button>`;
         }
 
-        // 6. Ghim
+        // --- XỬ LÝ NÚT GHIM (QUAN TRỌNG) ---
         const isFav = favSet.has(row.id);
-        const favBtnClass = isFav ? "btn-error text-white" : "btn-ghost text-gray-400 hover:bg-gray-100";
-        const favIcon = isFav ? "★" : "☆";
+        // Style nút ghim: Tròn, nền trắng, đổ bóng để nổi bật trên ảnh
+        const favBtnHtml = `
+            <button 
+              type="button"
+              class="fav-btn btn btn-sm btn-circle border-none shadow-md ${isFav ? 'bg-white text-yellow-500' : 'bg-white/80 text-gray-400 hover:bg-white text-lg'}"
+              onclick="toggleFavorite(event, '${row.id}')"
+              title="${isFav ? 'Bỏ ghim' : 'Ghim tin này'}"
+            >
+              ${isFav ? '★' : '☆'}
+            </button>
+        `;
 
-        // --- GIAO DIỆN HTML ---
+        // --- 2. GIAO DIỆN HTML ---
         return `
           <article 
             class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden flex flex-row md:flex-col h-[125px] md:h-auto group relative mb-2"
@@ -1529,15 +1534,14 @@ MB0001/2.jpg"></textarea>
                 class="w-full h-full flex items-center justify-center overflow-hidden">
                 ${
                   imgUrl
-                    ? `<img src="${imgUrl}" alt="img" class="w-full h-full object-cover" />`
+                    ? `<img src="${imgUrl}" alt="img" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />`
                     : `<div class="text-[10px] text-gray-400 flex flex-col items-center gap-1"><span>📷 No IMG</span></div>`
                 }
               </div>
               
-              <div class="hidden md:flex absolute top-2 right-2 z-10 items-center gap-1">
+              <div class="absolute top-1.5 right-1.5 z-10 flex flex-col gap-1 items-end">
                  ${staffReportBadge}
-                 <button class="fav-btn btn btn-sm ${favBtnClass} btn-circle border-none text-lg shadow-sm bg-white/90"
-                  onclick="toggleFavorite(event, '${row.id}')">${favIcon}</button>
+                 ${favBtnHtml}
               </div>
             </figure>
 
@@ -1569,13 +1573,7 @@ MB0001/2.jpg"></textarea>
                    </div>
                 </div>
                 
-                <div class="flex gap-2 md:hidden items-center">
-                   ${approveBtn}
-                   <button class="fav-btn btn btn-xs btn-circle btn-ghost border border-gray-200 ${isFav ? 'text-yellow-500' : 'text-gray-300'}"
-                      onclick="toggleFavorite(event, '${row.id}')">${isFav ? '★' : '☆'}</button>
-                </div>
-                
-                ${!isStaff() && approveBtn ? `<div class="hidden md:block">${approveBtn}</div>` : ""}
+                ${approveBtn}
               </div>
             </div>
           </article>
@@ -1584,10 +1582,12 @@ MB0001/2.jpg"></textarea>
 
       grid.insertAdjacentHTML("beforeend", html.join(""));
       
-      // Gắn sự kiện click
+      // Gắn sự kiện click vào thẻ
       grid.querySelectorAll(".premise-card").forEach((el) => {
         el.onclick = (e) => {
+          // Nếu bấm trúng nút ghim hoặc nút duyệt -> KHÔNG mở chi tiết
           if(e.target.closest('button')) return;
+          
           const id = el.getAttribute("data-id");
           if (id) openDetail(id);
         };
