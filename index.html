@@ -1602,7 +1602,27 @@ MB0001/2.jpg"></textarea>
         scanGridImages(sortedRows).catch(() => {});
       }
     }
+    // --- HÀM KHÔI PHỤC: NẠP DANH SÁCH QUẬN VÀO BỘ LỌC ---
+    async function buildDistrictWardOptions() {
+      const distSelect = document.getElementById("filter-district");
+      if (!distSelect) return;
 
+      // Giữ lại option đầu tiên (Tất cả) và xóa các option cũ nếu có
+      distSelect.innerHTML = '<option value="">Tất cả</option>';
+
+      // Lấy danh sách tên Quận từ biến HCM_DATA (đã khai báo ở đầu file)
+      const dists = Object.keys(HCM_DATA).sort();
+      
+      // Tạo từng dòng option cho Quận
+      dists.forEach(d => {
+        const opt = document.createElement("option");
+        opt.value = d;
+        opt.textContent = d;
+        distSelect.appendChild(opt);
+      });
+      
+      console.log("Đã nạp xong danh sách Quận vào bộ lọc.");
+    }
     // === HÀM MỚI: LỌC PHƯỜNG THEO QUẬN TỪ HCM_DATA ===
     function updateWardOptions() {
       const district = document.getElementById("filter-district").value;
@@ -3243,7 +3263,7 @@ MB0001/2.jpg"></textarea>
                  if (typeof updateWardOptions === 'function') updateWardOptions();
             }
         }
-    }, 1000); // Chờ 1 giây để đảm bảo HTML đã vẽ xong
+    }, 1000); // Chờ 1 giây để đảm bảo HTML đã vẽ xong  
   </script>
   <dialog id="toolDlg" class="modal">
     <div class="modal-box">
