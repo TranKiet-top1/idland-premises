@@ -1,10 +1,8 @@
-<!DOCTYPE html>
+div id="admin-pending-controls"<!DOCTYPE html>
 <html lang="vi" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <title>ID-Land Premises</title>
-  <link rel="icon" type="image/png" href="logo.png" />
-  <link rel="apple-touch-icon" href="logo.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -69,21 +67,18 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
 
 <body class="bg-base-200">
 
   <section id="auth-section" class="min-h-screen flex flex-col bg-base-200">
     <!-- THANH NAVBAR TRANG CHỦ -->
-    <header id="landing-navbar" class="navbar bg-base-100 shadow-sm px-4 sticky top-0 z-50 transition-all duration-300 py-4 border-b border-base-200">
-      <div class="flex-1 flex items-center gap-3">
-        <img 
-          id="landing-logo" 
-          src="logo.png" 
-          alt="ID Land" 
-          class="h-16 w-auto object-contain transition-all duration-300" 
-        />
+    <header class="navbar bg-base-100 shadow-sm px-4">
+      <div class="flex-1 flex items-center gap-2">
+        <div class="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xs">
+          ID
+        </div>
         <div>
           <div class="font-bold text-lg leading-tight">ID-Land Premises</div>
           <div class="text-xs opacity-60">Kho mặt bằng cho thuê • TP.HCM</div>
@@ -138,11 +133,9 @@
       <div id="login-card" class="card w-full max-w-md bg-base-100 shadow-xl ml-auto hidden">
         <div class="card-body">
           <div class="flex items-center gap-2 mb-4">
-            <img 
-              src="logo.png" 
-              alt="Logo ID Land" 
-              class="h-12 w-auto object-contain" 
-            />
+            <div class="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white font-bold">
+              ID
+            </div>
             <div>
               <h2 class="card-title">Đăng nhập nhân sự</h2>
               <p class="text-xs opacity-70">
@@ -192,21 +185,14 @@
 
 
   <div id="app-root" class="hidden min-h-screen flex flex-col">
-    <div id="main-navbar" class="navbar bg-base-100 shadow-sm px-4 sticky top-0 z-50 transition-all duration-300 py-4 border-b border-base-200">
-      <div class="flex-1 flex items-center gap-3">
-        <img 
-          id="navbar-logo" 
-          src="logo.png" 
-          alt="ID Land" 
-          class="h-16 w-auto object-contain transition-all duration-300" 
-        />
-        
+    <div class="navbar bg-base-100 shadow-sm px-4 sticky top-0 z-50">
+      <div class="flex-1 flex items-center gap-2">
+        <div class="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xs">ID</div>
         <div>
-          <div class="font-bold text-lg leading-tight hidden md:block">ID-Land Premises</div>
-          <div class="text-xs opacity-60 hidden md:block">Kho mặt bằng cho thuê • TP.HCM</div>
+          <div class="font-bold text-lg leading-tight">ID-Land Premises</div>
+          <div class="text-xs opacity-60">Kho mặt bằng cho thuê • TP.HCM</div>
         </div>
       </div>
-
       <div class="flex-none flex items-center gap-2 text-sm">
         <div class="text-right hidden sm:block mr-2">
              <div id="user-email-display" class="text-xs font-bold"></div>
@@ -216,7 +202,7 @@
       </div>
     </div>
 
-    <main class="flex-1 max-w-6xl mx-auto w-full px-2 md:px-4 py-4">
+    <main class="flex-1 max-w-6xl mx-auto w-full px-2 sm:px-4 py-4">
       <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h1 class="text-xl sm:text-2xl font-bold">
@@ -232,26 +218,30 @@
             <button id="btn-view-list" class="btn btn-sm join-item btn-active">Danh sách</button>
             <button id="btn-view-map" class="btn btn-sm join-item">Bản đồ</button>
           </div>
-          <div id="admin-pending-controls" class="hidden flex gap-2 overflow-x-auto whitespace-nowrap pb-2 md:pb-0 max-w-[100vw] md:max-w-auto px-2 md:px-0">
-            <button id="btn-toggle-pending" class="btn btn-warning btn-sm text-white shrink-0">
+          <div id="admin-pending-controls" class="hidden flex gap-2">
+            <!-- CẦN DUYỆT -->
+            <button id="btn-toggle-pending" class="btn btn-warning btn-sm text-white">
               Cần duyệt
               <span class="badge badge-sm bg-white text-warning ml-1 border-none" id="count-pending">0</span>
             </button>
 
-            <button id="btn-toggle-rented-reports" class="btn btn-error btn-sm text-white shrink-0">
+            <!-- BÁO HẾT -->
+            <button id="btn-toggle-rented-reports" class="btn btn-error btn-sm text-white">
               Báo hết
               <span class="badge badge-sm bg-white text-error ml-1 border-none" id="count-rented-reports">0</span>
             </button>
 
-            <button id="btn-toggle-reactivate" class="btn btn-info btn-sm text-white shrink-0">
+            <!-- DUYỆT CHẠY LẠI (MỚI) -->
+            <button id="btn-toggle-reactivate" class="btn btn-info btn-sm text-white">
               Duyệt chạy lại
               <span class="badge badge-sm bg-white text-info ml-1 border-none" id="count-reactivate">0</span>
             </button>
 
-            <button id="btn-approve-all" class="btn btn-success btn-sm text-white hidden shrink-0">
+            <!-- DUYỆT TẤT CẢ -->
+            <button id="btn-approve-all" class="btn btn-success btn-sm text-white hidden">
               ✔ Duyệt tất cả
             </button>
-            <button onclick="document.getElementById('toolDlg').showModal()" class="btn btn-neutral btn-sm text-white shrink-0">
+            <button onclick="document.getElementById('toolDlg').showModal()" class="btn btn-neutral btn-sm text-white">
               🛠 Công cụ
             </button>
           </div>
@@ -452,7 +442,7 @@
         <section class="flex flex-col gap-3">
           <div class="flex items-center justify-between mb-1 text-xs opacity-70">
             <span>Hiển thị <span id="count-show">0</span> / <span id="count-total">0</span></span>
-            
+            <button id="btn-download-csv" class="btn btn-xs btn-ghost">Tải CSV trên Supabase</button>
           </div>
 
           <div id="list-view">
@@ -775,24 +765,12 @@ MB0001/2.jpg"></textarea>
 
   <script>
     // ===== 1. CONFIG =====
-    const SUPABASE_URL = "https://xclncowkoedwqzcemhei.__supabase.co";
+    const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjbG5jb3drb2Vkd3F6Y2VtaGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzcwOTUsImV4cCI6MjA3Nzg1MzA5NX0.jfNM46UgXIq9LrwSXcERJJULeKB7bl_c9R9LaVhRy1A";
     const STORAGE_BUCKET = "premise-images";
     const PAGE_SIZE = 24;
 
-        // MỚI (Đã sửa)
-    // CŨ
-    // const supabase = window._supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // MỚI (Đổi tên thành _supabase và kiểm tra window.supabase có tồn tại không)
-    const _supabase = window.supabase 
-      ? window._supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-      : null;
-
-    if (!_supabase) {
-      console.error("Lỗi: Không tải được thư viện Supabase!");
-      alert("Lỗi kết nối: Không tải được thư viện. Vui lòng tải lại trang.");
-    }
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // --- DỮ LIỆU QUẬN/PHƯỜNG CHO FORM THÊM MỚI (Cần dữ liệu để chọn) ---
     const HCM_DATA = {
@@ -919,7 +897,7 @@ MB0001/2.jpg"></textarea>
           zoomToBoundsOnClick: true, // Click vào nhóm sẽ zoom vào
           
           // Tùy chỉnh icon của nhóm (Optional - nếu muốn đẹp hơn mặc định)
-          
+          /*
           iconCreateFunction: function(cluster) {
               return L.divIcon({ 
                   html: '<div style="background:#3b82f6; color:white; border-radius:50%; width:30px; height:30px; display:flex; justify-content:center; align-items:center; font-weight:bold; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.3)">' + cluster.getChildCount() + '</div>', 
@@ -927,7 +905,7 @@ MB0001/2.jpg"></textarea>
                   iconSize: L.point(30, 30) 
               });
           }
-          
+          */
       });
 
       rows.forEach((row) => {
@@ -1227,7 +1205,7 @@ MB0001/2.jpg"></textarea>
     function buildImageUrl(path) {
       if (!path) return null;
       if (path.startsWith('http')) return path; // Hỗ trợ link đầy đủ
-      const { data } = __supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
       return data?.publicUrl || null;
     }
 
@@ -1238,7 +1216,7 @@ MB0001/2.jpg"></textarea>
 
     // ===== AUTH =====
     async function initAuth() {
-      const { data } = await __supabase.auth.getUser();
+      const { data } = await supabase.auth.getUser();
       if (!data.user) {
         document.getElementById("auth-section").classList.remove("hidden");
         document.getElementById("app-root").classList.add("hidden");
@@ -1305,7 +1283,7 @@ MB0001/2.jpg"></textarea>
         toast("Vui lòng nhập email & mật khẩu");
         return;
       }
-      const { error } = await __supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         console.error(error);
         toast("Đăng nhập thất bại: " + error.message);
@@ -1318,7 +1296,7 @@ MB0001/2.jpg"></textarea>
 
     
     async function handleLogout() {
-      await __supabase.auth.signOut();
+      await supabase.auth.signOut();
       location.reload();
     }
 
@@ -1342,51 +1320,27 @@ MB0001/2.jpg"></textarea>
 
     // --- CẬP NHẬT: applyFilters (VẼ FULL BẢN ĐỒ) ---
 
-    // --- CẬP NHẬT: applyFilters (ĐÃ SỬA LOGIC ADMIN) ---
     async function applyFilters(resetPage = false) {
       if (resetPage) PAGE = 0;
       const f = getFilterValues();
 
       // 1. Tạo Query cơ sở (Dùng chung cho cả List và Map)
+      // Hàm này giúp áp dụng các bộ lọc giống hệt nhau cho cả 2 luồng dữ liệu
       const buildBaseQuery = () => {
-          let q = __supabase.from("premises").select("*", { count: "exact" });
+          let q = supabase.from("premises").select("*", { count: "exact" });
           
-          // --- LOGIC QUAN TRỌNG: XỬ LÝ CÁC CHẾ ĐỘ ADMIN ---
-          
-          // 1. Nếu đang xem "Báo hết" (Nhân sự báo, chờ Admin duyệt)
-          if (typeof SHOW_REPORTED !== 'undefined' && SHOW_REPORTED) {
-             q = q.not("rented_reported_at", "is", null)  // Có ngày báo hết
-                  .is("rented_confirmed_at", null);       // Chưa được duyệt
-          }
-          // 2. Nếu đang xem "Duyệt chạy lại" (Hàng hết muốn chạy lại)
-          else if (typeof SHOW_REACTIVATE !== 'undefined' && SHOW_REACTIVATE) {
-             q = q.not("reactivate_reported_at", "is", null) // Có ngày báo chạy lại
-                  .is("reactivate_confirmed_at", null);      // Chưa được duyệt
-          }
-          // 3. Nếu đang xem "Cần duyệt" (Tin mới tạo)
-          else if (typeof SHOW_PENDING !== 'undefined' && SHOW_PENDING && isAdmin()) {
-             q = q.eq("is_approved", false);
-          }
-          // 4. Mặc định: Chỉ hiện tin ĐÃ DUYỆT
-          else {
-             q = q.eq("is_approved", true);
-          }
+          // -- Logic Admin/User --
+          if (SHOW_PENDING && isAdmin()) q = q.eq("is_approved", false);
+          else q = q.eq("is_approved", true);
 
-          // -- Áp dụng tiếp các bộ lọc (để Admin có thể tìm kiếm trong danh sách cần duyệt) --
+          // -- Bộ lọc --
           if (f.keyword) {
             const kw = "%" + f.keyword + "%";
             q = q.or(`address.ilike.${kw},street.ilike.${kw},ward.ilike.${kw},district.ilike.${kw},code.ilike.${kw}`);
           }
           if (f.district) q = q.eq("district", f.district);
           if (f.ward) q = q.eq("ward", f.ward);
-          
-          // Lưu ý: Khi đang xem "Báo hết" hoặc "Chạy lại", ta không lọc theo status 
-          // vì status lúc đó có thể là 'rented' hoặc 'available' tùy ngữ cảnh.
-          // Chỉ lọc status khi ở chế độ xem bình thường
-          if (!SHOW_REPORTED && !SHOW_REACTIVATE && f.status) {
-              q = q.eq("status", f.status);
-          }
-
+          if (f.status) q = q.eq("status", f.status);
           if (f.priceMin != null) q = q.gte("price", f.priceMin * 1000000);
           if (f.priceMax != null) q = q.lte("price", f.priceMax * 1000000);
           if (f.areaMin != null) q = q.gte("area", f.areaMin);
@@ -1408,12 +1362,13 @@ MB0001/2.jpg"></textarea>
           return q;
       };
 
-      // --- NHIỆM VỤ 1: LẤY DỮ LIỆU DANH SÁCH ---
+      // --- NHIỆM VỤ 1: LẤY DỮ LIỆU CHO DANH SÁCH (CÓ PHÂN TRANG) ---
       const from = PAGE * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
       
       let listQuery = buildBaseQuery()
-        .order("updated_at", { ascending: false }) // Ưu tiên cái mới cập nhật
+        .order("updated_at", { ascending: false })
+        .order("created_at", { ascending: false })
         .range(from, to);
 
       const { data, error, count } = await listQuery;
@@ -1424,7 +1379,7 @@ MB0001/2.jpg"></textarea>
         return;
       }
 
-      // Filter Client-side (Hẻm/HXH)
+      // Xử lý dữ liệu danh sách (Client filter Hẻm/HXH...)
       let rows = data || [];
       if (f.frontageType === "hem" || f.frontageType === "hxh") {
          rows = rows.filter((row) => {
@@ -1436,44 +1391,42 @@ MB0001/2.jpg"></textarea>
          });
       }
 
-      // Nếu KHÔNG phải chế độ Admin, sắp xếp status (Còn trống lên đầu)
-      if (!SHOW_REPORTED && !SHOW_REACTIVATE && !SHOW_PENDING) {
-          const STATUS_ORDER = { available: 0, deposited: 1, rented: 2 };
-          rows.sort((a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99));
-      }
+      // Sắp xếp trạng thái
+      const STATUS_ORDER = { available: 0, deposited: 1, rented: 2 };
+      rows.sort((a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99));
 
       LAST_ROWS = rows;
       TOTAL_COUNT = count || 0;
 
-      // Render
+      // Render Danh sách
       if (PAGE === 0) renderCards(LAST_ROWS, true);
       else renderCards(LAST_ROWS, false);
 
-      // UI update
-      const showCountEl = document.getElementById("count-show");
-      const totalCountEl = document.getElementById("count-total");
-      if(showCountEl) showCountEl.textContent = Math.min((PAGE + 1) * PAGE_SIZE, TOTAL_COUNT);
-      if(totalCountEl) totalCountEl.textContent = TOTAL_COUNT;
+      // Cập nhật số lượng
+      document.getElementById("count-total").textContent = TOTAL_COUNT;
+      document.getElementById("count-show").textContent = Math.min((PAGE + 1) * PAGE_SIZE, TOTAL_COUNT);
       
       const btnMore = document.getElementById("btn-load-more");
-      if(btnMore) {
-          if ((PAGE + 1) * PAGE_SIZE >= TOTAL_COUNT) {
-              btnMore.textContent = "Hết dữ liệu";
-              btnMore.classList.add("btn-disabled");
-          } else {
-              btnMore.textContent = "Tải thêm";
-              btnMore.classList.remove("btn-disabled");
-          }
+      if ((PAGE + 1) * PAGE_SIZE >= TOTAL_COUNT) {
+          btnMore.textContent = "Hết dữ liệu";
+          btnMore.classList.add("btn-disabled");
+      } else {
+          btnMore.textContent = "Tải thêm";
+          btnMore.classList.remove("btn-disabled");
       }
 
-      // --- NHIỆM VỤ 2: LẤY DỮ LIỆU BẢN ĐỒ ---
+      // --- NHIỆM VỤ 2: LẤY DỮ LIỆU CHO BẢN ĐỒ (KHÔNG PHÂN TRANG) ---
+      // Chỉ chạy khi ở trang 0 hoặc khi lọc lại, để tránh gọi API quá nhiều
       if (PAGE === 0) {
+          // Chỉ lấy các trường cần thiết cho bản đồ để nhẹ (id, lat, lng, price, address)
+          // Lưu ý: .select() đè lên select("*") của buildBaseQuery, nhưng logic filter giữ nguyên
           let mapQuery = buildBaseQuery() 
             .select("id, lat, lng, price, address, street, district, ward") 
-            .not("lat", "is", null);
+            .not("lat", "is", null); // Chỉ lấy cái nào có tọa độ
 
           const { data: mapData } = await mapQuery;
           
+          // Vẽ bản đồ với dữ liệu mapData (chứa toàn bộ kết quả) thay vì rows (chỉ 24 cái)
           if (mapData && mapData.length > 0) {
               renderMapMarkers(mapData);
           } else {
@@ -1499,18 +1452,16 @@ MB0001/2.jpg"></textarea>
       // Lấy danh sách ghim
       const favSet = new Set(getFavoriteIds());
 
-      // Sắp xếp
+      // 👉 ƯU TIÊN HÀNG ĐƯỢC GHIM LÊN TRÊN
       const sortedRows = [...rows].sort((a, b) => {
         const af = favSet.has(a.id);
         const bf = favSet.has(b.id);
         if (af === bf) return 0;
-        return af ? -1 : 1; 
+        return af ? -1 : 1; // ghim lên trước
       });
 
       const html = sortedRows.map((row) => {
-        // --- 1. TÍNH TOÁN DỮ LIỆU ---
-        
-        // Ảnh (Ưu tiên lấy từ DB)
+        // Xử lý ảnh
         let firstPath = null;
         if (Array.isArray(row.images) && row.images.length > 0) firstPath = row.images[0];
         else if (typeof row.images === "string" && row.images.trim()) {
@@ -1521,146 +1472,157 @@ MB0001/2.jpg"></textarea>
         }
         const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
 
-        // Tiêu đề
-        let title = "Đang cập nhật";
-        try { title = buildTitle(row); } catch(e) {}
-        if (!title || title === "") title = row.address || "Mặt bằng chưa có tên";
-
-        // Thông số
-        const pnVal = row.pn || row.so_pn || row.bedrooms || row.rooms || "";
+        const pnVal = pickField(row, ["pn", "so_pn", "bedrooms", "rooms"]);
+        const wcVal = pickField(row, ["wc", "bathrooms"]);
+        const floorsVal = pickField(row, ["floors"]);
         const updatedLabel = formatDateVN(row.updated_at || row.created_at);
+        const creatorEmail = row.profiles?.email || "";
+        const shortName = creatorEmail.split("@")[0];
 
-        // Badge Admin
+        // Badge vị trí
+        let locationBadge = "";
+        const roadType = row.road_type || (row.frontage ? "Mặt tiền" : "Hẻm");
+        if (roadType === "Mặt tiền") {
+          locationBadge = `<span class="badge badge-xs badge-error text-white border-none">Mặt tiền</span>`;
+        } else if (roadType === "Hẻm xe hơi") {
+          locationBadge = `<span class="badge badge-xs badge-info text-white border-none">Hẻm xe hơi</span>`;
+        } else {
+          locationBadge = `<span class="badge badge-xs badge-ghost border-none opacity-70">Nhà hẻm</span>`;
+        }
+
+        const hhBadge = row.commission
+          ? `<span class="badge badge-xs badge-success text-white border-none ml-1">${row.commission}</span>`
+          : "";
+
         const staffReportBadge =
           row.rented_reported_at && row.status !== "rented"
             ? `<span class="badge badge-xs badge-warning border-none ml-1">NS báo hết</span>`
             : "";
 
-        // Nút Duyệt
         let approveBtn = "";
-        if (typeof SHOW_PENDING !== 'undefined' && SHOW_PENDING && isAdmin()) {
+        if (SHOW_PENDING && isAdmin()) {
           approveBtn = `
             <button onclick="approveOne('${row.id}', event)" 
-              class="btn btn-xs btn-success text-white px-2 shadow-sm z-30 relative ml-auto">
-              ✔ Duyệt
+              class="btn btn-xs btn-success w-full mt-2 text-white">
+              ✔ Duyệt ngay
             </button>`;
         }
 
-        // --- XỬ LÝ NÚT GHIM ---
+        // Trạng thái ghim
         const isFav = favSet.has(row.id);
-        const favBtnHtml = `
-            <button 
-              type="button"
-              class="fav-btn btn btn-sm btn-circle border-none shadow-md ${isFav ? 'bg-white text-yellow-500' : 'bg-white/90 text-gray-400 hover:bg-white text-lg'}"
-              data-id="${row.id}" 
-              onclick="toggleFavorite(event, '${row.id}')"
-              title="${isFav ? 'Bỏ ghim' : 'Ghim tin này'}"
-            >
-              ${isFav ? '★' : '☆'}
-            </button>
-        `;
+        const favBtnClass = isFav ? "btn-error text-white" : "btn-ghost";
+        const favIcon = isFav ? "★" : "☆";
 
-        // --- 2. GIAO DIỆN HTML ---
         return `
           <article 
-            class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden flex flex-row md:flex-col h-[125px] md:h-auto group relative mb-2"
+            class="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden"
             data-id="${row.id}">
             
-            <figure class="w-[120px] md:w-full md:h-52 bg-gray-100 shrink-0 relative border-r md:border-r-0 md:border-b border-gray-100">
-              <div id="thumb-box-${row.id}" 
-                class="w-full h-full flex items-center justify-center overflow-hidden">
+            <figure class="h-52 bg-base-200 flex items-center justify-center relative">
+              <div id="thumb-box-${row.code}" 
+                class="w-full h-full flex items-center justify-center ${imgUrl ? "" : "opacity-60"}">
                 ${
                   imgUrl
-                    ? `<img src="${imgUrl}" alt="img" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />`
-                    : `<div class="text-[10px] text-gray-400 flex flex-col items-center gap-1"><span>📷 No IMG</span></div>`
+                    ? `<img src="${imgUrl}" alt="${row.address || ""}" class="w-full h-full object-cover" />`
+                    : `<div class="text-xs">(Đang quét ảnh...)</div>`
                 }
               </div>
-              
-              <div class="absolute top-1.5 right-1.5 z-20 flex flex-col gap-1 items-end pointer-events-auto">
-                 ${staffReportBadge}
-                 ${favBtnHtml}
+
+              <div class="absolute top-2 right-2 shadow-sm flex items-center gap-1">
+                <button 
+                  type="button"
+                  class="fav-btn btn btn-sm ${favBtnClass} btn-circle border-none text-lg"
+                  data-id="${row.id}"
+                  title="Ghim / bỏ ghim"
+                  onclick="toggleFavorite(event, '${row.id}')">
+                  ${favIcon}
+                </button>
+                
+                ${isAdmin() ? staffReportBadge : ""}
+              </div>
+
+              <div class="absolute bottom-0 left-0 w-full bg-black/50 text-white text-[10px] p-1 px-2 truncate">
+                Đăng bởi: <b>${shortName || "Ẩn danh"}</b>
               </div>
             </figure>
 
-            <div class="flex-1 p-2 md:p-3 flex flex-col justify-between min-w-0 bg-white relative">
-              <div>
-                <h3 class="font-bold text-xs md:text-sm line-clamp-2 leading-tight text-gray-800 mb-1">
-                    ${title}
-                </h3>
-                
-                <div class="flex items-center gap-1 text-[10px] md:text-xs text-gray-500 truncate mb-1">
-                   <span class="opacity-70">📍</span>
-                   <span class="truncate">${[row.ward, row.district].filter(Boolean).join(", ")}</span>
-                </div>
-                
-                <div class="flex flex-wrap items-center gap-1 text-[10px] text-gray-600 font-medium">
-                  ${row.area ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${row.area}m²</span>` : ""}
-                  ${row.width ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${row.width}x${row.length}</span>` : ""}
-                  ${pnVal ? `<span class="text-gray-400 ml-1">• ${pnVal}PN</span>` : ""}
-                </div>
+            <div class="card-body p-4 gap-2">
+              <h3 class="font-semibold text-sm line-clamp-2">${buildTitle(row)}</h3>
+              <div class="flex items-center flex-wrap gap-2 text-[11px] opacity-70">
+                <span>${[row.ward, row.district].filter(Boolean).join(" • ")}</span>
               </div>
-
-              <div class="flex items-end justify-between mt-1 pt-1 border-t md:border-none border-gray-50">
-                <div>
-                   <div class="text-blue-600 font-extrabold text-sm md:text-lg leading-none">
-                     ${money(row.price)}
-                   </div>
-                   <div class="text-[9px] text-gray-400 mt-0.5 hidden md:block">
-                     ${updatedLabel}
-                   </div>
-                </div>
-                
-                ${approveBtn}
+              <div class="flex flex-wrap items-center gap-2 text-[11px] mt-1">
+                ${row.area ? `<span>${row.area} m²</span>` : ""}
+                ${row.width && row.length ? `<span>${row.width}×${row.length} m</span>` : ""}
+                ${pnVal ? `<span>${pnVal} PN</span>` : ""}
+                ${floorsVal ? `<span>${floorsVal} tầng</span>` : ""}
               </div>
+              <div class="flex items-center justify-between mt-1">
+                <div class="text-primary font-extrabold text-lg">${money(row.price)}</div>
+                <div class="text-[10px] opacity-60">${updatedLabel}</div>
+              </div>
+              ${approveBtn}
             </div>
           </article>
         `;
       });
 
-      // Chèn HTML vào lưới
       grid.insertAdjacentHTML("beforeend", html.join(""));
-      
-      // Gắn sự kiện click
+
+      // 👉 GẮN CLICK ĐỂ MỞ POPUP
       grid.querySelectorAll(".premise-card").forEach((el) => {
-        el.onclick = (e) => {
-          if(e.target.closest('button')) {
-              e.stopPropagation(); 
-              return;
-          }
+        el.onclick = () => {
           const id = el.getAttribute("data-id");
           if (id) openDetail(id);
         };
       });
 
-      // === CẬP NHẬT QUAN TRỌNG: Thêm setTimeout ===
-      // Chờ 300ms để đảm bảo các thẻ div đã được vẽ xong rồi mới quét ảnh
+      // Quét ảnh nếu có hàm scanGridImages
       if (typeof scanGridImages === "function") {
-        setTimeout(() => {
-            scanGridImages(sortedRows).catch(err => console.warn("Lỗi quét ảnh:", err));
-        }, 1000);
+        scanGridImages(sortedRows).catch(err =>
+          console.error("scanGridImages error", err)
+        );
       }
     }
-    // --- HÀM KHÔI PHỤC: NẠP DANH SÁCH QUẬN VÀO BỘ LỌC ---
-    async function buildDistrictWardOptions() {
-      const distSelect = document.getElementById("filter-district");
-      if (!distSelect) return;
 
-      // Giữ lại option đầu tiên (Tất cả) và xóa các option cũ nếu có
-      distSelect.innerHTML = '<option value="">Tất cả</option>';
 
-      // Lấy danh sách tên Quận từ biến HCM_DATA (đã khai báo ở đầu file)
-      const dists = Object.keys(HCM_DATA).sort();
-      
-      // Tạo từng dòng option cho Quận
-      dists.forEach(d => {
+
+    // === HÀM MỚI: LẤY QUẬN TỪ HCM_DATA ===
+    function buildDistrictWardOptions() {
+      const selectDistrict = document.getElementById("filter-district");
+      // Bỏ chữ "window." đi để truy cập trực tiếp vào biến HCM_DATA
+      if (!selectDistrict || !HCM_DATA) return;
+
+      // Lưu lại giá trị đang chọn (nếu có)
+      const current = selectDistrict.value;
+
+      // Lấy danh sách quận từ HCM_DATA và sort theo tiếng Việt
+      const districts = Object.keys(HCM_DATA).sort((a, b) =>
+        a.localeCompare(b, "vi")
+      );
+
+      // Reset lại dropdown
+      selectDistrict.innerHTML = '<option value="">Tất cả</option>';
+
+      // Đổ option quận
+      districts.forEach((d) => {
         const opt = document.createElement("option");
         opt.value = d;
         opt.textContent = d;
-        distSelect.appendChild(opt);
+        selectDistrict.appendChild(opt);
       });
-      
-      console.log("Đã nạp xong danh sách Quận vào bộ lọc.");
+
+      // Nếu trước đó đã chọn quận và quận đó vẫn tồn tại → set lại
+      if (current && districts.includes(current)) {
+        selectDistrict.value = current;
+      }
+
+      // Cập nhật lại danh sách phường theo quận đang chọn
+      if (typeof updateWardOptions === "function") {
+        updateWardOptions();
+      }
     }
+
     // === HÀM MỚI: LỌC PHƯỜNG THEO QUẬN TỪ HCM_DATA ===
     function updateWardOptions() {
       const district = document.getElementById("filter-district").value;
@@ -1892,7 +1854,7 @@ MB0001/2.jpg"></textarea>
           console.log("Database không có ảnh, đang quét Storage folder:", item.code);
           
           // Tìm folder có tên trùng với Mã căn
-          const { data: files, error: listError } = await __supabase.storage
+          const { data: files, error: listError } = await supabase.storage
             .from(STORAGE_BUCKET)
             .list(item.code, { // Tên folder = item.code
                 limit: 50,
@@ -1907,7 +1869,7 @@ MB0001/2.jpg"></textarea>
               // Tạo đường dẫn public
               imgUrls = validFiles.map(f => {
                   const fullPath = `${item.code}/${f.name}`;
-                  const { data } = __supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
+                  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
                   return data.publicUrl;
               });
               console.log("Đã tìm thấy ảnh trong Storage:", imgUrls);
@@ -2517,7 +2479,7 @@ MB0001/2.jpg"></textarea>
             // code, created_by, is_approved SẼ ĐƯỢC DB TỰ ĐỘNG XỬ LÝ (NẾU ĐÃ CHẠY SQL)
         };
 
-        const { error } = await __supabase.from("premises").insert([payload]);
+        const { error } = await supabase.from("premises").insert([payload]);
         if (error) {
             toast("Lỗi: " + error.message);
         } else {
@@ -2553,7 +2515,7 @@ MB0001/2.jpg"></textarea>
 
     // ===== LOGIC ADMIN PENDING (MỚI) =====
     async function checkPendingCount() {
-        const { count } = await __supabase.from("premises").select("*", { count: 'exact', head: true }).eq("is_approved", false);
+        const { count } = await supabase.from("premises").select("*", { count: 'exact', head: true }).eq("is_approved", false);
         const cnt = count || 0;
         document.getElementById("count-pending").textContent = cnt;
         if (cnt > 0 && SHOW_PENDING) document.getElementById("btn-approve-all").classList.remove("hidden");
@@ -2577,7 +2539,7 @@ MB0001/2.jpg"></textarea>
     async function approveOne(id, e) {
         e.stopPropagation();
         if(!confirm("Duyệt bài này?")) return;
-        await __supabase.from("premises").update({ is_approved: true }).eq("id", id);
+        await supabase.from("premises").update({ is_approved: true }).eq("id", id);
         toast("Đã duyệt!");
         applyFilters(true);
         checkPendingCount();
@@ -2585,7 +2547,7 @@ MB0001/2.jpg"></textarea>
 
     async function approveAll() {
         if(!confirm("Duyệt tất cả bài đang chờ?")) return;
-        await __supabase.from("premises").update({ is_approved: true }).eq("is_approved", false);
+        await supabase.from("premises").update({ is_approved: true }).eq("is_approved", false);
         toast("Đã duyệt tất cả!");
         applyFilters(true);
         checkPendingCount();
@@ -2679,7 +2641,7 @@ MB0001/2.jpg"></textarea>
       if (demoDisagreeBtn && demoDlg) {
         demoDisagreeBtn.addEventListener("click", async () => {
           demoDlg.close();
-          await __supabase.auth.signOut();
+          await supabase.auth.signOut();
           location.reload();
         });
       }
@@ -2810,7 +2772,7 @@ MB0001/2.jpg"></textarea>
             // Ví dụ: MB-123456/hinh_nha_1.jpg
             const filePath = `${folderName}/${cleanName}`;
             
-            const { data, error } = await __supabase.storage
+            const { data, error } = await supabase.storage
                 .from(STORAGE_BUCKET)
                 .upload(filePath, file, {
                     cacheControl: '3600',
@@ -2889,7 +2851,7 @@ MB0001/2.jpg"></textarea>
             };
 
             // BƯỚC 4: INSERT VÀO DB
-            const { error } = await __supabase.from("premises").insert([payload]);
+            const { error } = await supabase.from("premises").insert([payload]);
 
             if (error) throw error;
 
@@ -2931,64 +2893,61 @@ MB0001/2.jpg"></textarea>
       document.getElementById("detailDlg").close();
       applyFilters(true);
     }
-    // === QUÉT ẢNH TỪ STORAGE THEO MÃ (PHIÊN BẢN TỐI ƯU) ===
-    async function scanGridImages(rows) {
-      if (!rows || !rows.length) return;
+// === QUÉT ẢNH RUNTIME TỪ STORAGE, KHÔNG PHỤ THUỘC CỘT images ===
+async function scanGridImages(rows) {
+  if (!rows || !rows.length) return;
 
-      // Sử dụng map để tạo mảng các Promise chạy song song -> Tốc độ nhanh hơn gấp 10 lần
-      const promises = rows.map(async (row) => {
-        // 1. Kiểm tra điều kiện đầu vào
-        if (!row || !row.code) return;
+  for (const row of rows) {
+    if (!row || !row.code) continue;
 
-        // 2. Tìm thẻ chứa ảnh bằng ID (Lưu ý: phải dùng row.id như bước 1 đã sửa)
-        const imgContainer = document.getElementById(`thumb-box-${row.id}`);
-        if (!imgContainer) return;
+    // Tìm khung ảnh theo id đã render ở renderCards
+    const imgContainer = document.getElementById(`thumb-box-${row.id}`);
+    if (!imgContainer) continue;
 
-        // Nếu đã có ảnh (do load từ DB ra trước đó) thì bỏ qua không quét nữa
-        if (imgContainer.querySelector("img")) return;
+    // Nếu trong DOM đã có <img> (do cột images render sẵn) thì bỏ qua
+    if (imgContainer.querySelector("img")) continue;
 
-        try {
-          // 3. Gọi Supabase list file trong folder có tên là row.code
-          // VD: Mã là "MBKD 001" thì trong bucket phải có folder tên "MBKD 001"
-          const { data: files, error } = await __supabase.storage
-            .from(STORAGE_BUCKET)
-            .list(row.code, {
-              limit: 1, // Chỉ cần lấy 1 hình đầu tiên làm ảnh bìa
-              sortBy: { column: "name", order: "asc" },
-            });
+    try {
+      // Quét folder theo mã mặt bằng trong Storage
+      const { data: files, error } = await supabase.storage
+        .from(STORAGE_BUCKET) // vd: "premise-images"
+        .list(row.code, {
+          limit: 10,
+          sortBy: { column: "name", order: "asc" },
+        });
 
-          if (error || !files || files.length === 0) {
-            // Nếu không có ảnh, hiện chữ báo lỗi nhẹ hoặc để trống
-            imgContainer.innerHTML = `<div class="text-[10px] text-gray-400">Không có ảnh</div>`;
-            return;
-          }
+      if (error) {
+        console.error("Lỗi list storage cho", row.code, error);
+        continue;
+      }
 
-          // 4. Lọc bỏ file rác hệ thống (nếu có)
-          const validFile = files.find(f => f.name !== ".emptyFolderPlaceholder") || files[0];
-          if (!validFile) return;
+      if (!files || !files.length) {
+        // Không có file nào trong storage => giữ nguyên "(Đang quét ảnh...)"
+        continue;
+      }
 
-          // 5. Tạo đường dẫn public
-          const fullPath = `${row.code}/${validFile.name}`;
-          const { data } = __supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
+      // Bỏ file placeholder nếu có, lấy file đầu tiên
+      const first = files.find(f => f.name !== ".emptyFolderPlaceholder") || files[0];
+      if (!first) continue;
 
-          // 6. Cập nhật giao diện ngay lập tức
-          if (data && data.publicUrl) {
-            imgContainer.innerHTML = `
-              <img src="${data.publicUrl}" 
-                   class="w-full h-full object-cover animate-fade-in transition-opacity duration-500" 
-                   alt="${row.code}" />
-            `;
-            imgContainer.classList.remove("opacity-60");
-          }
+      const fullPath = `${row.code}/${first.name}`;
+      const { data } = supabase.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(fullPath);
 
-        } catch (err) {
-          console.warn("Lỗi quét ảnh cho:", row.code, err);
-        }
-      });
-
-      // Chờ tất cả chạy xong (nhưng giao diện sẽ update dần từng cái xong trước)
-      await Promise.all(promises);
+      if (data && data.publicUrl) {
+        imgContainer.innerHTML = `
+          <img src="${data.publicUrl}"
+               class="w-full h-full object-cover animate-fade-in"
+               alt="${row.code}" />
+        `;
+        imgContainer.classList.remove("opacity-60");
+      }
+    } catch (err) {
+      console.error("scanGridImages error", row.code, err);
     }
+  }
+}
 
     // ==== TOOL 1 LẦN: ĐỒNG BỘ ẢNH TỪ STORAGE -> CỘT images ====
     async function syncImagesFromStorage() {
@@ -3027,7 +2986,7 @@ MB0001/2.jpg"></textarea>
 
           console.log("→ Quét folder:", row.code);
 
-          const { data: files, error: err2 } = await __supabase.storage
+          const { data: files, error: err2 } = await supabase.storage
             .from(STORAGE_BUCKET) // ví dụ "premise-images"
             .list(row.code, {
               limit: 50,
@@ -3079,8 +3038,8 @@ MB0001/2.jpg"></textarea>
       const logBox = document.getElementById("sync-log");
       
       // 1. Kiểm tra thống kê trước khi chạy
-      const { count: total } = await __supabase.from("premises").select("*", { count: 'exact', head: true });
-      const { count: missing } = await __supabase.from("premises").select("*", { count: 'exact', head: true }).is("lat", null);
+      const { count: total } = await supabase.from("premises").select("*", { count: 'exact', head: true });
+      const { count: missing } = await supabase.from("premises").select("*", { count: 'exact', head: true }).is("lat", null);
       
       if (missing === 0) {
           alert(`Tuyệt vời! Toàn bộ ${total} mặt bằng đã có tọa độ. Không cần quét.`);
@@ -3163,7 +3122,7 @@ MB0001/2.jpg"></textarea>
         }
 
         if (found) {
-            await __supabase.from("premises").update({ lat: found.lat, lng: found.lon }).eq("id", item.id);
+            await supabase.from("premises").update({ lat: found.lat, lng: found.lon }).eq("id", item.id);
             
             let color = "text-success"; // Xanh: Tìm chính xác
             if(method >= 4) color = "text-warning"; // Vàng: Chỉ tìm thấy Phường/Quận
@@ -3247,61 +3206,6 @@ MB0001/2.jpg"></textarea>
             btn.disabled = false;
         }
     }
-    // --- CODE MỚI: HIỆU ỨNG CO GIÃN MENU ---
-    window.addEventListener("scroll", function() {
-      const navbar = document.getElementById("main-navbar");
-      const logo = document.getElementById("navbar-logo");
-      
-      if (!navbar || !logo) return;
-
-      if (window.scrollY > 20) {
-        // KHI KÉO XUỐNG: Thu nhỏ lại
-        navbar.classList.remove("py-4"); 
-        navbar.classList.add("py-2", "shadow-md"); 
-        
-        logo.classList.remove("h-16");
-        logo.classList.add("h-10"); // Thu về 40px
-      } else {
-        // KHI Ở ĐẦU TRANG: Phóng to ra
-        navbar.classList.add("py-4");
-        navbar.classList.remove("py-2", "shadow-md");
-        
-        logo.classList.add("h-16");
-        logo.classList.remove("h-10");
-      }
-    });
-    // --- CẤP CỨU: KHÔI PHỤC CHỨC NĂNG LỌC QUẬN ---
-    setTimeout(() => {
-        // 1. Nạp lại danh sách Quận từ dữ liệu nguồn
-        if (typeof buildDistrictWardOptions === 'function') {
-            console.log("Đang nạp lại danh sách Quận...");
-            buildDistrictWardOptions();
-        }
-
-        // 2. Kết nối lại sự kiện: Chọn Quận -> Tự đổi Phường & Lọc bài
-        const districtSelect = document.getElementById("filter-district");
-        if (districtSelect) {
-            // Xóa sự kiện cũ (để tránh bị trùng) rồi gán mới
-            const newSelect = districtSelect.cloneNode(true);
-            districtSelect.parentNode.replaceChild(newSelect, districtSelect);
-            
-            newSelect.addEventListener("change", function() {
-                // Cập nhật phường tương ứng
-                if (typeof updateWardOptions === 'function') {
-                    updateWardOptions();
-                }
-                // Gọi hàm lọc
-                if (typeof applyFilters === 'function') {
-                    applyFilters(true);
-                }
-            });
-            
-            // Nếu đang có quận được chọn sẵn (ví dụ load lại trang), hãy nạp phường luôn
-            if (newSelect.value) {
-                 if (typeof updateWardOptions === 'function') updateWardOptions();
-            }
-        }
-    }, 1000); // Chờ 1 giây để đảm bảo HTML đã vẽ xong  
   </script>
   <dialog id="toolDlg" class="modal">
     <div class="modal-box">
