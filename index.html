@@ -528,6 +528,8 @@
               📍 Dò lại theo địa chỉ
             </button>
           </div>
+          <div id="edit-map-picker" class="w-full h-64 mt-3 rounded-lg border border-gray-300 z-0"></div>
+          <div class="text-[11px] text-gray-500 italic mt-1 text-right">* Kéo thả ghim đỏ để chỉnh vị trí chính xác</div>
           <label class="label">
             <span class="label-text-alt text-gray-500">
               Admin có thể nhập thủ công hoặc bấm nút "Dò lại" để lấy tọa độ từ địa chỉ bên trên.
@@ -666,6 +668,8 @@ MB0001/2.jpg"></textarea>
                         📍 Lấy tọa độ
                     </button>
                 </div>
+                <div id="add-map-picker" class="w-full h-64 mt-3 rounded-lg border border-gray-300 z-0"></div>
+                <div class="text-[11px] text-gray-500 italic mt-1 text-right">* Kéo thả ghim đỏ để chỉnh vị trí chính xác</div>
                 <label class="label cursor-pointer justify-start gap-2 mt-1">
                     <span class="label-text-alt text-gray-500">
                         *Mẹo: Click chuột phải trên Google Maps chọn dòng đầu tiên để copy số.
@@ -1750,6 +1754,53 @@ MB0001/2.jpg"></textarea>
 
       return parts.join(" - ").toUpperCase();
     }
+    // --- BIẾN TOÀN CỤC CHO BẢN ĐỒ CHỌN ---
+    let PICKER_MAP = null;
+    let PICKER_MARKER = null;
+
+    // Hàm khởi tạo bản đồ chọn vị trí
+    function initPickerMap(mapId, latInputId, lngInputId, initialLat, initialLng) {
+        // 1. Xóa map cũ nếu đã có (để tránh lỗi khởi tạo lại)
+        if (PICKER_MAP) {
+            PICKER_MAP.remove();
+            PICKER_MAP = null;
+            PICKER_MARKER = null;
+        }
+
+        const mapEl = document.getElementById(mapId);
+        if (!mapEl) return;
+
+        // 2. Xác định tâm bản đồ: Ưu tiên input > tham số truyền vào > Mặc định (HCM)
+        let lat = document.getElementById(latInputId).value || initialLat || 10.7769;
+        let lng = document.getElementById(lngInputId).value || initialLng || 106.7009;
+
+        // 3. Tạo Map
+        PICKER_MAP = L.map(mapId).setView([lat, lng], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(PICKER_MAP);
+
+        // 4. Tạo Marker có thể kéo thả (draggable: true)
+        PICKER_MARKER = L.marker([lat, lng], { draggable: true }).addTo(PICKER_MAP);
+
+        // --- SỰ KIỆN QUAN TRỌNG: KHI KÉO GHIM ---
+        PICKER_MARKER.on('dragend', function(e) {
+            const coord = e.target.getLatLng();
+            // Cập nhật ngược lại vào ô Input
+            document.getElementById(latInputId).value = coord.lat.toFixed(6);
+            document.getElementById(lngInputId).value = coord.lng.toFixed(6);
+        });
+
+        // Sự kiện click vào bản đồ cũng di chuyển ghim tới đó
+        PICKER_MAP.on('click', function(e) {
+            PICKER_MARKER.setLatLng(e.latlng);
+            document.getElementById(latInputId).value = e.latlng.lat.toFixed(6);
+            document.getElementById(lngInputId).value = e.latlng.lng.toFixed(6);
+        });
+
+        // Fix lỗi hiển thị map trong modal (bị xám)
+        setTimeout(() => { PICKER_MAP.invalidateSize(); }, 300);
+    }
     // --- CẬP NHẬT: HÀM TÌM TỌA ĐỘ THÔNG MINH (FALLBACK) ---
     async function autoFetchCoords() {
         const addressInput = document.getElementById("add-address").value; // VD: 490/8 Lê Văn Sỹ
@@ -2219,6 +2270,7 @@ MB0001/2.jpg"></textarea>
       }
 
       dlg.showModal();
+      initPickerMap('edit-map-picker', 'edit-lat', 'edit-lng', item.lat, item.lng);
     }
     
     async function saveEditPremise() {
@@ -2624,7 +2676,13 @@ MB0001/2.jpg"></textarea>
       }
 
       // Admin / Add Events
-      document.getElementById("btn-open-add").onclick = () => document.getElementById("addDlg").showModal();
+      // Tìm dòng này: document.getElementById("btn-open-add").onclick = ...
+      // Sửa thành:
+      document.getElementById("btn-open-add").onclick = () => {
+          document.getElementById("addDlg").showModal();
+          // Gọi hàm tạo map cho form thêm (mặc định lấy tâm HCM nếu chưa nhập gì)
+          initPickerMap('add-map-picker', 'add-lat', 'add-lng');
+      };
       document.getElementById("btn-toggle-pending").onclick = togglePendingMode;
       const btnToggleReported = document.getElementById("btn-toggle-rented-reports");
       if (btnToggleReported) btnToggleReported.onclick = toggleReportedMode;
