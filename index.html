@@ -765,7 +765,7 @@ MB0001/2.jpg"></textarea>
 
   <script>
     // ===== 1. CONFIG =====
-    const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co";
+    const SUPABASE_URL = "https://xclncowkoedwqzcemhei.db.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjbG5jb3drb2Vkd3F6Y2VtaGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzcwOTUsImV4cCI6MjA3Nzg1MzA5NX0.jfNM46UgXIq9LrwSXcERJJULeKB7bl_c9R9LaVhRy1A";
     const STORAGE_BUCKET = "premise-images";
     const PAGE_SIZE = 24;
@@ -1205,7 +1205,7 @@ MB0001/2.jpg"></textarea>
     function buildImageUrl(path) {
       if (!path) return null;
       if (path.startsWith('http')) return path; // Hỗ trợ link đầy đủ
-      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      const { data } = db.storage.from(STORAGE_BUCKET).getPublicUrl(path);
       return data?.publicUrl || null;
     }
 
@@ -1216,7 +1216,7 @@ MB0001/2.jpg"></textarea>
 
     // ===== AUTH =====
     async function initAuth() {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await db.auth.getUser();
       if (!data.user) {
         document.getElementById("auth-section").classList.remove("hidden");
         document.getElementById("app-root").classList.add("hidden");
@@ -1283,7 +1283,7 @@ MB0001/2.jpg"></textarea>
         toast("Vui lòng nhập email & mật khẩu");
         return;
       }
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await db.auth.signInWithPassword({ email, password });
       if (error) {
         console.error(error);
         toast("Đăng nhập thất bại: " + error.message);
@@ -1296,7 +1296,7 @@ MB0001/2.jpg"></textarea>
 
     
     async function handleLogout() {
-      await supabase.auth.signOut();
+      await db.auth.signOut();
       location.reload();
     }
 
@@ -1327,7 +1327,7 @@ MB0001/2.jpg"></textarea>
       // 1. Tạo Query cơ sở (Dùng chung cho cả List và Map)
       // Hàm này giúp áp dụng các bộ lọc giống hệt nhau cho cả 2 luồng dữ liệu
       const buildBaseQuery = () => {
-          let q = supabase.from("premises").select("*", { count: "exact" });
+          let q = db.from("premises").select("*", { count: "exact" });
           
           // -- Logic Admin/User --
           if (SHOW_PENDING && isAdmin()) q = q.eq("is_approved", false);
@@ -1854,7 +1854,7 @@ MB0001/2.jpg"></textarea>
           console.log("Database không có ảnh, đang quét Storage folder:", item.code);
           
           // Tìm folder có tên trùng với Mã căn
-          const { data: files, error: listError } = await supabase.storage
+          const { data: files, error: listError } = await db.storage
             .from(STORAGE_BUCKET)
             .list(item.code, { // Tên folder = item.code
                 limit: 50,
@@ -1869,7 +1869,7 @@ MB0001/2.jpg"></textarea>
               // Tạo đường dẫn public
               imgUrls = validFiles.map(f => {
                   const fullPath = `${item.code}/${f.name}`;
-                  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
+                  const { data } = db.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
                   return data.publicUrl;
               });
               console.log("Đã tìm thấy ảnh trong Storage:", imgUrls);
@@ -2479,7 +2479,7 @@ MB0001/2.jpg"></textarea>
             // code, created_by, is_approved SẼ ĐƯỢC DB TỰ ĐỘNG XỬ LÝ (NẾU ĐÃ CHẠY SQL)
         };
 
-        const { error } = await supabase.from("premises").insert([payload]);
+        const { error } = await db.from("premises").insert([payload]);
         if (error) {
             toast("Lỗi: " + error.message);
         } else {
@@ -2515,7 +2515,7 @@ MB0001/2.jpg"></textarea>
 
     // ===== LOGIC ADMIN PENDING (MỚI) =====
     async function checkPendingCount() {
-        const { count } = await supabase.from("premises").select("*", { count: 'exact', head: true }).eq("is_approved", false);
+        const { count } = await db.from("premises").select("*", { count: 'exact', head: true }).eq("is_approved", false);
         const cnt = count || 0;
         document.getElementById("count-pending").textContent = cnt;
         if (cnt > 0 && SHOW_PENDING) document.getElementById("btn-approve-all").classList.remove("hidden");
@@ -2539,7 +2539,7 @@ MB0001/2.jpg"></textarea>
     async function approveOne(id, e) {
         e.stopPropagation();
         if(!confirm("Duyệt bài này?")) return;
-        await supabase.from("premises").update({ is_approved: true }).eq("id", id);
+        await db.from("premises").update({ is_approved: true }).eq("id", id);
         toast("Đã duyệt!");
         applyFilters(true);
         checkPendingCount();
@@ -2547,7 +2547,7 @@ MB0001/2.jpg"></textarea>
 
     async function approveAll() {
         if(!confirm("Duyệt tất cả bài đang chờ?")) return;
-        await supabase.from("premises").update({ is_approved: true }).eq("is_approved", false);
+        await db.from("premises").update({ is_approved: true }).eq("is_approved", false);
         toast("Đã duyệt tất cả!");
         applyFilters(true);
         checkPendingCount();
@@ -2641,7 +2641,7 @@ MB0001/2.jpg"></textarea>
       if (demoDisagreeBtn && demoDlg) {
         demoDisagreeBtn.addEventListener("click", async () => {
           demoDlg.close();
-          await supabase.auth.signOut();
+          await db.auth.signOut();
           location.reload();
         });
       }
@@ -2772,7 +2772,7 @@ MB0001/2.jpg"></textarea>
             // Ví dụ: MB-123456/hinh_nha_1.jpg
             const filePath = `${folderName}/${cleanName}`;
             
-            const { data, error } = await supabase.storage
+            const { data, error } = await db.storage
                 .from(STORAGE_BUCKET)
                 .upload(filePath, file, {
                     cacheControl: '3600',
@@ -2851,7 +2851,7 @@ MB0001/2.jpg"></textarea>
             };
 
             // BƯỚC 4: INSERT VÀO DB
-            const { error } = await supabase.from("premises").insert([payload]);
+            const { error } = await db.from("premises").insert([payload]);
 
             if (error) throw error;
 
@@ -2909,7 +2909,7 @@ async function scanGridImages(rows) {
 
     try {
       // Quét folder theo mã mặt bằng trong Storage
-      const { data: files, error } = await supabase.storage
+      const { data: files, error } = await db.storage
         .from(STORAGE_BUCKET) // vd: "premise-images"
         .list(row.code, {
           limit: 10,
@@ -2931,7 +2931,7 @@ async function scanGridImages(rows) {
       if (!first) continue;
 
       const fullPath = `${row.code}/${first.name}`;
-      const { data } = supabase.storage
+      const { data } = db.storage
         .from(STORAGE_BUCKET)
         .getPublicUrl(fullPath);
 
@@ -2986,7 +2986,7 @@ async function scanGridImages(rows) {
 
           console.log("→ Quét folder:", row.code);
 
-          const { data: files, error: err2 } = await supabase.storage
+          const { data: files, error: err2 } = await db.storage
             .from(STORAGE_BUCKET) // ví dụ "premise-images"
             .list(row.code, {
               limit: 50,
@@ -3038,8 +3038,8 @@ async function scanGridImages(rows) {
       const logBox = document.getElementById("sync-log");
       
       // 1. Kiểm tra thống kê trước khi chạy
-      const { count: total } = await supabase.from("premises").select("*", { count: 'exact', head: true });
-      const { count: missing } = await supabase.from("premises").select("*", { count: 'exact', head: true }).is("lat", null);
+      const { count: total } = await db.from("premises").select("*", { count: 'exact', head: true });
+      const { count: missing } = await db.from("premises").select("*", { count: 'exact', head: true }).is("lat", null);
       
       if (missing === 0) {
           alert(`Tuyệt vời! Toàn bộ ${total} mặt bằng đã có tọa độ. Không cần quét.`);
@@ -3122,7 +3122,7 @@ async function scanGridImages(rows) {
         }
 
         if (found) {
-            await supabase.from("premises").update({ lat: found.lat, lng: found.lon }).eq("id", item.id);
+            await db.from("premises").update({ lat: found.lat, lng: found.lon }).eq("id", item.id);
             
             let color = "text-success"; // Xanh: Tìm chính xác
             if(method >= 4) color = "text-warning"; // Vàng: Chỉ tìm thấy Phường/Quận
