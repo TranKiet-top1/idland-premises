@@ -2671,6 +2671,14 @@ MB0001/2.jpg"></textarea>
           location.reload();
         });
       }
+      const openLoginBtn = document.getElementById("btn-open-login");
+      const loginDlg = document.getElementById("loginDlg");
+
+      if (openLoginBtn && loginDlg) {
+        openLoginBtn.addEventListener("click", () => {
+          loginDlg.showModal();
+        });
+      }
 
       // Luôn build dropdown QUẬN/PHƯỜNG khi load trang
       buildDistrictWardOptions();
