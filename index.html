@@ -1216,7 +1216,9 @@ MB0001/2.jpg"></textarea>
 
     // ===== AUTH =====
     async function initAuth() {
+      // Dùng biến 'db' thay vì 'supabase'
       const { data } = await db.auth.getUser();
+      
       if (!data.user) {
         document.getElementById("auth-section").classList.remove("hidden");
         document.getElementById("app-root").classList.add("hidden");
@@ -1224,19 +1226,16 @@ MB0001/2.jpg"></textarea>
       }
 
       // Nếu là Admin -> hiện nút duyệt bài + nút Báo hết
-      if (isAdmin()) {
-        document.getElementById("admin-pending-controls").classList.remove("hidden");
-        checkPendingCount();
-        checkRentedReportCount();
-        checkReactivateCount();
-      }
-
+      // (Lưu ý: isAdmin() cần biến CURRENT_ROLE được set bên dưới, tạm thời check logic sau)
+      
       CURRENT_USER = data.user;
 
       // --- LẤY ROLE TỪ BẢNG PROFILES ---
       let role = "staff";
       let userEmail = CURRENT_USER.email;
-      const { data: profile } = await supabase
+
+      // --- SỬA LỖI Ở ĐÂY: Đổi 'supabase' thành 'db' ---
+      const { data: profile } = await db
         .from("profiles")
         .select("role, email")
         .eq("id", CURRENT_USER.id)
@@ -1248,32 +1247,29 @@ MB0001/2.jpg"></textarea>
       }
       CURRENT_ROLE = role;
 
+      // ĐOẠN CODE CHUYỂN MÀN HÌNH (Trước đây không chạy được do lỗi bên trên)
       document.getElementById("auth-section").classList.add("hidden");
       document.getElementById("app-root").classList.remove("hidden");
       
       // Hiển thị tên/role
       document.getElementById("user-email-display").textContent = userEmail;
-      document.getElementById("role-badge").textContent = (role === "admin" ? "Admin" : "Nhân sự");
-      if (isAdmin()) document.getElementById("role-badge").className = "badge badge-error text-white";
-
-      // Nút chức năng
-      // Nếu là Admin -> hiện nút duyệt bài
-      if (isAdmin()) {
-        document.getElementById("admin-pending-controls").classList.remove("hidden");
-        checkPendingCount();
+      const roleBadge = document.getElementById("role-badge");
+      roleBadge.textContent = (role === "admin" ? "Admin" : "Nhân sự");
+      
+      if (role === "admin") {
+          roleBadge.className = "badge badge-error text-white";
+          document.getElementById("admin-pending-controls").classList.remove("hidden");
+          // Đảm bảo các hàm này cũng đã được đổi supabase -> db
+          checkPendingCount();
+          checkRentedReportCount();
+          checkReactivateCount();
+      } else {
+          roleBadge.className = "badge badge-outline";
       }
 
       await applyFilters(true);
       await buildDistrictWardOptions();
-      initAddFormDropdowns(); // Khởi tạo dropdown cho form thêm mới
-    }
-
-    
-    function showDemoNotice() {
-      const dlg = document.getElementById("demoNoticeDlg");
-      if (dlg && typeof dlg.showModal === "function") {
-        dlg.showModal();
-      }
+      initAddFormDropdowns();
     }
 
     async function handleLogin() {
