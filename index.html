@@ -2984,7 +2984,7 @@ MB0001/2.jpg"></textarea>
           console.warn("Lỗi quét ảnh cho:", row.code, err);
         }
         for (let i = 0; i < rows.length; i += 5) {  // Batch 5 cái/lần
-          await Promise.all(rows.slice(i, i+5).map(row => /* logic quét 1 row */);
+          await Promise.all(rows.slice(i, i+5).map(row => /* logic quét 1 row */));
           await new Promise(r => setTimeout(r, 1000));  // Delay 1s giữa batch
         }
       });
