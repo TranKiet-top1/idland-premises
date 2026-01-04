@@ -775,12 +775,13 @@ MB0001/2.jpg"></textarea>
 
   <script>
     // ===== 1. CONFIG =====
-    const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co";
+    const SUPABASE_URL = "https://xclncowkoedwqzcemhei._supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjbG5jb3drb2Vkd3F6Y2VtaGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzcwOTUsImV4cCI6MjA3Nzg1MzA5NX0.jfNM46UgXIq9LrwSXcERJJULeKB7bl_c9R9LaVhRy1A";
     const STORAGE_BUCKET = "premise-images";
     const PAGE_SIZE = 24;
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // MỚI (Đã sửa)
+    const _supabase = window._supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // --- DỮ LIỆU QUẬN/PHƯỜNG CHO FORM THÊM MỚI (Cần dữ liệu để chọn) ---
     const HCM_DATA = {
@@ -1215,7 +1216,7 @@ MB0001/2.jpg"></textarea>
     function buildImageUrl(path) {
       if (!path) return null;
       if (path.startsWith('http')) return path; // Hỗ trợ link đầy đủ
-      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      const { data } = _supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
       return data?.publicUrl || null;
     }
 
@@ -1226,7 +1227,7 @@ MB0001/2.jpg"></textarea>
 
     // ===== AUTH =====
     async function initAuth() {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await _supabase.auth.getUser();
       if (!data.user) {
         document.getElementById("auth-section").classList.remove("hidden");
         document.getElementById("app-root").classList.add("hidden");
@@ -1293,7 +1294,7 @@ MB0001/2.jpg"></textarea>
         toast("Vui lòng nhập email & mật khẩu");
         return;
       }
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await _supabase.auth.signInWithPassword({ email, password });
       if (error) {
         console.error(error);
         toast("Đăng nhập thất bại: " + error.message);
@@ -1306,7 +1307,7 @@ MB0001/2.jpg"></textarea>
 
     
     async function handleLogout() {
-      await supabase.auth.signOut();
+      await _supabase.auth.signOut();
       location.reload();
     }
 
@@ -1337,7 +1338,7 @@ MB0001/2.jpg"></textarea>
 
       // 1. Tạo Query cơ sở (Dùng chung cho cả List và Map)
       const buildBaseQuery = () => {
-          let q = supabase.from("premises").select("*", { count: "exact" });
+          let q = _supabase.from("premises").select("*", { count: "exact" });
           
           // --- LOGIC QUAN TRỌNG: XỬ LÝ CÁC CHẾ ĐỘ ADMIN ---
           
@@ -1880,7 +1881,7 @@ MB0001/2.jpg"></textarea>
           console.log("Database không có ảnh, đang quét Storage folder:", item.code);
           
           // Tìm folder có tên trùng với Mã căn
-          const { data: files, error: listError } = await supabase.storage
+          const { data: files, error: listError } = await _supabase.storage
             .from(STORAGE_BUCKET)
             .list(item.code, { // Tên folder = item.code
                 limit: 50,
@@ -1895,7 +1896,7 @@ MB0001/2.jpg"></textarea>
               // Tạo đường dẫn public
               imgUrls = validFiles.map(f => {
                   const fullPath = `${item.code}/${f.name}`;
-                  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
+                  const { data } = _supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
                   return data.publicUrl;
               });
               console.log("Đã tìm thấy ảnh trong Storage:", imgUrls);
@@ -2505,7 +2506,7 @@ MB0001/2.jpg"></textarea>
             // code, created_by, is_approved SẼ ĐƯỢC DB TỰ ĐỘNG XỬ LÝ (NẾU ĐÃ CHẠY SQL)
         };
 
-        const { error } = await supabase.from("premises").insert([payload]);
+        const { error } = await _supabase.from("premises").insert([payload]);
         if (error) {
             toast("Lỗi: " + error.message);
         } else {
@@ -2541,7 +2542,7 @@ MB0001/2.jpg"></textarea>
 
     // ===== LOGIC ADMIN PENDING (MỚI) =====
     async function checkPendingCount() {
-        const { count } = await supabase.from("premises").select("*", { count: 'exact', head: true }).eq("is_approved", false);
+        const { count } = await _supabase.from("premises").select("*", { count: 'exact', head: true }).eq("is_approved", false);
         const cnt = count || 0;
         document.getElementById("count-pending").textContent = cnt;
         if (cnt > 0 && SHOW_PENDING) document.getElementById("btn-approve-all").classList.remove("hidden");
@@ -2565,7 +2566,7 @@ MB0001/2.jpg"></textarea>
     async function approveOne(id, e) {
         e.stopPropagation();
         if(!confirm("Duyệt bài này?")) return;
-        await supabase.from("premises").update({ is_approved: true }).eq("id", id);
+        await _supabase.from("premises").update({ is_approved: true }).eq("id", id);
         toast("Đã duyệt!");
         applyFilters(true);
         checkPendingCount();
@@ -2573,7 +2574,7 @@ MB0001/2.jpg"></textarea>
 
     async function approveAll() {
         if(!confirm("Duyệt tất cả bài đang chờ?")) return;
-        await supabase.from("premises").update({ is_approved: true }).eq("is_approved", false);
+        await _supabase.from("premises").update({ is_approved: true }).eq("is_approved", false);
         toast("Đã duyệt tất cả!");
         applyFilters(true);
         checkPendingCount();
@@ -2667,7 +2668,7 @@ MB0001/2.jpg"></textarea>
       if (demoDisagreeBtn && demoDlg) {
         demoDisagreeBtn.addEventListener("click", async () => {
           demoDlg.close();
-          await supabase.auth.signOut();
+          await _supabase.auth.signOut();
           location.reload();
         });
       }
@@ -2798,7 +2799,7 @@ MB0001/2.jpg"></textarea>
             // Ví dụ: MB-123456/hinh_nha_1.jpg
             const filePath = `${folderName}/${cleanName}`;
             
-            const { data, error } = await supabase.storage
+            const { data, error } = await _supabase.storage
                 .from(STORAGE_BUCKET)
                 .upload(filePath, file, {
                     cacheControl: '3600',
@@ -2877,7 +2878,7 @@ MB0001/2.jpg"></textarea>
             };
 
             // BƯỚC 4: INSERT VÀO DB
-            const { error } = await supabase.from("premises").insert([payload]);
+            const { error } = await _supabase.from("premises").insert([payload]);
 
             if (error) throw error;
 
@@ -2938,7 +2939,7 @@ MB0001/2.jpg"></textarea>
         try {
           // 3. Gọi Supabase list file trong folder có tên là row.code
           // VD: Mã là "MBKD 001" thì trong bucket phải có folder tên "MBKD 001"
-          const { data: files, error } = await supabase.storage
+          const { data: files, error } = await _supabase.storage
             .from(STORAGE_BUCKET)
             .list(row.code, {
               limit: 1, // Chỉ cần lấy 1 hình đầu tiên làm ảnh bìa
@@ -2957,7 +2958,7 @@ MB0001/2.jpg"></textarea>
 
           // 5. Tạo đường dẫn public
           const fullPath = `${row.code}/${validFile.name}`;
-          const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
+          const { data } = _supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
 
           // 6. Cập nhật giao diện ngay lập tức
           if (data && data.publicUrl) {
@@ -3015,7 +3016,7 @@ MB0001/2.jpg"></textarea>
 
           console.log("→ Quét folder:", row.code);
 
-          const { data: files, error: err2 } = await supabase.storage
+          const { data: files, error: err2 } = await _supabase.storage
             .from(STORAGE_BUCKET) // ví dụ "premise-images"
             .list(row.code, {
               limit: 50,
@@ -3067,8 +3068,8 @@ MB0001/2.jpg"></textarea>
       const logBox = document.getElementById("sync-log");
       
       // 1. Kiểm tra thống kê trước khi chạy
-      const { count: total } = await supabase.from("premises").select("*", { count: 'exact', head: true });
-      const { count: missing } = await supabase.from("premises").select("*", { count: 'exact', head: true }).is("lat", null);
+      const { count: total } = await _supabase.from("premises").select("*", { count: 'exact', head: true });
+      const { count: missing } = await _supabase.from("premises").select("*", { count: 'exact', head: true }).is("lat", null);
       
       if (missing === 0) {
           alert(`Tuyệt vời! Toàn bộ ${total} mặt bằng đã có tọa độ. Không cần quét.`);
@@ -3151,7 +3152,7 @@ MB0001/2.jpg"></textarea>
         }
 
         if (found) {
-            await supabase.from("premises").update({ lat: found.lat, lng: found.lon }).eq("id", item.id);
+            await _supabase.from("premises").update({ lat: found.lat, lng: found.lon }).eq("id", item.id);
             
             let color = "text-success"; // Xanh: Tìm chính xác
             if(method >= 4) color = "text-warning"; // Vàng: Chỉ tìm thấy Phường/Quận
