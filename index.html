@@ -1962,9 +1962,12 @@ MB0001/2.jpg"></textarea>
           </a>
 
           <button class="btn btn-sm join-item"
-            onclick="navigator.clipboard.writeText(window.location.href);toast('Đã copy link')">
+            onclick="navigator.clipboard.writeText(
+              window.location.origin + window.location.pathname + '?id=${id}'
+            );toast('Đã copy link');return false;">
             Copy link
           </button>
+
 
           ${
             // 🔴 BÁO HẾT – NHÂN SỰ: chỉ báo, chờ admin duyệt
