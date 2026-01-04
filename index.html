@@ -1962,12 +1962,9 @@ MB0001/2.jpg"></textarea>
           </a>
 
           <button class="btn btn-sm join-item"
-            onclick="navigator.clipboard.writeText(
-              window.location.origin + window.location.pathname + '?id=${id}'
-            );toast('Đã copy link');return false;">
+            onclick="navigator.clipboard.writeText(window.location.href);toast('Đã copy link')">
             Copy link
           </button>
-
 
           ${
             // 🔴 BÁO HẾT – NHÂN SỰ: chỉ báo, chờ admin duyệt
@@ -2674,14 +2671,6 @@ MB0001/2.jpg"></textarea>
           location.reload();
         });
       }
-      const openLoginBtn = document.getElementById("btn-open-login");
-      const loginDlg = document.getElementById("loginDlg");
-
-      if (openLoginBtn && loginDlg) {
-        openLoginBtn.addEventListener("click", () => {
-          loginDlg.showModal();
-        });
-      }
 
       // Luôn build dropdown QUẬN/PHƯỜNG khi load trang
       buildDistrictWardOptions();
@@ -2983,10 +2972,6 @@ MB0001/2.jpg"></textarea>
         } catch (err) {
           console.warn("Lỗi quét ảnh cho:", row.code, err);
         }
-        // for (let i = 0; i < rows.length; i += 5) {  // Batch 5 cái/lần
-        //   await Promise.all(rows.slice(i, i+5).map(row => /* logic quét 1 row */));
-        //   await new Promise(r => setTimeout(r, 1000));  // Delay 1s giữa batch
-        // }
       });
 
       // Chờ tất cả chạy xong (nhưng giao diện sẽ update dần từng cái xong trước)
