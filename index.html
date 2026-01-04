@@ -997,7 +997,7 @@ MB0001/2.jpg"></textarea>
     let SHOW_REPORTED = false;
     // Đếm số mặt bằng nhân sự đã báo hết nhưng admin chưa xác nhận
     async function checkRentedReportCount() {
-      const { count } = await supabase
+      const { count } = await db
         .from("premises")
         .select("*", { count: "exact", head: true })
         .not("rented_reported_at", "is", null)
@@ -1030,7 +1030,7 @@ MB0001/2.jpg"></textarea>
     // Đếm số mặt bằng yêu cầu chạy lại, admin chưa duyệt
     async function checkReactivateCount() {
       try {
-        const { count, error } = await supabase
+        const { count, error } = await db
           .from("premises")
           .select("*", { count: "exact", head: true })
           .not("reactivate_reported_at", "is", null)
@@ -1226,7 +1226,9 @@ MB0001/2.jpg"></textarea>
 
     // ===== AUTH =====
     async function initAuth() {
+      // SỬA: dùng db thay vì supabase
       const { data } = await db.auth.getUser();
+      
       if (!data.user) {
         document.getElementById("auth-section").classList.remove("hidden");
         document.getElementById("app-root").classList.add("hidden");
@@ -1236,6 +1238,7 @@ MB0001/2.jpg"></textarea>
       // Nếu là Admin -> hiện nút duyệt bài + nút Báo hết
       if (isAdmin()) {
         document.getElementById("admin-pending-controls").classList.remove("hidden");
+        // Lưu ý: Các hàm con bên dưới cũng cần sửa supabase -> db
         checkPendingCount();
         checkRentedReportCount();
         checkReactivateCount();
@@ -1246,7 +1249,9 @@ MB0001/2.jpg"></textarea>
       // --- LẤY ROLE TỪ BẢNG PROFILES ---
       let role = "staff";
       let userEmail = CURRENT_USER.email;
-      const { data: profile } = await supabase
+      
+      // SỬA: Chỗ này file cũ của bạn đang dùng 'supabase' -> Gây lỗi văng ra
+      const { data: profile } = await db
         .from("profiles")
         .select("role, email")
         .eq("id", CURRENT_USER.id)
@@ -1258,24 +1263,27 @@ MB0001/2.jpg"></textarea>
       }
       CURRENT_ROLE = role;
 
+      // ĐOẠN QUAN TRỌNG NHẤT: CHUYỂN MÀN HÌNH
+      // Vì code trên đã sửa xong, dòng này sẽ chạy được
       document.getElementById("auth-section").classList.add("hidden");
       document.getElementById("app-root").classList.remove("hidden");
       
       // Hiển thị tên/role
       document.getElementById("user-email-display").textContent = userEmail;
-      document.getElementById("role-badge").textContent = (role === "admin" ? "Admin" : "Nhân sự");
-      if (isAdmin()) document.getElementById("role-badge").className = "badge badge-error text-white";
-
-      // Nút chức năng
-      // Nếu là Admin -> hiện nút duyệt bài
-      if (isAdmin()) {
-        document.getElementById("admin-pending-controls").classList.remove("hidden");
-        checkPendingCount();
+      const roleBadge = document.getElementById("role-badge");
+      roleBadge.textContent = (role === "admin" ? "Admin" : "Nhân sự");
+      
+      if (role === "admin") {
+          roleBadge.className = "badge badge-error text-white";
+          document.getElementById("admin-pending-controls").classList.remove("hidden");
+          checkPendingCount();
+      } else {
+          roleBadge.className = "badge badge-outline";
       }
 
       await applyFilters(true);
       await buildDistrictWardOptions();
-      initAddFormDropdowns(); // Khởi tạo dropdown cho form thêm mới
+      initAddFormDropdowns();
     }
 
     
@@ -1840,7 +1848,7 @@ MB0001/2.jpg"></textarea>
       dlg.showModal();
 
       // 1. Lấy thông tin căn nhà từ Database
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("premises")
         .select("*")
         .eq("id", id)
@@ -2130,7 +2138,7 @@ MB0001/2.jpg"></textarea>
       EDITING_ID = id;
       const dlg = document.getElementById("editDlg");
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("premises")
         .select("*")
         .eq("id", id)
@@ -2253,7 +2261,7 @@ MB0001/2.jpg"></textarea>
         payload.reactivate_confirmed_at = null;
       }
 
-      const { error } = await supabase
+      const { error } = await db
         .from("premises")
         .update(payload)
         .eq("id", EDITING_ID); // <--- SỬA LẠI THÀNH BIẾN TOÀN CỤC VIẾT HOA
@@ -2268,7 +2276,7 @@ MB0001/2.jpg"></textarea>
       if (!isAdmin()) return;  // chỉ admin được dùng
       if (!confirm("Xác nhận mặt bằng này đã hết / đã cho thuê?")) return;
       const nowIso = new Date().toISOString();
-      const { error } = await supabase
+      const { error } = await db
         .from("premises")
         .update({
           status: "rented",
@@ -2294,7 +2302,7 @@ MB0001/2.jpg"></textarea>
     async function requestReactivate(id) {
       if (!confirm("Báo chạy lại mặt bằng này?")) return;
 
-      const { error } = await supabase
+      const { error } = await db
         .from("premises")
         .update({
           reactivate_reported_at: new Date().toISOString(),
@@ -2317,7 +2325,7 @@ MB0001/2.jpg"></textarea>
       if (!isAdmin()) return;
       if (!confirm("Duyệt cho mặt bằng này chạy lại?")) return;
 
-      const { error } = await supabase
+      const { error } = await db
         .from("premises")
         .update({
           status: "available",
@@ -2345,7 +2353,7 @@ MB0001/2.jpg"></textarea>
       if (!isAdmin()) return;
       if (!confirm("Xác nhận mặt bằng này đã hết / đã thuê?")) return;
 
-      const { error } = await supabase
+      const { error } = await db
         .from("premises")
         .update({
           status: "rented",
@@ -2367,7 +2375,7 @@ MB0001/2.jpg"></textarea>
       if (!isAdmin()) return;
       if (!confirm("Huỷ yêu cầu báo hết mặt bằng này?")) return;
 
-      const { error } = await supabase
+      const { error } = await db
         .from("premises")
         .update({
           rented_reported_at: null,
@@ -2412,7 +2420,7 @@ MB0001/2.jpg"></textarea>
 
     // ====================== HÀM TẠO MÃ MẶT BẰNG ======================
     async function generateNextCode() {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("premises")
         .select("code")
         .order("code", { ascending: false })
@@ -2520,7 +2528,7 @@ MB0001/2.jpg"></textarea>
       if (!isStaff()) return;
       if (!confirm("Xác nhận báo hết mặt bằng này để admin duyệt?")) return;
 
-      const { error } = await supabase
+      const { error } = await db
         .from("premises")
         .update({
           rented_reported_at: new Date().toISOString(),
@@ -2902,7 +2910,7 @@ MB0001/2.jpg"></textarea>
       if (!isStaff()) return;
       if (!confirm("Bạn muốn huỷ báo hết mặt bằng này?")) return;
 
-      const { error } = await supabase
+      const { error } = await db
         .from("premises")
         .update({
           rented_reported_at: null
@@ -2992,7 +3000,7 @@ MB0001/2.jpg"></textarea>
       alert("Bắt đầu sync ảnh, mở Console để xem log. Đừng tắt tab cho tới khi xong.");
 
       while (true) {
-        const { data: rows, error } = await supabase
+        const { data: rows, error } = await db
           .from("premises")
           .select("id, code, images", { count: "exact" })
           .range(from, from + PAGE_SIZE - 1);
@@ -3038,7 +3046,7 @@ MB0001/2.jpg"></textarea>
           // Lưu đường dẫn tương đối vào cột images (Postgres text[] hoặc jsonb đều ok)
           const paths = validFiles.map(f => `${row.code}/${f.name}`);
 
-          const { error: err3 } = await supabase
+          const { error: err3 } = await db
             .from("premises")
             .update({ images: paths })
             .eq("id", row.id);
@@ -3084,7 +3092,7 @@ MB0001/2.jpg"></textarea>
       logBox.innerHTML = "<div>Đang tải danh sách cần xử lý...</div>";
 
       // Lấy danh sách chưa có tọa độ
-      const { data: list } = await supabase
+      const { data: list } = await db
         .from("premises")
         .select("id, address, district, ward, street")
         .is("lat", null);
