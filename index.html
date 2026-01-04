@@ -861,13 +861,22 @@ MB0001/2.jpg"></textarea>
       if (!el) return;
 
       // Tạo map, set trung tâm là TP.HCM (10.7769, 106.7009), zoom 13
-      MAP_INSTANCE = L.map('premises-map').setView([10.7769, 106.7009], 13);
+      MAP_INSTANCE = L.map('premises-map', {
+          center: [10.7769, 106.7009],
+          zoom: 13,
+          layers: [streetLayer] // Mặc định hiện đường phố
+      });
 
       // QUAN TRỌNG: Thêm lớp nền OpenStreetMap (cái này Google Maps không cần nhưng Leaflet bắt buộc)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 19
-      }).addTo(MAP_INSTANCE);
+      const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'Tiles © Esri'
+      });
+      const baseMaps = {
+          "Đường phố": streetLayer,
+          "Vệ tinh (Rõ nét)": satLayer
+      };
+      L.control.layers(baseMaps).addTo(MAP_INSTANCE);
     }
 
     // 2. Hàm xóa các marker cũ khi lọc lại
@@ -1775,11 +1784,12 @@ MB0001/2.jpg"></textarea>
         let lng = document.getElementById(lngInputId).value || initialLng || 106.7009;
 
         // 3. Tạo Map
-        PICKER_MAP = L.map(mapId).setView([lat, lng], 16);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(PICKER_MAP);
 
+        PICKER_MAP = L.map(mapId, {
+            center: [lat, lng],
+            zoom: 18, // Zoom sâu vào để ghim cho chuẩn
+            layers: [streetLayer] 
+        });
         // 4. Tạo Marker có thể kéo thả (draggable: true)
         PICKER_MARKER = L.marker([lat, lng], { draggable: true }).addTo(PICKER_MAP);
 
@@ -1799,6 +1809,27 @@ MB0001/2.jpg"></textarea>
         });
 
         // Fix lỗi hiển thị map trong modal (bị xám)
+        setTimeout(() => { PICKER_MAP.invalidateSize(); }, 300);
+        const pickerLayers = {
+            "Đường phố": streetLayer,
+            "Vệ tinh": satLayer
+        };
+        L.control.layers(pickerLayers).addTo(PICKER_MAP);
+
+        PICKER_MARKER = L.marker([lat, lng], { draggable: true }).addTo(PICKER_MAP);
+
+        PICKER_MARKER.on('dragend', function(e) {
+            const coord = e.target.getLatLng();
+            document.getElementById(latInputId).value = coord.lat.toFixed(6);
+            document.getElementById(lngInputId).value = coord.lng.toFixed(6);
+        });
+        
+        PICKER_MAP.on('click', function(e) {
+            PICKER_MARKER.setLatLng(e.latlng);
+            document.getElementById(latInputId).value = e.latlng.lat.toFixed(6);
+            document.getElementById(lngInputId).value = e.latlng.lng.toFixed(6);
+        });
+
         setTimeout(() => { PICKER_MAP.invalidateSize(); }, 300);
     }
     // --- CẬP NHẬT: HÀM TÌM TỌA ĐỘ THÔNG MINH (FALLBACK) ---
