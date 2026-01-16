@@ -229,7 +229,8 @@
 
         <div class="flex flex-wrap gap-2 justify-end">
           <div class="join">
-            <button id="btn-view-list" class="btn btn-sm join-item btn-active">Danh sách</button>
+            <button id="btn-view-list" class="btn btn-sm join-item btn-active">Lưới</button>
+            <button id="btn-view-table" class="btn btn-sm join-item hidden md:block">Bảng (Admin)</button>
             <button id="btn-view-map" class="btn btn-sm join-item">Bản đồ</button>
           </div>
           <div id="admin-pending-controls" class="hidden flex gap-2 overflow-x-auto whitespace-nowrap pb-2 md:pb-0 max-w-[100vw] md:max-w-auto px-2 md:px-0">
@@ -456,11 +457,28 @@
           </div>
 
           <div id="list-view">
-            <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              </div>
+            <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             <div class="mt-4 flex justify-center">
               <button id="btn-load-more" class="btn btn-sm btn-ghost">Hết dữ liệu</button>
             </div>
+          </div>
+
+          <div id="table-view" class="hidden overflow-x-auto bg-white rounded-xl shadow border border-base-200">
+            <table class="table table-xs table-pin-rows w-full">
+              <thead>
+                <tr class="bg-base-200">
+                  <th>Hình</th>
+                  <th>Mã / Địa chỉ</th>
+                  <th>Kết cấu / DT</th>
+                  <th>Giá (Triệu)</th>
+                  <th>Hoa hồng</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="table-body">
+                </tbody>
+            </table>
           </div>
 
           <div id="map-view" class="hidden w-full h-[600px] rounded-xl border border-base-300 relative z-0">
@@ -1448,7 +1466,10 @@ MB0001/2.jpg"></textarea>
       // Render
       if (PAGE === 0) renderCards(LAST_ROWS, true);
       else renderCards(LAST_ROWS, false);
-
+      
+      if (CURRENT_VIEW === 'table') {
+          renderTable(LAST_ROWS);
+      }
       // UI update
       const showCountEl = document.getElementById("count-show");
       const totalCountEl = document.getElementById("count-total");
@@ -2751,41 +2772,46 @@ MB0001/2.jpg"></textarea>
       const divMap = document.getElementById("map-view");
 
       // --- SỬA LỖI: HÀM CHUYỂN TAB MỚI ---
+      let CURRENT_VIEW = 'list'; // Biến theo dõi chế độ hiện tại
+
       function switchView(mode) {
-        const btnList = document.getElementById("btn-view-list");
-        const btnMap = document.getElementById("btn-view-map");
-        const divList = document.getElementById("list-view");
-        const divMap = document.getElementById("map-view");
+          CURRENT_VIEW = mode; // Lưu lại mode
 
-        if (mode === 'list') {
-          // Hiện List, Ẩn Map
-          if(divList) divList.classList.remove("hidden");
-          if(divMap) divMap.classList.add("hidden");
-          if(btnList) btnList.classList.add("btn-active");
-          if(btnMap) btnMap.classList.remove("btn-active");
-        } else {
-          // Hiện Map, Ẩn List
-          if(divList) divList.classList.add("hidden");
-          if(divMap) divMap.classList.remove("hidden");
-          if(btnList) btnList.classList.remove("btn-active");
-          if(btnMap) btnMap.classList.add("btn-active");
+          const btnList = document.getElementById("btn-view-list");
+          const btnTable = document.getElementById("btn-view-table"); // Mới
+          const btnMap = document.getElementById("btn-view-map");
+          
+          const divList = document.getElementById("list-view");
+          const divTable = document.getElementById("table-view"); // Mới
+          const divMap = document.getElementById("map-view");
 
-          // BƯỚC 1: Khởi tạo map ngay lập tức (không chờ dữ liệu)
-          initStaffMap();
+          // Reset tất cả về ẩn
+          [divList, divTable, divMap].forEach(el => el && el.classList.add("hidden"));
+          [btnList, btnTable, btnMap].forEach(btn => btn && btn.classList.remove("btn-active"));
 
-          // BƯỚC 2: Buộc bản đồ tính lại kích thước để tránh bị màu xám
-          setTimeout(() => {
-             if(MAP_INSTANCE) {
-               MAP_INSTANCE.invalidateSize();
-             }
-          }, 200);
-
-          // BƯỚC 3: Vẽ marker nếu đã có dữ liệu từ trước
-          if (typeof LAST_ROWS !== 'undefined' && LAST_ROWS.length > 0) {
-              renderMapMarkers(LAST_ROWS);
+          if (mode === 'list') {
+              if(divList) divList.classList.remove("hidden");
+              if(btnList) btnList.classList.add("btn-active");
+              renderCards(LAST_ROWS, true); // Vẽ lại grid
+          } 
+          else if (mode === 'table') {
+              if(divTable) divTable.classList.remove("hidden");
+              if(btnTable) btnTable.classList.add("btn-active");
+              renderTable(LAST_ROWS); // Vẽ bảng
           }
-        }
+          else if (mode === 'map') {
+              if(divMap) divMap.classList.remove("hidden");
+              if(btnMap) btnMap.classList.add("btn-active");
+              
+              initStaffMap();
+              setTimeout(() => { if(MAP_INSTANCE) MAP_INSTANCE.invalidateSize(); }, 200);
+              if (LAST_ROWS && LAST_ROWS.length > 0) renderMapMarkers(LAST_ROWS);
+          }
       }
+
+      // Gắn sự kiện click cho nút Bảng (Table)
+      const btnTableEl = document.getElementById("btn-view-table");
+      if(btnTableEl) btnTableEl.onclick = () => switchView('table');
 
       // Gắn sự kiện click
       if(btnList) btnList.onclick = () => switchView('list');
@@ -3356,6 +3382,111 @@ MB0001/2.jpg"></textarea>
             }
         }
     }, 1000); // Chờ 1 giây để đảm bảo HTML đã vẽ xong  
+// --- LOGIC TABLE VIEW (EXCEL MODE) ---
+
+    // 1. Hàm vẽ bảng
+    function renderTable(rows) {
+      const tbody = document.getElementById("table-body");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4">Không có dữ liệu</td></tr>`;
+        return;
+      }
+
+      const html = rows.map(row => {
+        // Xử lý ảnh nhỏ
+        let thumb = "";
+        if (row.images && row.images.length > 0) {
+            // Lấy ảnh đầu tiên (xử lý cả dạng mảng hoặc chuỗi)
+            let path = Array.isArray(row.images) ? row.images[0] : (JSON.parse(row.images || "[]")[0] || ""); 
+            if(path) thumb = `<img src="${buildImageUrl(path)}" class="w-8 h-8 object-cover rounded border" />`;
+        }
+
+        // Nếu không phải Admin thì chỉ hiện text, Admin thì hiện Input để sửa
+        const isAdminUser = isAdmin(); 
+
+        // Ô Giá (Admin sửa được)
+        const priceCell = isAdminUser 
+          ? `<input type="number" class="input input-ghost input-xs w-24 font-bold text-right" 
+               value="${row.price}" 
+               onchange="quickUpdate('${row.id}', 'price', this.value)" />`
+          : `<span class="font-bold text-primary">${money(row.price)}</span>`;
+
+        // Ô Hoa hồng (Admin sửa được)
+        const commCell = isAdminUser
+          ? `<input type="text" class="input input-ghost input-xs w-20" 
+               value="${row.commission_note || ''}" placeholder="..." 
+               onchange="quickUpdate('${row.id}', 'commission_note', this.value)" />`
+          : `<span>${row.commission_note || '-'}</span>`;
+
+        // Ô Trạng thái (Select box cho Admin)
+        const statusOpts = `
+            <option value="available" ${row.status==='available'?'selected':''}>Trống</option>
+            <option value="deposited" ${row.status==='deposited'?'selected':''}>Cọc</option>
+            <option value="rented" ${row.status==='rented'?'selected':''}>Thuê</option>
+        `;
+        const statusCell = isAdminUser
+          ? `<select class="select select-ghost select-xs" onchange="quickUpdate('${row.id}', 'status', this.value)">${statusOpts}</select>`
+          : `<span class="badge badge-xs">${row.status}</span>`;
+
+        return `
+          <tr class="hover">
+            <td>${thumb}</td>
+            <td>
+                <div class="font-bold text-xs">${row.code || '---'}</div>
+                <div class="text-[10px] opacity-70 truncate max-w-[150px]" title="${row.address}">${maskAddress(row)}</div>
+            </td>
+            <td>
+                <div class="text-[10px]">
+                    ${row.width || 0}x${row.length || 0}m | ${row.area || 0}m²<br/>
+                    ${row.ket_cau || '-'}
+                </div>
+            </td>
+            <td class="text-right">${priceCell}</td>
+            <td>${commCell}</td>
+            <td>${statusCell}</td>
+            <td>
+               <button class="btn btn-xs btn-square btn-ghost" onclick="openDetail('${row.id}')">👁</button>
+               ${isAdminUser ? `<button class="btn btn-xs btn-square btn-ghost text-blue-600" onclick="openEditPremise('${row.id}')">✏️</button>` : ''}
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      tbody.innerHTML = html;
+    }
+
+    // 2. Hàm lưu nhanh (Auto Save khi sửa ô input)
+    async function quickUpdate(id, field, value) {
+        if(!isAdmin()) { toast("Không có quyền!"); return; }
+        
+        // Hiệu ứng "Đang lưu..." nhỏ (Optional)
+        toast(`Đang lưu ${field}...`);
+
+        let payload = {};
+        payload[field] = value;
+        
+        // Nếu sửa giá thì chuyển về số
+        if(field === 'price') payload[field] = Number(value);
+
+        // Nếu sửa trạng thái thành 'rented', cập nhật ngày (logic tương tự hàm sửa form)
+        if(field === 'status' && value === 'rented') {
+             payload['rented_confirmed_at'] = new Date().toISOString();
+        }
+
+        const { error } = await db.from('premises').update(payload).eq('id', id);
+        
+        if(error) {
+            toast("Lỗi lưu: " + error.message);
+        } else {
+            // Cập nhật lại dữ liệu local (LAST_ROWS) để không phải load lại trang
+            const row = LAST_ROWS.find(r => r.id === id);
+            if(row) row[field] = payload[field];
+            toast("Đã lưu ✅");
+        }
+    }
   </script>
   <dialog id="toolDlg" class="modal">
     <div class="modal-box">
