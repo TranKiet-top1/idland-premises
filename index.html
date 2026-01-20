@@ -303,9 +303,14 @@
             <label class="label">
               <span class="label-text text-xs">Quận</span>
             </label>
-            <select id="filter-district" class="select select-sm select-bordered">
-              <option value="">Tất cả</option>
-            </select>
+            <div class="dropdown dropdown-bottom w-full" id="district-dropdown-container">
+              <div tabindex="0" role="button" class="select select-sm select-bordered w-full flex items-center justify-between h-8 min-h-0 bg-white" id="district-display-btn">
+                <span id="district-display-text" class="truncate text-xs">Tất cả</span>
+                <span class="text-[10px] opacity-50">▼</span>
+              </div>
+              <ul tabindex="0" class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-60 h-64 overflow-y-auto flex-nowrap block border border-base-200" id="district-list-checkboxes">
+                </ul>
+            </div>
           </div>
 
           <div class="form-control mb-3">
@@ -863,7 +868,86 @@ MB0001/2.jpg"></textarea>
     let LAST_ROWS = [];
     let EDITING_ID = null;
 
+    // --- LOGIC MỚI: MULTI-SELECT QUẬN ---
 
+    // 1. Hàm lấy danh sách các quận đang được tích chọn (trả về Mảng)
+    function getSelectedDistricts() {
+        const checkboxes = document.querySelectorAll('#district-list-checkboxes input[type="checkbox"]:checked');
+        const values = Array.from(checkboxes).map(cb => cb.value);
+        return values; // VD: ["Quận 1", "Quận 3"]
+    }
+
+    // 2. Hàm vẽ danh sách checkbox Quận & Xử lý sự kiện
+    function buildDistrictDropdown() {
+        const listContainer = document.getElementById("district-list-checkboxes");
+        const displayLabel = document.getElementById("district-display-text");
+        if (!listContainer) return;
+
+        listContainer.innerHTML = "";
+        const dists = Object.keys(HCM_DATA).sort();
+
+        // Tạo các dòng checkbox
+        dists.forEach(d => {
+            const li = document.createElement("li");
+            li.innerHTML = `
+                <label class="label cursor-pointer justify-start gap-2 py-1 px-2 hover:bg-base-200 rounded">
+                    <input type="checkbox" class="checkbox checkbox-xs checkbox-primary district-cb" value="${d}" />
+                    <span class="label-text text-xs">${d}</span>
+                </label>
+            `;
+            listContainer.appendChild(li);
+        });
+
+        // Bắt sự kiện khi click vào checkbox
+        const checkboxes = listContainer.querySelectorAll(".district-cb");
+        checkboxes.forEach(cb => {
+            cb.addEventListener("change", () => {
+                // A. Cập nhật chữ hiển thị trên nút
+                const selected = getSelectedDistricts();
+                if (selected.length === 0) {
+                    displayLabel.textContent = "Tất cả";
+                } else if (selected.length <= 2) {
+                    displayLabel.textContent = selected.join(", ");
+                } else {
+                    displayLabel.textContent = `Đã chọn ${selected.length} Quận`;
+                }
+
+                // B. Cập nhật dropdown Phường (Gộp phường của các quận đã chọn)
+                updateWardOptionsMulti();
+
+                // C. Gọi lọc dữ liệu ngay lập tức
+                applyFilters(true);
+            });
+        });
+    }
+
+    // 3. Hàm cập nhật Phường (Khi chọn nhiều quận, hiển thị tất cả phường của các quận đó)
+    function updateWardOptionsMulti() {
+        const selectedDistricts = getSelectedDistricts();
+        const selectWard = document.getElementById("filter-ward");
+        selectWard.innerHTML = '<option value="">Tất cả</option>';
+
+        if (selectedDistricts.length === 0) return; // Nếu không chọn quận nào thì thôi
+
+        let allWards = [];
+        selectedDistricts.forEach(dist => {
+            if (HCM_DATA[dist]) {
+                // Thêm prefix tên quận vào để dễ nhìn nếu danh sách quá dài (Tuỳ chọn)
+                // Hoặc cứ đẩy thẳng tên phường vào
+                allWards = [...allWards, ...HCM_DATA[dist]];
+            }
+        });
+        
+        // Loại bỏ trùng lặp và sắp xếp
+        allWards = [...new Set(allWards)].sort();
+
+        allWards.forEach((w) => {
+            const opt = document.createElement("option");
+            opt.value = w;
+            opt.textContent = w;
+            selectWard.appendChild(opt);
+        });
+    }
 // ============================================================
     // CẤU HÌNH BẢN ĐỒ LEAFLET (OPENSTREETMAP - MIỄN PHÍ)
     // ============================================================
@@ -1344,7 +1428,10 @@ MB0001/2.jpg"></textarea>
     function getFilterValues() {
       return {
         keyword: document.getElementById("filter-keyword").value.trim(),
-        district: document.getElementById("filter-district").value,
+        
+        // --- SỬA DÒNG NÀY: Gọi hàm lấy mảng thay vì .value ---
+        district: getSelectedDistricts(), 
+        
         ward: document.getElementById("filter-ward").value,
         priceMin: Number(document.getElementById("filter-price-min").value) || null,
         priceMax: Number(document.getElementById("filter-price-max").value) || null,
@@ -1395,7 +1482,8 @@ MB0001/2.jpg"></textarea>
             const kw = "%" + f.keyword + "%";
             q = q.or(`address.ilike.${kw},street.ilike.${kw},ward.ilike.${kw},district.ilike.${kw},code.ilike.${kw}`);
           }
-          if (f.district) q = q.eq("district", f.district);
+          if (f.district && f.district.length > 0) {
+              q = q.in("district", f.district);
           if (f.ward) q = q.eq("ward", f.ward);
           
           // Lưu ý: Khi đang xem "Báo hết" hoặc "Chạy lại", ta không lọc theo status 
@@ -2667,7 +2755,12 @@ MB0001/2.jpg"></textarea>
       
       document.getElementById("btn-apply").addEventListener("click", () => applyFilters(true));
       document.getElementById("btn-reset").addEventListener("click", () => {
-        document.querySelectorAll("aside input, aside select").forEach(el => el.value = "");
+        document.querySelectorAll("aside input, aside select").forEach(el => {
+            if(el.type === 'checkbox') el.checked = false; // Bỏ check hết
+            else el.value = "";
+        });
+        document.getElementById("district-display-text").textContent = "Tất cả";
+        buildDistrictDropdown(); // Vẽ lại sạch sẽ
         applyFilters(true);
       });
       // Nút mở form Đăng nhập nhân sự trên trang chủ
@@ -2719,24 +2812,20 @@ MB0001/2.jpg"></textarea>
       }
 
       // Quick filters
-      document.querySelectorAll("[data-quick]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          document.getElementById("filter-status").value = btn.getAttribute("data-quick");
-          applyFilters(true);
-        });
-      });
       document.querySelectorAll("[data-quick-district]").forEach((btn) => {
         btn.addEventListener("click", () => {
-          document.getElementById("filter-district").value = btn.getAttribute("data-quick-district");
-          updateWardOptions();
-          applyFilters(true);
+          // 1. Reset hết checkbox trước
+          document.querySelectorAll('.district-cb').forEach(cb => cb.checked = false);
+          
+          // 2. Tick vào quận được chọn
+          const targetDist = btn.getAttribute("data-quick-district");
+          const cb = document.querySelector(`.district-cb[value="${targetDist}"]`);
+          if(cb) {
+              cb.checked = true;
+              // Trigger sự kiện change để cập nhật label và phường
+              cb.dispatchEvent(new Event('change'));
+          }
         });
-      });
-      document.getElementById("btn-clear-quick").addEventListener("click", () => {
-        document.getElementById("filter-status").value = "";
-        document.getElementById("filter-district").value = "";
-        document.getElementById("filter-ward").value = "";
-        applyFilters(true);
       });
       // Nút xem danh sách mặt bằng đã ghim
       const btnToggleFavorites = document.getElementById("btn-toggle-favorites");
@@ -2760,7 +2849,7 @@ MB0001/2.jpg"></textarea>
       }
 
       // Luôn build dropdown QUẬN/PHƯỜNG khi load trang
-      buildDistrictWardOptions();
+      buildDistrictDropdown()
 
       // Rồi mới xử lý login / role / dữ liệu
       initAuth();
@@ -3355,7 +3444,7 @@ MB0001/2.jpg"></textarea>
         // 1. Nạp lại danh sách Quận từ dữ liệu nguồn
         if (typeof buildDistrictWardOptions === 'function') {
             console.log("Đang nạp lại danh sách Quận...");
-            buildDistrictWardOptions();
+            buildDistrictDropdown();
         }
 
         // 2. Kết nối lại sự kiện: Chọn Quận -> Tự đổi Phường & Lọc bài
