@@ -322,51 +322,39 @@
             </select>
           </div>
 
-          <div class="grid grid-cols-1 gap-2 mb-3">
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text text-xs">Số PN</span>
-              </label>
-              <select id="filter-pn" class="select select-sm select-bordered">
-                <option value="">Tất cả</option>
-                <option value="1">1 PN</option>
-                <option value="2">2 PN</option>
-                <option value="3">3 PN</option>
-                <option value="4">4 PN</option>
-                <option value="5">5 PN</option>
-                <option value="6">6 PN</option>
-                <option value=">6">> 6 PN</option>
-              </select>
+          <div class="form-control mb-3">
+            <label class="label"><span class="label-text text-xs">Số PN</span></label>
+            <div class="dropdown dropdown-bottom w-full" id="pn-dropdown-container">
+              <div tabindex="0" role="button" class="select select-sm select-bordered w-full flex items-center justify-between h-8 min-h-0 bg-white">
+                <span id="pn-display-text" class="truncate text-xs">Tất cả</span>
+                <span class="text-[10px] opacity-50">▼</span>
+              </div>
+              <ul tabindex="0" class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-40 h-auto max-h-60 overflow-y-auto block border border-base-200" id="pn-list-checkboxes">
+                </ul>
             </div>
+          </div>
 
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text text-xs">Số WC</span>
-              </label>
-              <select id="filter-wc" class="select select-sm select-bordered">
-                <option value="">Tất cả</option>
-                <option value="1">1 WC</option>
-                <option value="2">2 WC</option>
-                <option value="3">3 WC</option>
-                <option value="4">4 WC</option>
-                <option value="5">5 WC</option>
-                <option value=">5">> 5 WC</option>
-              </select>
+          <div class="form-control mb-3">
+            <label class="label"><span class="label-text text-xs">Số WC</span></label>
+            <div class="dropdown dropdown-bottom w-full" id="wc-dropdown-container">
+              <div tabindex="0" role="button" class="select select-sm select-bordered w-full flex items-center justify-between h-8 min-h-0 bg-white">
+                <span id="wc-display-text" class="truncate text-xs">Tất cả</span>
+                <span class="text-[10px] opacity-50">▼</span>
+              </div>
+              <ul tabindex="0" class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-40 h-auto max-h-60 overflow-y-auto block border border-base-200" id="wc-list-checkboxes">
+              </ul>
             </div>
+          </div>
 
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text text-xs">Số tầng</span>
-              </label>
-              <select id="filter-floors" class="select select-sm select-bordered">
-                <option value="">Tất cả</option>
-                <option value="1">1 tầng</option>
-                <option value="2">2 tầng</option>
-                <option value="3">3 tầng</option>
-                <option value="4">4 tầng</option>
-                <option value="5">5 tầng</option>
-                <option value=">5">> 5 tầng</option>
-              </select>
+          <div class="form-control mb-3">
+            <label class="label"><span class="label-text text-xs">Số tầng</span></label>
+            <div class="dropdown dropdown-bottom w-full" id="floors-dropdown-container">
+              <div tabindex="0" role="button" class="select select-sm select-bordered w-full flex items-center justify-between h-8 min-h-0 bg-white">
+                <span id="floors-display-text" class="truncate text-xs">Tất cả</span>
+                <span class="text-[10px] opacity-50">▼</span>
+              </div>
+              <ul tabindex="0" class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-40 h-auto max-h-60 overflow-y-auto block border border-base-200" id="floors-list-checkboxes">
+              </ul>
             </div>
           </div>
 
@@ -921,6 +909,99 @@ MB0001/2.jpg"></textarea>
         });
     }
 
+
+    // --- HÀM CHUNG: TẠO DROPDOWN CHO PN, WC, TẦNG ---
+    function buildMultiSelectDropdown(config) {
+        const { listId, displayId, options, suffix } = config;
+        const listContainer = document.getElementById(listId);
+        const displayLabel = document.getElementById(displayId);
+        
+        if (!listContainer) return;
+        listContainer.innerHTML = "";
+
+        options.forEach(opt => {
+            const val = opt.value; // VD: "1", "2", ">6"
+            const label = opt.label; // VD: "1 PN", "> 6 PN"
+            
+            const li = document.createElement("li");
+            li.innerHTML = `
+                <label class="label cursor-pointer justify-start gap-2 py-1 px-2 hover:bg-base-200 rounded">
+                    <input type="checkbox" class="checkbox checkbox-xs checkbox-primary multi-cb" value="${val}" />
+                    <span class="label-text text-xs">${label}</span>
+                </label>
+            `;
+            listContainer.appendChild(li);
+        });
+
+        // Xử lý sự kiện click
+        const checkboxes = listContainer.querySelectorAll(".multi-cb");
+        checkboxes.forEach(cb => {
+            cb.addEventListener("change", () => {
+                // Lấy danh sách đang chọn
+                const checkedBoxes = listContainer.querySelectorAll('.multi-cb:checked');
+                const values = Array.from(checkedBoxes).map(c => c.value);
+                
+                // Cập nhật text hiển thị
+                if (values.length === 0) {
+                    displayLabel.textContent = "Tất cả";
+                } else {
+                    // Nếu chọn ít thì hiện số, chọn nhiều thì hiện tổng số
+                    if (values.length <= 2) {
+                        displayLabel.textContent = values.map(v => v.includes(">") ? v : v + suffix).join(", ");
+                    } else {
+                        displayLabel.textContent = `Đã chọn ${values.length}`;
+                    }
+                }
+                
+                // Gọi lọc ngay lập tức
+                applyFilters(true);
+            });
+        });
+    }
+
+    // Hàm lấy giá trị (dùng chung cho 3 cái)
+    function getMultiValues(listId) {
+        const checkboxes = document.querySelectorAll(`#${listId} input[type="checkbox"]:checked`);
+        return Array.from(checkboxes).map(cb => cb.value);
+    }
+
+    // Hàm khởi tạo 3 bộ lọc này (Sẽ gọi ở cuối)
+    function initAllMultiFilters() {
+        // 1. PN
+        buildMultiSelectDropdown({
+            listId: "pn-list-checkboxes",
+            displayId: "pn-display-text",
+            suffix: " PN",
+            options: [
+                {value: "1", label: "1 PN"}, {value: "2", label: "2 PN"}, 
+                {value: "3", label: "3 PN"}, {value: "4", label: "4 PN"}, 
+                {value: "5", label: "5 PN"}, {value: "6", label: "6 PN"}, 
+                {value: ">6", label: "> 6 PN"}
+            ]
+        });
+        // 2. WC
+        buildMultiSelectDropdown({
+            listId: "wc-list-checkboxes",
+            displayId: "wc-display-text",
+            suffix: " WC",
+            options: [
+                {value: "1", label: "1 WC"}, {value: "2", label: "2 WC"}, 
+                {value: "3", label: "3 WC"}, {value: "4", label: "4 WC"}, 
+                {value: "5", label: "5 WC"}, {value: ">5", label: "> 5 WC"}
+            ]
+        });
+        // 3. Tầng
+        buildMultiSelectDropdown({
+            listId: "floors-list-checkboxes",
+            displayId: "floors-display-text",
+            suffix: " Tầng",
+            options: [
+                {value: "1", label: "1 Tầng"}, {value: "2", label: "2 Tầng"}, 
+                {value: "3", label: "3 Tầng"}, {value: "4", label: "4 Tầng"}, 
+                {value: "5", label: "5 Tầng"}, {value: ">5", label: "> 5 Tầng"}
+            ]
+        });
+    }
     // 3. Hàm cập nhật Phường (Khi chọn nhiều quận, hiển thị tất cả phường của các quận đó)
     function updateWardOptionsMulti() {
         const selectedDistricts = getSelectedDistricts();
@@ -1437,9 +1518,9 @@ MB0001/2.jpg"></textarea>
         priceMax: Number(document.getElementById("filter-price-max").value) || null,
         areaMin: Number(document.getElementById("filter-area-min").value) || null,
         areaMax: Number(document.getElementById("filter-area-max").value) || null,
-        pn: document.getElementById("filter-pn").value,
-        wc: document.getElementById("filter-wc").value,
-        floors: document.getElementById("filter-floors").value,
+        pn: getMultiValues("pn-list-checkboxes"),
+        wc: getMultiValues("wc-list-checkboxes"),
+        floors: getMultiValues("floors-list-checkboxes"),
         frontageType: document.getElementById("filter-frontage-type").value,
         status: document.getElementById("filter-status").value,
       };
@@ -1498,19 +1579,59 @@ MB0001/2.jpg"></textarea>
           if (f.priceMax != null) q = q.lte("price", f.priceMax * 1000000);
           if (f.areaMin != null) q = q.gte("area", f.areaMin);
           if (f.areaMax != null) q = q.lte("area", f.areaMax);
-          if (f.pn) {
-             if (f.pn.includes(">")) q = q.gt("pn", parseInt(f.pn.replace(">","")));
-             else q = q.eq("pn", parseInt(f.pn));
+          // --- XỬ LÝ SỐ PN (ĐA LỰA CHỌN) ---
+          if (f.pn && f.pn.length > 0) {
+             const exactNums = f.pn.filter(x => !x.includes(">")); // Lấy số thường: ["2", "3"]
+             const hasGt = f.pn.find(x => x.includes(">"));        // Lấy dấu >: ">6"
+             
+             if (hasGt) {
+                 // Nếu chọn cả số cụ thể VÀ >6 (VD: Chọn 2, 3 và >6)
+                 // Logic: (pn IN (2,3)) HOẶC (pn > 6)
+                 const gtVal =parseInt(hasGt.replace(">", ""));
+                 if (exactNums.length > 0) {
+                     q = q.or(`pn.in.(${exactNums.join(',')}),pn.gt.${gtVal}`);
+                 } else {
+                     q = q.gt("pn", gtVal); // Chỉ chọn >6
+                 }
+             } else {
+                 // Chỉ chọn số cụ thể
+                 q = q.in("pn", exactNums);
+             }
           }
-          if (f.wc) {
-             if (f.wc.includes(">")) q = q.gt("wc", parseInt(f.wc.replace(">","")));
-             else q = q.eq("wc", parseInt(f.wc));
+
+          // --- XỬ LÝ SỐ WC (ĐA LỰA CHỌN) ---
+          if (f.wc && f.wc.length > 0) {
+             const exactNums = f.wc.filter(x => !x.includes(">"));
+             const hasGt = f.wc.find(x => x.includes(">"));
+             
+             if (hasGt) {
+                 const gtVal = parseInt(hasGt.replace(">", ""));
+                 if (exactNums.length > 0) {
+                     q = q.or(`wc.in.(${exactNums.join(',')}),wc.gt.${gtVal}`);
+                 } else {
+                     q = q.gt("wc", gtVal);
+                 }
+             } else {
+                 q = q.in("wc", exactNums);
+             }
           }
-          if (f.floors) {
-             if (f.floors.includes(">")) q = q.gt("floors", parseInt(f.floors.replace(">","")));
-             else q = q.eq("floors", parseInt(f.floors));
+
+          // --- XỬ LÝ SỐ TẦNG (ĐA LỰA CHỌN) ---
+          if (f.floors && f.floors.length > 0) {
+             const exactNums = f.floors.filter(x => !x.includes(">"));
+             const hasGt = f.floors.find(x => x.includes(">"));
+             
+             if (hasGt) {
+                 const gtVal = parseInt(hasGt.replace(">", ""));
+                 if (exactNums.length > 0) {
+                     q = q.or(`floors.in.(${exactNums.join(',')}),floors.gt.${gtVal}`);
+                 } else {
+                     q = q.gt("floors", gtVal);
+                 }
+             } else {
+                 q = q.in("floors", exactNums);
+             }
           }
-          if (f.frontageType === "mt") q = q.eq("frontage", true);
 
           return q;
       };
@@ -2761,6 +2882,10 @@ MB0001/2.jpg"></textarea>
             else el.value = "";
         });
         document.getElementById("district-display-text").textContent = "Tất cả";
+        document.getElementById("pn-display-text").textContent = "Tất cả";
+        document.getElementById("wc-display-text").textContent = "Tất cả";
+        document.getElementById("floors-display-text").textContent = "Tất cả";
+        document.getElementById("district-display-text").textContent = "Tất cả";
         buildDistrictDropdown(); // Vẽ lại sạch sẽ
         applyFilters(true);
       });
@@ -2851,7 +2976,7 @@ MB0001/2.jpg"></textarea>
 
       // Luôn build dropdown QUẬN/PHƯỜNG khi load trang
       buildDistrictDropdown()
-
+      initAllMultiFilters();
       // Rồi mới xử lý login / role / dữ liệu
       initAuth();
     });
