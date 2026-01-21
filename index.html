@@ -380,7 +380,32 @@
               />
             </div>
           </div>
-
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">Ngang tối thiểu (m)</span>
+              </label>
+              <input
+                id="filter-width-min"
+                type="number"
+                step="0.5"
+                placeholder="VD: 5"
+                class="input input-sm input-bordered"
+              />
+            </div>
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text text-xs">Dài tối thiểu (m)</span>
+              </label>
+              <input
+                id="filter-length-min"
+                type="number"
+                step="1"
+                placeholder="VD: 15"
+                class="input input-sm input-bordered"
+              />
+            </div>
+          </div>
           <div class="grid grid-cols-2 gap-2 mb-3">
             <div class="form-control">
               <label class="label">
@@ -1518,6 +1543,8 @@ MB0001/2.jpg"></textarea>
         priceMax: Number(document.getElementById("filter-price-max").value) || null,
         areaMin: Number(document.getElementById("filter-area-min").value) || null,
         areaMax: Number(document.getElementById("filter-area-max").value) || null,
+        widthMin: Number(document.getElementById("filter-width-min").value) || null,
+        lengthMin: Number(document.getElementById("filter-length-min").value) || null,
         pn: getMultiValues("pn-list-checkboxes"),
         wc: getMultiValues("wc-list-checkboxes"),
         floors: getMultiValues("floors-list-checkboxes"),
@@ -1579,6 +1606,12 @@ MB0001/2.jpg"></textarea>
           if (f.priceMax != null) q = q.lte("price", f.priceMax * 1000000);
           if (f.areaMin != null) q = q.gte("area", f.areaMin);
           if (f.areaMax != null) q = q.lte("area", f.areaMax);
+          if (f.widthMin != null) {
+              q = q.gte("width", f.widthMin); // Lọc chiều ngang >= giá trị nhập
+          }
+          if (f.lengthMin != null) {
+              q = q.gte("length", f.lengthMin); // Lọc chiều dài >= giá trị nhập
+          }
           // --- XỬ LÝ SỐ PN (ĐA LỰA CHỌN) ---
           if (f.pn && f.pn.length > 0) {
              const exactNums = f.pn.filter(x => !x.includes(">")); // Lấy số thường: ["2", "3"]
