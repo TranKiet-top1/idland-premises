@@ -2449,6 +2449,7 @@ MB0001/2.jpg"></textarea>
                 item.status === "rented" && item.rented_confirmed_at
                   ? `<div class="mt-2 text-xs text-error">
                        Ngày báo hết: <b>${formatDateVN(item.rented_confirmed_at)}</b>
+                       ${item.rented_reporter_email ? `<br/>👤 Người báo: <b>${item.rented_reporter_email}</b>` : ""}
                      </div>`
                   : ""
               }
