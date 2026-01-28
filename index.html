@@ -1827,12 +1827,32 @@ MB0001/2.jpg"></textarea>
         // --- ĐOẠN CODE MỚI: XÁC ĐỊNH NGƯỜI BÁO ---
         let reporterInfo = "";
         
-        // Trường hợp 1: Đang chờ duyệt báo hết
-        if (row.rented_reported_at && !row.rented_confirmed_at) {
+        // ... (Giữ nguyên các dòng trên) ...
+        
+        // --- LOGIC MỚI: HIỂN THỊ NÚT XÁC NHẬN / HUỶ (CHO ADMIN) ---
+        let adminActions = "";
+        
+        // Chỉ hiện nút nếu là Admin VÀ Tin đang ở trạng thái chờ duyệt báo hết
+        if (isAdmin() && row.rented_reported_at && !row.rented_confirmed_at) {
              reporterInfo = `<div class="mt-1 text-[10px] font-bold text-error bg-red-50 p-1 rounded border border-red-100 truncate">
                                 👤 Báo hết: ${row.rented_reporter_email || 'Ẩn danh'}
                              </div>`;
+             
+             // Thêm 2 nút bấm
+             adminActions = `
+                <div class="flex gap-2 mt-2 z-30 relative">
+                    <button onclick="confirmRented('${row.id}', event)" 
+                        class="btn btn-xs btn-error text-white flex-1 shadow-sm hover:scale-105 transition-transform">
+                        ✔ Xác nhận
+                    </button>
+                    <button onclick="cancelRented('${row.id}', event)" 
+                        class="btn btn-xs btn-outline border-gray-300 text-gray-500 flex-1 hover:bg-gray-100">
+                        ✕ Huỷ
+                    </button>
+                </div>
+             `;
         } 
+        // ... (Giữ nguyên các trường hợp khác như Báo chạy lại / Tin mới) ...
         // Trường hợp 2: Đang chờ duyệt chạy lại
         else if (row.reactivate_reported_at && !row.reactivate_confirmed_at) {
              reporterInfo = `<div class="mt-1 text-[10px] font-bold text-info bg-blue-50 p-1 rounded border border-blue-100 truncate">
@@ -1896,7 +1916,9 @@ MB0001/2.jpg"></textarea>
                 </div>
                 
                 ${approveBtn}
+
               </div>
+              ${adminActions}
             </div>
           </article>
         `;
@@ -2703,10 +2725,13 @@ MB0001/2.jpg"></textarea>
     }
 
 
-    async function confirmRented(id) {
+    async function confirmRented(id, e) {
+      if(e) e.stopPropagation(); // Ngăn không cho mở popup chi tiết
       if (!isAdmin()) return;
-      if (!confirm("Xác nhận mặt bằng này đã hết / đã thuê?")) return;
+      
+      if (!confirm("Xác nhận: Mặt bằng này ĐÃ ĐƯỢC CHO THUÊ?")) return;
 
+      // Cập nhật Database
       const { error } = await db
         .from("premises")
         .update({
@@ -2716,37 +2741,51 @@ MB0001/2.jpg"></textarea>
         .eq("id", id);
 
       if (error) {
-        console.error(error);
-        toast("Lỗi xác nhận: " + error.message);
+        toast("Lỗi: " + error.message);
         return;
       }
-      toast("Đã xác nhận mặt bằng hết");
-      document.getElementById("detailDlg").close();
-      applyFilters(true);
+      
+      toast("Đã xác nhận thành công! ✅");
+      
+      // --- CẬP NHẬT GIAO DIỆN TỨC THÌ ---
+      checkRentedReportCount(); // <--- Dòng này sẽ cập nhật lại con số trên nút đỏ
+      applyFilters(false);      // Tải lại danh sách (giữ nguyên trang hiện tại)
+      
+      // Nếu đang mở popup thì đóng luôn
+      const dlg = document.getElementById("detailDlg");
+      if(dlg && dlg.open) dlg.close();
     }
 
-    async function cancelRented(id) {
+    // === 2. HÀM HUỶ BÁO CÁO (KHÔNG XÁC NHẬN) ===
+    async function cancelRented(id, e) {
+      if(e) e.stopPropagation();
       if (!isAdmin()) return;
-      if (!confirm("Huỷ yêu cầu báo hết mặt bằng này?")) return;
 
+      if (!confirm("Từ chối báo cáo này? (Mặt bằng vẫn tính là CÒN TRỐNG)")) return;
+
+      // Xóa thông tin báo cáo trong Database
       const { error } = await db
         .from("premises")
         .update({
           rented_reported_at: null,
-          rented_confirmed_at: null
+          rented_reporter_email: null
         })
         .eq("id", id);
 
       if (error) {
-        console.error(error);
-        toast("Lỗi huỷ báo hết: " + error.message);
+        toast("Lỗi: " + error.message);
         return;
       }
-      toast("Đã huỷ báo hết");
-      document.getElementById("detailDlg").close();
-      applyFilters(true);
-    }
+      
+      toast("Đã huỷ báo cáo ✕");
 
+      // --- CẬP NHẬT GIAO DIỆN TỨC THÌ ---
+      checkRentedReportCount(); // <--- Cập nhật số lượng
+      applyFilters(false);
+      
+      const dlg = document.getElementById("detailDlg");
+      if(dlg && dlg.open) dlg.close();
+    }
     // ===== LOGIC THÊM MỚI (MỚI) =====
     function initAddFormDropdowns() {
         const distSelect = document.getElementById("add-district");
