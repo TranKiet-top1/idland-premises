@@ -3734,85 +3734,175 @@ MB0001/2.jpg"></textarea>
             toast("Đã lưu ✅");
         }
     }
-    // === TÍNH NĂNG MỚI: TỰ ĐỘNG ĐIỀN FORM TỪ MÔ TẢ ===
+    // === HÀM HỖ TRỢ: Chọn item trong dropdown theo tên gần đúng ===
+    function setSelectOptionByText(selectId, textToFind) {
+        const select = document.getElementById(selectId);
+        if (!select || !textToFind) return false;
+        
+        const cleanText = textToFind.toLowerCase().trim()
+            .replace(/^q\.|^q\s|^quận\s/g, "") // Bỏ chữ Quận, Q.
+            .replace(/^p\.|^p\s|^phường\s/g, ""); // Bỏ chữ Phường, P.
+
+        for (let i = 0; i < select.options.length; i++) {
+            const optText = select.options[i].text.toLowerCase();
+            const optVal = select.options[i].value.toLowerCase();
+            
+            // So sánh tìm chuỗi con (VD: tìm "Gò Vấp" trong "Quận Gò Vấp")
+            if (optText.includes(cleanText) || optVal.includes(cleanText)) {
+                select.selectedIndex = i;
+                select.dispatchEvent(new Event('change')); // Kích hoạt sự kiện để load Phường
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // === TÍNH NĂNG: TỰ ĐỘNG ĐIỀN FORM TỪ MÔ TẢ (BẢN NÂNG CẤP) ===
     function autoFillFromDesc() {
         const text = document.getElementById("add-detail").value;
-        if(!text) {
+        if (!text) {
             toast("Vui lòng dán nội dung vào ô Mô tả chi tiết trước!");
             return;
         }
 
         const setVal = (id, val) => {
             const el = document.getElementById(id);
-            // Chỉ điền nếu ô đó đang trống để tránh ghi đè dữ liệu cũ
-            if(el && val && !el.value) el.value = val;
+            if (el && val) el.value = val; // Ghi đè luôn để sửa nếu sai
         };
 
-        // 1. Tìm SĐT (09xxx hoặc 03xxx...)
+        // --- 1. XỬ LÝ CÁC TRƯỜNG CƠ BẢN (SỐ) ---
+        
+        // SĐT
         const phoneMatch = text.match(/(0[3|5|7|8|9][0-9]{8})\b/);
-        if(phoneMatch) setVal("add-contact-phone", phoneMatch[1]);
+        if (phoneMatch) setVal("add-contact-phone", phoneMatch[1]);
 
-        // 2. Tìm Diện tích (DT: 5x20 hoặc 100m2)
-        // Tìm kích thước: 4x20, 4*20, 4m x 20m
+        // Kích thước (Ngang x Dài)
         const dimMatch = text.match(/(\d+(?:[.,]\d+)?)\s*[m]?\s*[xX*]\s*(\d+(?:[.,]\d+)?)/);
-        if(dimMatch) {
+        if (dimMatch) {
             const w = parseFloat(dimMatch[1].replace(',', '.'));
             const l = parseFloat(dimMatch[2].replace(',', '.'));
             setVal("add-width", w);
             setVal("add-length", l);
+            // Tự tính diện tích nếu chưa có
             if(!document.getElementById("add-area").value) {
-                document.getElementById("add-area").value = w * l;
+                setVal("add-area", w * l);
             }
         } else {
-            // Tìm diện tích tổng: 100m2
-            const areaMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(?:m2|m²)/i);
-            if(areaMatch) setVal("add-area", areaMatch[1].replace(',', '.'));
+            // Tìm diện tích lẻ (DT: 100m2)
+            const areaMatch = text.match(/(?:dt|diện tích)[:\s]*(\d+(?:[.,]\d+)?)\s*(?:m2|m²)/i);
+            if (areaMatch) setVal("add-area", areaMatch[1].replace(',', '.'));
         }
 
-        // 3. Tìm Số tầng (Lầu)
+        // Kết cấu (Lấy hết nội dung sau chữ "Kết cấu:" đến hết dòng hoặc dấu phẩy xa nhất)
+        // VD: "Kết cấu: Trệt, 2 lầu, ST" -> Lấy "Trệt, 2 lầu, ST"
+        const structMatch = text.match(/(?:kết cấu|kc)[:\s]+(.+?)(?:\n|$|\.)/i);
+        if (structMatch) {
+            setVal("add-ket-cau", structMatch[1].trim());
+        }
+
+        // Số tầng, PN, WC (Giữ nguyên logic cũ vì khá ổn)
         const floorMatch = text.match(/(\d+)\s*(?:lầu|tầng|lau|tang)/i);
-        if(floorMatch) setVal("add-floors", floorMatch[1]);
+        if (floorMatch) setVal("add-floors", floorMatch[1]);
 
-        // 4. Tìm Phòng ngủ (PN)
-        const pnMatch = text.match(/(\d+)\s*(?:pn|phòng ngủ|phong ngu)/i);
-        if(pnMatch) setVal("add-bedrooms", pnMatch[1]);
+        const pnMatch = text.match(/(\d+)\s*(?:pn|phòng|phong)/i);
+        if (pnMatch) setVal("add-bedrooms", pnMatch[1]);
 
-        // 5. Tìm WC
-        const wcMatch = text.match(/(\d+)\s*(?:wc|toilet|nhà vệ sinh)/i);
-        if(wcMatch) setVal("add-wc", wcMatch[1]);
+        const wcMatch = text.match(/(\d+)\s*(?:wc|toilet)/i);
+        if (wcMatch) setVal("add-wc", wcMatch[1]);
 
-        // 6. Tìm Giá (15 triệu, 15tr, 15 tỷ)
+        // Hoa hồng (Tìm chữ HH, Hoa hồng, Phí MG)
+        const commMatch = text.match(/(?:hoa hồng|hh|phí mg|phí)[:\s]+(.+?)(?:\n|$|\.)/i);
+        if (commMatch) {
+             setVal("add-commission", commMatch[1].trim());
+        }
+
+        // Giá thuê
         let price = 0;
-        // Ưu tiên tìm Tỷ trước
         const tyMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(?:tỷ|ty)\b/i);
-        if (tyMatch) {
-            price = parseFloat(tyMatch[1].replace(',', '.')) * 1000000000;
-        } else {
-            // Tìm Triệu
+        if (tyMatch) price = parseFloat(tyMatch[1].replace(',', '.')) * 1000000000;
+        else {
             const trMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(?:tr|triệu|trieu)\b/i);
-            if(trMatch) {
-                price = parseFloat(trMatch[1].replace(',', '.')) * 1000000;
-            }
+            if (trMatch) price = parseFloat(trMatch[1].replace(',', '.')) * 1000000;
         }
-        
-        // Nếu tìm thấy giá -> Format và điền vào
-        if(price > 0) {
+        if (price > 0) {
             const inputPrice = document.getElementById("add-price");
-            if(!inputPrice.value) {
-                inputPrice.value = new Intl.NumberFormat('vi-VN').format(price);
+            inputPrice.value = new Intl.NumberFormat('vi-VN').format(price);
+        }
+
+        // --- 2. XỬ LÝ ĐỊA CHỈ & QUẬN/PHƯỜNG (PHỨC TẠP) ---
+        
+        // Tìm dòng chứa địa chỉ (Thường có chữ "Đường", "Phường", "Quận" hoặc nằm ngay đầu)
+        // Chiến thuật: Tìm Quận trước, sau đó suy ngược ra Phường và Đường
+        
+        let districtName = "";
+        let wardName = "";
+        let streetName = "";
+        let fullAddr = "";
+
+        // Regex tìm Quận (VD: Quận 1, Q.1, Quận Gò Vấp, Q.GV)
+        const distMatch = text.match(/(?:quận|q\.|q)\s*([\p{L}\d\s]+?)(?:,|$|\n|phường|p\.)/iu);
+        
+        if (distMatch) {
+            // Lấy tên quận thô
+            let rawDist = distMatch[1].trim().replace(/,$/, "");
+            
+            // Xử lý map Quận tên tắt thành tên đầy đủ nếu cần
+            if(rawDist.toLowerCase() === 'gv') rawDist = "Gò Vấp";
+            if(rawDist.toLowerCase() === 'pn') rawDist = "Phú Nhuận";
+            if(rawDist.toLowerCase() === 'tb') rawDist = "Tân Bình";
+            if(rawDist.toLowerCase() === 'tp') rawDist = "Tân Phú";
+            
+            // 1. CHỌN QUẬN TRÊN DROPDOWN
+            const foundDist = setSelectOptionByText("add-district", rawDist);
+            
+            if(foundDist) {
+                districtName = rawDist;
+                // Nếu chọn được Quận, tìm tiếp Phường trong text
+                // Regex tìm Phường (VD: Phường 9, P.9)
+                const wardMatch = text.match(/(?:phường|p\.|p)\s*(\d+|[\p{L}\s]+)(?:,|$|\n|quận|q\.)/iu);
+                if(wardMatch) {
+                    wardName = wardMatch[1].trim().replace(/,$/, "");
+                    // 2. CHỌN PHƯỜNG (Cần setTimeout nhỏ để dropdown Phường kịp render sau khi chọn Quận)
+                    setTimeout(() => {
+                        setSelectOptionByText("add-ward", wardName);
+                    }, 100);
+                }
             }
         }
 
-        // 7. Tìm Loại đường (Mặt tiền / Hẻm)
+        // Tìm tên đường và Số nhà (Logic: Lấy phần text đứng trước Phường/Quận)
+        // VD: "123 Nguyễn Trãi, Phường 2, Quận 5" -> Lấy "123 Nguyễn Trãi"
+        const addressLineMatch = text.match(/(?:địa chỉ|đc|nhà)[:\s]*(.*?)(?:,?\s*(?:phường|p\.|quận|q\.))/i);
+        
+        if (addressLineMatch) {
+            fullAddr = addressLineMatch[1].trim();
+        } else {
+            // Nếu không có từ khóa "Địa chỉ", quét dòng đầu tiên có chứa "Đường" hoặc tên đường
+            // Cách đơn giản: Lấy dòng đầu tiên của mô tả làm địa chỉ nếu chưa tìm thấy
+            const firstLine = text.split('\n')[0];
+            // Lọc bớt các từ quảng cáo "Cho thuê nhà..."
+            fullAddr = firstLine.replace(/^(cho thuê|bán|sang)\s+(nhà|mb|mặt bằng)\s+/i, "").trim();
+            // Cắt bỏ phần Phường/Quận ở đuôi nếu dính vào
+            fullAddr = fullAddr.split(/,|phường|quận/i)[0].trim();
+        }
+
+        if(fullAddr) {
+            setVal("add-address", fullAddr); // Điền full địa chỉ
+            
+            // Tách tên đường (Bỏ số nhà ở đầu: "123 Nguyễn Trãi" -> "Nguyễn Trãi")
+            const streetOnly = fullAddr.replace(/^\d+[\/\w]*\s+/, "").replace(/^(hẻm|đường)\s+/i, "");
+            setVal("add-street", streetOnly);
+        }
+
+        // Loại hình (Mặt tiền / Hẻm)
         const isMT = text.toLowerCase().includes("mặt tiền") || text.toLowerCase().includes("mt");
         const isHXH = text.toLowerCase().includes("hxh") || text.toLowerCase().includes("xe hơi");
-        
         const roadSelect = document.getElementById("add-road-type");
         if(isMT) roadSelect.value = "Mặt tiền";
         else if(isHXH) roadSelect.value = "Hẻm xe hơi";
-        else roadSelect.value = "Hẻm"; // Mặc định hoặc giữ nguyên
+        else roadSelect.value = "Hẻm";
 
-        toast("Đã quét và điền thông tin tự động!");
+        toast("Đã quét và điền thông tin chi tiết!");
     }
   </script>
   <dialog id="toolDlg" class="modal">
