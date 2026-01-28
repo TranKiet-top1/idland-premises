@@ -1822,7 +1822,30 @@ MB0001/2.jpg"></textarea>
               ${isFav ? '★' : '☆'}
             </button>
         `;
+        // ... (Đoạn code cũ trong renderCards) ...
+        const updatedLabel = formatDateVN(row.updated_at || row.created_at);
 
+        // --- ĐOẠN CODE MỚI: XÁC ĐỊNH NGƯỜI BÁO ---
+        let reporterInfo = "";
+        
+        // Trường hợp 1: Đang chờ duyệt báo hết
+        if (row.rented_reported_at && !row.rented_confirmed_at) {
+             reporterInfo = `<div class="mt-1 text-[10px] font-bold text-error bg-red-50 p-1 rounded border border-red-100 truncate">
+                                👤 Báo hết: ${row.rented_reporter_email || 'Ẩn danh'}
+                             </div>`;
+        } 
+        // Trường hợp 2: Đang chờ duyệt chạy lại
+        else if (row.reactivate_reported_at && !row.reactivate_confirmed_at) {
+             reporterInfo = `<div class="mt-1 text-[10px] font-bold text-info bg-blue-50 p-1 rounded border border-blue-100 truncate">
+                                👤 Báo chạy lại: ${row.reactivate_reporter_email || 'Ẩn danh'}
+                             </div>`;
+        }
+        // Trường hợp 3: Tin mới chờ duyệt (Pending)
+        else if (row.is_approved === false) {
+             reporterInfo = `<div class="mt-1 text-[10px] font-bold text-warning bg-yellow-50 p-1 rounded border border-yellow-100 truncate">
+                                👤 Người đăng: ${row.creator_email || 'Ẩn danh'}
+                             </div>`;
+        }
         // --- 2. GIAO DIỆN HTML ---
         return `
           <article 
@@ -2410,11 +2433,27 @@ MB0001/2.jpg"></textarea>
               }
 
               ${
+                item.rented_reported_at && !item.rented_confirmed_at
+                  ? `<div class="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-error">
+                       ⚠️ <b>${item.rented_reporter_email || 'Nhân sự'}</b> đã báo hết ngày ${formatDateVN(item.rented_reported_at)}.
+                       <br/>Chờ Admin xác nhận.
+                     </div>`
+                  : ""
+              }
+
+              ${
                 item.reactivate_reported_at && !item.reactivate_confirmed_at
-                  ? `<div class="mt-1 text-xs text-warning">
-                       Đã báo chạy lại ngày <b>${formatDateVN(
-                         item.reactivate_reported_at
-                       )}</b> – chờ admin duyệt.
+                  ? `<div class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-info">
+                       🔄 <b>${item.reactivate_reporter_email || 'Nhân sự'}</b> đã báo chạy lại ngày ${formatDateVN(item.reactivate_reported_at)}.
+                       <br/>Chờ Admin duyệt.
+                     </div>`
+                  : ""
+              }
+              
+              ${
+                item.is_approved === false
+                  ? `<div class="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-warning">
+                       a⏳ Tin này do <b>${item.creator_email || 'Nhân sự'}</b> đăng, đang chờ duyệt.
                      </div>`
                   : ""
               }
@@ -2621,6 +2660,7 @@ MB0001/2.jpg"></textarea>
         .from("premises")
         .update({
           reactivate_reported_at: new Date().toISOString(),
+          reactivate_reporter_email: CURRENT_USER.email
         })
         .eq("id", id);
 
@@ -2847,6 +2887,7 @@ MB0001/2.jpg"></textarea>
         .from("premises")
         .update({
           rented_reported_at: new Date().toISOString(),
+          rented_reporter_email: CURRENT_USER.email,
           rented_confirmed_at: null   // chắc chắn là chưa duyệt
         })
         .eq("id", id);
@@ -3188,6 +3229,7 @@ MB0001/2.jpg"></textarea>
 
             const payload = {
                 code: newCode, // <-- MÃ TỰ TĂNG
+                creator_email: CURRENT_USER.email,
                 
                 address: getVal("add-address"),
                 district: document.getElementById("add-district").value,
