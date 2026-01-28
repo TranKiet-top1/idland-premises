@@ -705,12 +705,6 @@ MB0001/2.jpg"></textarea>
                     </button>
                 </div>
                 <div id="add-map-picker" class="w-full h-64 mt-3 rounded-lg border border-gray-300 z-0"></div>
-                <div class="text-[11px] text-gray-500 italic mt-1 text-right">* Kéo thả ghim đỏ để chỉnh vị trí chính xác</div>
-                <label class="label cursor-pointer justify-start gap-2 mt-1">
-                    <span class="label-text-alt text-gray-500">
-                        *Mẹo: Click chuột phải trên Google Maps chọn dòng đầu tiên để copy số.
-                    </span>
-                </label>
             </div>
              <div class="form-control mt-3">
                  <span class="label-text text-xs font-bold text-primary">Giá thuê (VNĐ) *</span>
@@ -752,28 +746,33 @@ MB0001/2.jpg"></textarea>
                  <span class="text-xs font-bold text-error">SĐT Chủ (Admin xem)</span>
                  <input id="add-contact-phone" type="text" class="input input-sm input-bordered input-error" placeholder="090..."/>
              </div>
-          </div>
 
-          <div class="md:col-span-2 border-t pt-3 mt-2">
-              <div class="flex justify-between items-center mb-2">
-                  <span class="label-text font-bold">Hình ảnh thực tế</span>
-                  <label for="inp-upload-files" class="btn btn-sm btn-primary text-white">
-                      📷 Tải ảnh lên
-                  </label>
-                  <input type="file" multiple accept="image/*" onchange="handleSelectFiles(this)" />
+             <div class="md:col-span-2 border-t pt-3 mt-2">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="label-text font-bold">Hình ảnh thực tế</span>
+                    
+                    <label for="inp-upload-files" class="btn btn-sm btn-primary text-white cursor-pointer hover:bg-primary-focus">
+                        📷 Tải ảnh lên
+                    </label>
+                    <input id="inp-upload-files" type="file" multiple accept="image/*" class="hidden" onchange="handleSelectFiles(this)" />
+                </div>
+                
+                <div id="preview-container" class="flex flex-wrap gap-3 min-h-[100px] bg-base-200 p-2 rounded-lg border border-dashed border-gray-400">
+                    <p class="text-xs text-gray-500 w-full text-center py-8 pointer-events-none">
+                        Chưa có ảnh nào. <br/> Ảnh đầu tiên sẽ là <b>Ảnh Bìa</b>.
+                    </p>
+                </div>
 
-              </div>
-              
-              <div id="preview-container" class="flex flex-wrap gap-3 min-h-[100px] bg-base-200 p-2 rounded-lg border border-dashed border-gray-400">
-                  <p class="text-xs text-gray-500 w-full text-center py-8 pointer-events-none">
-                      Chưa có ảnh nào. <br/> Ảnh đầu tiên sẽ là <b>Ảnh Bìa</b>. Click vào ảnh để đặt làm bìa.
-                  </p>
-              </div>
-
-              <div class="form-control mt-2">
-                  <span class="text-xs">Mô tả chi tiết</span>
-                  <textarea id="add-detail" class="textarea textarea-bordered w-full h-20 text-sm"></textarea>
-              </div>
+                <div class="form-control mt-2 relative">
+                    <div class="flex justify-between items-end mb-1">
+                        <span class="text-xs">Mô tả chi tiết (Dán nội dung vào đây)</span>
+                        <button type="button" class="btn btn-xs btn-accent text-white animate-pulse" onclick="autoFillFromDesc()">
+                            ⚡ Tự điền từ mô tả
+                        </button>
+                    </div>
+                    <textarea id="add-detail" class="textarea textarea-bordered w-full h-32 text-sm" placeholder="Paste nội dung tin đăng vào đây rồi bấm nút 'Tự điền' ở trên..."></textarea>
+                </div>
+             </div>
           </div>
       </div>
 
@@ -3734,6 +3733,86 @@ MB0001/2.jpg"></textarea>
             if(row) row[field] = payload[field];
             toast("Đã lưu ✅");
         }
+    }
+    // === TÍNH NĂNG MỚI: TỰ ĐỘNG ĐIỀN FORM TỪ MÔ TẢ ===
+    function autoFillFromDesc() {
+        const text = document.getElementById("add-detail").value;
+        if(!text) {
+            toast("Vui lòng dán nội dung vào ô Mô tả chi tiết trước!");
+            return;
+        }
+
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            // Chỉ điền nếu ô đó đang trống để tránh ghi đè dữ liệu cũ
+            if(el && val && !el.value) el.value = val;
+        };
+
+        // 1. Tìm SĐT (09xxx hoặc 03xxx...)
+        const phoneMatch = text.match(/(0[3|5|7|8|9][0-9]{8})\b/);
+        if(phoneMatch) setVal("add-contact-phone", phoneMatch[1]);
+
+        // 2. Tìm Diện tích (DT: 5x20 hoặc 100m2)
+        // Tìm kích thước: 4x20, 4*20, 4m x 20m
+        const dimMatch = text.match(/(\d+(?:[.,]\d+)?)\s*[m]?\s*[xX*]\s*(\d+(?:[.,]\d+)?)/);
+        if(dimMatch) {
+            const w = parseFloat(dimMatch[1].replace(',', '.'));
+            const l = parseFloat(dimMatch[2].replace(',', '.'));
+            setVal("add-width", w);
+            setVal("add-length", l);
+            if(!document.getElementById("add-area").value) {
+                document.getElementById("add-area").value = w * l;
+            }
+        } else {
+            // Tìm diện tích tổng: 100m2
+            const areaMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(?:m2|m²)/i);
+            if(areaMatch) setVal("add-area", areaMatch[1].replace(',', '.'));
+        }
+
+        // 3. Tìm Số tầng (Lầu)
+        const floorMatch = text.match(/(\d+)\s*(?:lầu|tầng|lau|tang)/i);
+        if(floorMatch) setVal("add-floors", floorMatch[1]);
+
+        // 4. Tìm Phòng ngủ (PN)
+        const pnMatch = text.match(/(\d+)\s*(?:pn|phòng ngủ|phong ngu)/i);
+        if(pnMatch) setVal("add-bedrooms", pnMatch[1]);
+
+        // 5. Tìm WC
+        const wcMatch = text.match(/(\d+)\s*(?:wc|toilet|nhà vệ sinh)/i);
+        if(wcMatch) setVal("add-wc", wcMatch[1]);
+
+        // 6. Tìm Giá (15 triệu, 15tr, 15 tỷ)
+        let price = 0;
+        // Ưu tiên tìm Tỷ trước
+        const tyMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(?:tỷ|ty)\b/i);
+        if (tyMatch) {
+            price = parseFloat(tyMatch[1].replace(',', '.')) * 1000000000;
+        } else {
+            // Tìm Triệu
+            const trMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(?:tr|triệu|trieu)\b/i);
+            if(trMatch) {
+                price = parseFloat(trMatch[1].replace(',', '.')) * 1000000;
+            }
+        }
+        
+        // Nếu tìm thấy giá -> Format và điền vào
+        if(price > 0) {
+            const inputPrice = document.getElementById("add-price");
+            if(!inputPrice.value) {
+                inputPrice.value = new Intl.NumberFormat('vi-VN').format(price);
+            }
+        }
+
+        // 7. Tìm Loại đường (Mặt tiền / Hẻm)
+        const isMT = text.toLowerCase().includes("mặt tiền") || text.toLowerCase().includes("mt");
+        const isHXH = text.toLowerCase().includes("hxh") || text.toLowerCase().includes("xe hơi");
+        
+        const roadSelect = document.getElementById("add-road-type");
+        if(isMT) roadSelect.value = "Mặt tiền";
+        else if(isHXH) roadSelect.value = "Hẻm xe hơi";
+        else roadSelect.value = "Hẻm"; // Mặc định hoặc giữ nguyên
+
+        toast("Đã quét và điền thông tin tự động!");
     }
   </script>
   <dialog id="toolDlg" class="modal">
