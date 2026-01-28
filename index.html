@@ -1759,10 +1759,7 @@ MB0001/2.jpg"></textarea>
         return;
       }
 
-      // Lấy danh sách ghim
       const favSet = new Set(getFavoriteIds());
-
-      // Sắp xếp
       const sortedRows = [...rows].sort((a, b) => {
         const af = favSet.has(a.id);
         const bf = favSet.has(b.id);
@@ -1772,8 +1769,6 @@ MB0001/2.jpg"></textarea>
 
       const html = sortedRows.map((row) => {
         // --- 1. TÍNH TOÁN DỮ LIỆU ---
-        
-        // Ảnh (Ưu tiên lấy từ DB)
         let firstPath = null;
         if (Array.isArray(row.images) && row.images.length > 0) firstPath = row.images[0];
         else if (typeof row.images === "string" && row.images.trim()) {
@@ -1784,22 +1779,18 @@ MB0001/2.jpg"></textarea>
         }
         const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
 
-        // Tiêu đề
         let title = "Đang cập nhật";
         try { title = buildTitle(row); } catch(e) {}
         if (!title || title === "") title = row.address || "Mặt bằng chưa có tên";
 
-        // Thông số
         const pnVal = row.pn || row.so_pn || row.bedrooms || row.rooms || "";
         const updatedLabel = formatDateVN(row.updated_at || row.created_at);
 
-        // Badge Admin
         const staffReportBadge =
           row.rented_reported_at && row.status !== "rented"
             ? `<span class="badge badge-xs badge-warning border-none ml-1">NS báo hết</span>`
             : "";
 
-        // Nút Duyệt
         let approveBtn = "";
         if (typeof SHOW_PENDING !== 'undefined' && SHOW_PENDING && isAdmin()) {
           approveBtn = `
@@ -1809,7 +1800,6 @@ MB0001/2.jpg"></textarea>
             </button>`;
         }
 
-        // --- XỬ LÝ NÚT GHIM ---
         const isFav = favSet.has(row.id);
         const favBtnHtml = `
             <button 
@@ -1823,7 +1813,12 @@ MB0001/2.jpg"></textarea>
             </button>
         `;
 
-        // --- 2. GIAO DIỆN HTML ---
+        // --- XỬ LÝ FORMAT SỐ LIỆU ---
+        // Diện tích: Làm tròn 2 số thập phân, nếu .00 thì bỏ đi cho gọn
+        const areaDisplay = row.area 
+            ? Number(row.area).toFixed(2).replace(/\.00$/, '') 
+            : "";
+
         return `
           <article 
             class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden flex flex-row md:flex-col h-[125px] md:h-auto group relative mb-2"
@@ -1838,7 +1833,6 @@ MB0001/2.jpg"></textarea>
                     : `<div class="text-[10px] text-gray-400 flex flex-col items-center gap-1"><span>📷 No IMG</span></div>`
                 }
               </div>
-              
               <div class="absolute top-1.5 right-1.5 z-20 flex flex-col gap-1 items-end pointer-events-auto">
                  ${staffReportBadge}
                  ${favBtnHtml}
@@ -1850,14 +1844,12 @@ MB0001/2.jpg"></textarea>
                 <h3 class="font-bold text-xs md:text-sm line-clamp-2 leading-tight text-gray-800 mb-1">
                     ${title}
                 </h3>
-                
                 <div class="flex items-center gap-1 text-[10px] md:text-xs text-gray-500 truncate mb-1">
                    <span class="opacity-70">📍</span>
                    <span class="truncate">${[row.ward, row.district].filter(Boolean).join(", ")}</span>
                 </div>
-                
                 <div class="flex flex-wrap items-center gap-1 text-[10px] text-gray-600 font-medium">
-                  ${row.area ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${row.area}m²</span>` : ""}
+                  ${areaDisplay ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${areaDisplay}m²</span>` : ""}
                   ${row.width ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${row.width}x${row.length}</span>` : ""}
                   ${pnVal ? `<span class="text-gray-400 ml-1">• ${pnVal}PN</span>` : ""}
                 </div>
@@ -1872,7 +1864,6 @@ MB0001/2.jpg"></textarea>
                      ${updatedLabel}
                    </div>
                 </div>
-                
                 ${approveBtn}
               </div>
             </div>
@@ -1880,23 +1871,16 @@ MB0001/2.jpg"></textarea>
         `;
       });
 
-      // Chèn HTML vào lưới
       grid.insertAdjacentHTML("beforeend", html.join(""));
       
-      // Gắn sự kiện click
       grid.querySelectorAll(".premise-card").forEach((el) => {
         el.onclick = (e) => {
-          if(e.target.closest('button')) {
-              e.stopPropagation(); 
-              return;
-          }
+          if(e.target.closest('button')) { e.stopPropagation(); return; }
           const id = el.getAttribute("data-id");
           if (id) openDetail(id);
         };
       });
 
-      // === CẬP NHẬT QUAN TRỌNG: Thêm setTimeout ===
-      // Chờ 300ms để đảm bảo các thẻ div đã được vẽ xong rồi mới quét ảnh
       if (typeof scanGridImages === "function") {
         setTimeout(() => {
             scanGridImages(sortedRows).catch(err => console.warn("Lỗi quét ảnh:", err));
@@ -3643,32 +3627,34 @@ MB0001/2.jpg"></textarea>
       }
 
       const html = rows.map(row => {
-        // Xử lý ảnh nhỏ
         let thumb = "";
         if (row.images && row.images.length > 0) {
-            // Lấy ảnh đầu tiên (xử lý cả dạng mảng hoặc chuỗi)
             let path = Array.isArray(row.images) ? row.images[0] : (JSON.parse(row.images || "[]")[0] || ""); 
             if(path) thumb = `<img src="${buildImageUrl(path)}" class="w-8 h-8 object-cover rounded border" />`;
         }
 
-        // Nếu không phải Admin thì chỉ hiện text, Admin thì hiện Input để sửa
         const isAdminUser = isAdmin(); 
 
-        // Ô Giá (Admin sửa được)
+        // --- XỬ LÝ GIÁ TIỀN (INPUT TEXT CÓ FORMAT) ---
+        // Chuyển giá thành chuỗi có dấu chấm (VD: 10.000.000)
+        const formattedPrice = row.price ? new Intl.NumberFormat('vi-VN').format(row.price) : "";
+        
         const priceCell = isAdminUser 
-          ? `<input type="number" class="input input-ghost input-xs w-24 font-bold text-right" 
-               value="${row.price}" 
+          ? `<input type="text" class="input input-ghost input-xs w-28 font-bold text-right" 
+               value="${formattedPrice}" 
+               onkeyup="formatCurrencyInput(this)" 
                onchange="quickUpdate('${row.id}', 'price', this.value)" />`
           : `<span class="font-bold text-primary">${money(row.price)}</span>`;
 
-        // Ô Hoa hồng (Admin sửa được)
+        // --- XỬ LÝ DIỆN TÍCH (LÀM TRÒN 2 SỐ) ---
+        const areaVal = row.area ? Number(row.area).toFixed(2).replace(/\.00$/, '') : "0";
+
         const commCell = isAdminUser
           ? `<input type="text" class="input input-ghost input-xs w-20" 
                value="${row.commission_note || ''}" placeholder="..." 
                onchange="quickUpdate('${row.id}', 'commission_note', this.value)" />`
           : `<span>${row.commission_note || '-'}</span>`;
 
-        // Ô Trạng thái (Select box cho Admin)
         const statusOpts = `
             <option value="available" ${row.status==='available'?'selected':''}>Trống</option>
             <option value="deposited" ${row.status==='deposited'?'selected':''}>Cọc</option>
@@ -3687,7 +3673,7 @@ MB0001/2.jpg"></textarea>
             </td>
             <td>
                 <div class="text-[10px]">
-                    ${row.width || 0}x${row.length || 0}m | ${row.area || 0}m²<br/>
+                    ${row.width || 0}x${row.length || 0}m | <b>${areaVal}m²</b><br/>
                     ${row.ket_cau || '-'}
                 </div>
             </td>
@@ -3706,19 +3692,24 @@ MB0001/2.jpg"></textarea>
     }
 
     // 2. Hàm lưu nhanh (Auto Save khi sửa ô input)
+    // 2. Hàm lưu nhanh (Auto Save khi sửa ô input)
     async function quickUpdate(id, field, value) {
         if(!isAdmin()) { toast("Không có quyền!"); return; }
         
-        // Hiệu ứng "Đang lưu..." nhỏ (Optional)
         toast(`Đang lưu ${field}...`);
 
         let payload = {};
-        payload[field] = value;
         
-        // Nếu sửa giá thì chuyển về số
-        if(field === 'price') payload[field] = Number(value);
+        // --- XỬ LÝ ĐẶC BIỆT CHO GIÁ ---
+        if(field === 'price') {
+            // Xóa hết dấu chấm, phẩy hoặc chữ, chỉ giữ lại số
+            // VD: "10.000.000" -> 10000000
+            const rawVal = value.toString().replace(/\D/g, '');
+            payload[field] = rawVal ? Number(rawVal) : 0;
+        } else {
+            payload[field] = value;
+        }
 
-        // Nếu sửa trạng thái thành 'rented', cập nhật ngày (logic tương tự hàm sửa form)
         if(field === 'status' && value === 'rented') {
              payload['rented_confirmed_at'] = new Date().toISOString();
         }
@@ -3728,7 +3719,7 @@ MB0001/2.jpg"></textarea>
         if(error) {
             toast("Lỗi lưu: " + error.message);
         } else {
-            // Cập nhật lại dữ liệu local (LAST_ROWS) để không phải load lại trang
+            // Cập nhật lại dữ liệu local để không cần reload trang
             const row = LAST_ROWS.find(r => r.id === id);
             if(row) row[field] = payload[field];
             toast("Đã lưu ✅");
