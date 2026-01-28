@@ -64,13 +64,12 @@
     }
     
   </style>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-
 </head>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
 
 <body class="bg-base-200">
@@ -217,7 +216,7 @@
       </div>
     </div>
 
-    <main class="flex-1 max-w-[98%] mx-auto w-full px-2 py-4">
+    <<main class="flex-1 max-w-[98%] mx-auto w-full px-2 py-4">
       <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h1 class="text-xl sm:text-2xl font-bold">
@@ -818,7 +817,7 @@ MB0001/2.jpg"></textarea>
     const SUPABASE_URL = "https://xclncowkoedwqzcemhei.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjbG5jb3drb2Vkd3F6Y2VtaGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNzcwOTUsImV4cCI6MjA3Nzg1MzA5NX0.jfNM46UgXIq9LrwSXcERJJULeKB7bl_c9R9LaVhRy1A";
     const STORAGE_BUCKET = "premise-images";
-    const PAGE_SIZE = 100;
+    const PAGE_SIZE = 24;
 
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -1760,7 +1759,10 @@ MB0001/2.jpg"></textarea>
         return;
       }
 
+      // Lấy danh sách ghim
       const favSet = new Set(getFavoriteIds());
+
+      // Sắp xếp
       const sortedRows = [...rows].sort((a, b) => {
         const af = favSet.has(a.id);
         const bf = favSet.has(b.id);
@@ -1770,6 +1772,8 @@ MB0001/2.jpg"></textarea>
 
       const html = sortedRows.map((row) => {
         // --- 1. TÍNH TOÁN DỮ LIỆU ---
+        
+        // Ảnh (Ưu tiên lấy từ DB)
         let firstPath = null;
         if (Array.isArray(row.images) && row.images.length > 0) firstPath = row.images[0];
         else if (typeof row.images === "string" && row.images.trim()) {
@@ -1780,18 +1784,22 @@ MB0001/2.jpg"></textarea>
         }
         const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
 
+        // Tiêu đề
         let title = "Đang cập nhật";
         try { title = buildTitle(row); } catch(e) {}
         if (!title || title === "") title = row.address || "Mặt bằng chưa có tên";
 
+        // Thông số
         const pnVal = row.pn || row.so_pn || row.bedrooms || row.rooms || "";
         const updatedLabel = formatDateVN(row.updated_at || row.created_at);
 
+        // Badge Admin
         const staffReportBadge =
           row.rented_reported_at && row.status !== "rented"
             ? `<span class="badge badge-xs badge-warning border-none ml-1">NS báo hết</span>`
             : "";
 
+        // Nút Duyệt
         let approveBtn = "";
         if (typeof SHOW_PENDING !== 'undefined' && SHOW_PENDING && isAdmin()) {
           approveBtn = `
@@ -1801,6 +1809,7 @@ MB0001/2.jpg"></textarea>
             </button>`;
         }
 
+        // --- XỬ LÝ NÚT GHIM ---
         const isFav = favSet.has(row.id);
         const favBtnHtml = `
             <button 
@@ -1814,36 +1823,7 @@ MB0001/2.jpg"></textarea>
             </button>
         `;
 
-        // --- XỬ LÝ FORMAT SỐ LIỆU ---
-        // Diện tích: Làm tròn 2 số thập phân, nếu .00 thì bỏ đi cho gọn
-        const areaDisplay = row.area 
-            ? Number(row.area).toFixed(2).replace(/\.00$/, '') 
-            : "";
-        // ... (Đoạn code cũ trong renderCards) ...
-        const updatedLabel = formatDateVN(row.updated_at || row.created_at);
-
-        // --- ĐOẠN CODE MỚI: XÁC ĐỊNH NGƯỜI BÁO ---
-        let reporterInfo = "";
-        
-        // Trường hợp 1: Đang chờ duyệt báo hết
-        if (row.rented_reported_at && !row.rented_confirmed_at) {
-             reporterInfo = `<div class="mt-1 text-[10px] font-bold text-error bg-red-50 p-1 rounded border border-red-100 truncate">
-                                👤 Báo hết: ${row.rented_reporter_email || 'Ẩn danh'}
-                             </div>`;
-        } 
-        // Trường hợp 2: Đang chờ duyệt chạy lại
-        else if (row.reactivate_reported_at && !row.reactivate_confirmed_at) {
-             reporterInfo = `<div class="mt-1 text-[10px] font-bold text-info bg-blue-50 p-1 rounded border border-blue-100 truncate">
-                                👤 Báo chạy lại: ${row.reactivate_reporter_email || 'Ẩn danh'}
-                             </div>`;
-        }
-        // Trường hợp 3: Tin mới chờ duyệt (Pending)
-        else if (row.is_approved === false) {
-             reporterInfo = `<div class="mt-1 text-[10px] font-bold text-warning bg-yellow-50 p-1 rounded border border-yellow-100 truncate">
-                                👤 Người đăng: ${row.creator_email || 'Ẩn danh'}
-                             </div>`;
-        }
-
+        // --- 2. GIAO DIỆN HTML ---
         return `
           <article 
             class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden flex flex-row md:flex-col h-[125px] md:h-auto group relative mb-2"
@@ -1858,6 +1838,7 @@ MB0001/2.jpg"></textarea>
                     : `<div class="text-[10px] text-gray-400 flex flex-col items-center gap-1"><span>📷 No IMG</span></div>`
                 }
               </div>
+              
               <div class="absolute top-1.5 right-1.5 z-20 flex flex-col gap-1 items-end pointer-events-auto">
                  ${staffReportBadge}
                  ${favBtnHtml}
@@ -1869,12 +1850,14 @@ MB0001/2.jpg"></textarea>
                 <h3 class="font-bold text-xs md:text-sm line-clamp-2 leading-tight text-gray-800 mb-1">
                     ${title}
                 </h3>
+                
                 <div class="flex items-center gap-1 text-[10px] md:text-xs text-gray-500 truncate mb-1">
                    <span class="opacity-70">📍</span>
                    <span class="truncate">${[row.ward, row.district].filter(Boolean).join(", ")}</span>
                 </div>
+                
                 <div class="flex flex-wrap items-center gap-1 text-[10px] text-gray-600 font-medium">
-                  ${areaDisplay ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${areaDisplay}m²</span>` : ""}
+                  ${row.area ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${row.area}m²</span>` : ""}
                   ${row.width ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${row.width}x${row.length}</span>` : ""}
                   ${pnVal ? `<span class="text-gray-400 ml-1">• ${pnVal}PN</span>` : ""}
                 </div>
@@ -1889,6 +1872,7 @@ MB0001/2.jpg"></textarea>
                      ${updatedLabel}
                    </div>
                 </div>
+                
                 ${approveBtn}
               </div>
             </div>
@@ -1896,16 +1880,23 @@ MB0001/2.jpg"></textarea>
         `;
       });
 
+      // Chèn HTML vào lưới
       grid.insertAdjacentHTML("beforeend", html.join(""));
       
+      // Gắn sự kiện click
       grid.querySelectorAll(".premise-card").forEach((el) => {
         el.onclick = (e) => {
-          if(e.target.closest('button')) { e.stopPropagation(); return; }
+          if(e.target.closest('button')) {
+              e.stopPropagation(); 
+              return;
+          }
           const id = el.getAttribute("data-id");
           if (id) openDetail(id);
         };
       });
 
+      // === CẬP NHẬT QUAN TRỌNG: Thêm setTimeout ===
+      // Chờ 300ms để đảm bảo các thẻ div đã được vẽ xong rồi mới quét ảnh
       if (typeof scanGridImages === "function") {
         setTimeout(() => {
             scanGridImages(sortedRows).catch(err => console.warn("Lỗi quét ảnh:", err));
@@ -2419,30 +2410,15 @@ MB0001/2.jpg"></textarea>
               }
 
               ${
-                item.rented_reported_at && !item.rented_confirmed_at
-                  ? `<div class="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-error">
-                       ⚠️ <b>${item.rented_reporter_email || 'Nhân sự'}</b> đã báo hết ngày ${formatDateVN(item.rented_reported_at)}.
-                       <br/>Chờ Admin xác nhận.
+                item.reactivate_reported_at && !item.reactivate_confirmed_at
+                  ? `<div class="mt-1 text-xs text-warning">
+                       Đã báo chạy lại ngày <b>${formatDateVN(
+                         item.reactivate_reported_at
+                       )}</b> – chờ admin duyệt.
                      </div>`
                   : ""
               }
 
-              ${
-                item.reactivate_reported_at && !item.reactivate_confirmed_at
-                  ? `<div class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-info">
-                       🔄 <b>${item.reactivate_reporter_email || 'Nhân sự'}</b> đã báo chạy lại ngày ${formatDateVN(item.reactivate_reported_at)}.
-                       <br/>Chờ Admin duyệt.
-                     </div>`
-                  : ""
-              }
-              
-              ${
-                item.is_approved === false
-                  ? `<div class="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-warning">
-                       a⏳ Tin này do <b>${item.creator_email || 'Nhân sự'}</b> đăng, đang chờ duyệt.
-                     </div>`
-                  : ""
-              }
 
               ${item.contact_phone && !isStaff() ? `
 
@@ -2645,7 +2621,6 @@ MB0001/2.jpg"></textarea>
         .from("premises")
         .update({
           reactivate_reported_at: new Date().toISOString(),
-          reactivate_reporter_email: CURRENT_USER.email
         })
         .eq("id", id);
 
@@ -2872,7 +2847,6 @@ MB0001/2.jpg"></textarea>
         .from("premises")
         .update({
           rented_reported_at: new Date().toISOString(),
-          rented_reporter_email: CURRENT_USER.email,
           rented_confirmed_at: null   // chắc chắn là chưa duyệt
         })
         .eq("id", id);
@@ -3214,7 +3188,6 @@ MB0001/2.jpg"></textarea>
 
             const payload = {
                 code: newCode, // <-- MÃ TỰ TĂNG
-                creator_email: CURRENT_USER.email,
                 
                 address: getVal("add-address"),
                 district: document.getElementById("add-district").value,
@@ -3656,7 +3629,7 @@ MB0001/2.jpg"></textarea>
             }
         }
     }, 1000); // Chờ 1 giây để đảm bảo HTML đã vẽ xong  
-// --- LOGIC TABLE VIEW (EXCEL MODE) ---  
+// --- LOGIC TABLE VIEW (EXCEL MODE) ---
 
     // 1. Hàm vẽ bảng
     function renderTable(rows) {
@@ -3670,34 +3643,32 @@ MB0001/2.jpg"></textarea>
       }
 
       const html = rows.map(row => {
+        // Xử lý ảnh nhỏ
         let thumb = "";
         if (row.images && row.images.length > 0) {
+            // Lấy ảnh đầu tiên (xử lý cả dạng mảng hoặc chuỗi)
             let path = Array.isArray(row.images) ? row.images[0] : (JSON.parse(row.images || "[]")[0] || ""); 
             if(path) thumb = `<img src="${buildImageUrl(path)}" class="w-8 h-8 object-cover rounded border" />`;
         }
 
+        // Nếu không phải Admin thì chỉ hiện text, Admin thì hiện Input để sửa
         const isAdminUser = isAdmin(); 
 
-        // --- XỬ LÝ GIÁ TIỀN (INPUT TEXT CÓ FORMAT) ---
-        // Chuyển giá thành chuỗi có dấu chấm (VD: 10.000.000)
-        const formattedPrice = row.price ? new Intl.NumberFormat('vi-VN').format(row.price) : "";
-        
+        // Ô Giá (Admin sửa được)
         const priceCell = isAdminUser 
-          ? `<input type="text" class="input input-ghost input-xs w-28 font-bold text-right" 
-               value="${formattedPrice}" 
-               onkeyup="formatCurrencyInput(this)" 
+          ? `<input type="number" class="input input-ghost input-xs w-24 font-bold text-right" 
+               value="${row.price}" 
                onchange="quickUpdate('${row.id}', 'price', this.value)" />`
           : `<span class="font-bold text-primary">${money(row.price)}</span>`;
 
-        // --- XỬ LÝ DIỆN TÍCH (LÀM TRÒN 2 SỐ) ---
-        const areaVal = row.area ? Number(row.area).toFixed(2).replace(/\.00$/, '') : "0";
-
+        // Ô Hoa hồng (Admin sửa được)
         const commCell = isAdminUser
           ? `<input type="text" class="input input-ghost input-xs w-20" 
                value="${row.commission_note || ''}" placeholder="..." 
                onchange="quickUpdate('${row.id}', 'commission_note', this.value)" />`
           : `<span>${row.commission_note || '-'}</span>`;
 
+        // Ô Trạng thái (Select box cho Admin)
         const statusOpts = `
             <option value="available" ${row.status==='available'?'selected':''}>Trống</option>
             <option value="deposited" ${row.status==='deposited'?'selected':''}>Cọc</option>
@@ -3716,7 +3687,7 @@ MB0001/2.jpg"></textarea>
             </td>
             <td>
                 <div class="text-[10px]">
-                    ${row.width || 0}x${row.length || 0}m | <b>${areaVal}m²</b><br/>
+                    ${row.width || 0}x${row.length || 0}m | ${row.area || 0}m²<br/>
                     ${row.ket_cau || '-'}
                 </div>
             </td>
@@ -3735,24 +3706,19 @@ MB0001/2.jpg"></textarea>
     }
 
     // 2. Hàm lưu nhanh (Auto Save khi sửa ô input)
-    // 2. Hàm lưu nhanh (Auto Save khi sửa ô input)
     async function quickUpdate(id, field, value) {
         if(!isAdmin()) { toast("Không có quyền!"); return; }
         
+        // Hiệu ứng "Đang lưu..." nhỏ (Optional)
         toast(`Đang lưu ${field}...`);
 
         let payload = {};
+        payload[field] = value;
         
-        // --- XỬ LÝ ĐẶC BIỆT CHO GIÁ ---
-        if(field === 'price') {
-            // Xóa hết dấu chấm, phẩy hoặc chữ, chỉ giữ lại số
-            // VD: "10.000.000" -> 10000000
-            const rawVal = value.toString().replace(/\D/g, '');
-            payload[field] = rawVal ? Number(rawVal) : 0;
-        } else {
-            payload[field] = value;
-        }
+        // Nếu sửa giá thì chuyển về số
+        if(field === 'price') payload[field] = Number(value);
 
+        // Nếu sửa trạng thái thành 'rented', cập nhật ngày (logic tương tự hàm sửa form)
         if(field === 'status' && value === 'rented') {
              payload['rented_confirmed_at'] = new Date().toISOString();
         }
@@ -3762,7 +3728,7 @@ MB0001/2.jpg"></textarea>
         if(error) {
             toast("Lỗi lưu: " + error.message);
         } else {
-            // Cập nhật lại dữ liệu local để không cần reload trang
+            // Cập nhật lại dữ liệu local (LAST_ROWS) để không phải load lại trang
             const row = LAST_ROWS.find(r => r.id === id);
             if(row) row[field] = payload[field];
             toast("Đã lưu ✅");
