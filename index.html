@@ -8,6 +8,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <link
     href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css"
     rel="stylesheet"
@@ -2219,7 +2221,8 @@ MB0001/2.jpg"></textarea>
       }
 
       const item = data;
-
+      CURRENT_DETAIL = item;
+      CURRENT_DETAIL.resolvedImages = imgUrls;
       // 2. XỬ LÝ HÌNH ẢNH:
       // Ưu tiên 1: Lấy từ cột 'images' trong Database (nếu có)
       // Ưu tiên 2: Nếu Database trống, tự động quét Storage theo MÃ CĂN (item.code)
@@ -2384,6 +2387,26 @@ MB0001/2.jpg"></textarea>
                  </button>`
               : ""
           }
+          <div class="join join-horizontal flex flex-wrap gap-2">
+            <button class="btn btn-sm join-item btn-primary text-white" onclick="downloadAllImages()">
+               ⬇ Tải ảnh (.zip)
+            </button>
+            
+            <button class="btn btn-sm join-item btn-info text-white" onclick="copyPropertyInfo()">
+               📋 Copy tin
+            </button>
+
+            ${
+              item.contact_phone && !isStaff()
+                ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>`
+                : ""
+            }
+            ${
+              isAdmin()
+                ? `<button class="btn btn-outline btn-sm join-item" onclick="openEditPremise('${id}')">Sửa</button>`
+                : ""
+            }
+          </div>
         </div>
       `;
 
@@ -3984,6 +4007,92 @@ MB0001/2.jpg"></textarea>
         else roadSelect.value = "Hẻm";
 
         toast("Đã quét và điền thông tin chi tiết!");
+    }
+
+    // === TÍNH NĂNG MỚI: TẢI TẤT CẢ ẢNH (ZIP) ===
+    async function downloadAllImages() {
+        if (!CURRENT_DETAIL || !CURRENT_DETAIL.resolvedImages || CURRENT_DETAIL.resolvedImages.length === 0) {
+            toast("Không có ảnh để tải!");
+            return;
+        }
+
+        const btn = event.target; // Lấy nút đang bấm
+        const oldText = btn.innerHTML;
+        btn.innerHTML = `⏳ Đang nén...`;
+        btn.disabled = true;
+
+        try {
+            const zip = new JSZip();
+            const folderName = CURRENT_DETAIL.code || "images";
+            const imgFolder = zip.folder(folderName);
+            const urls = CURRENT_DETAIL.resolvedImages;
+
+            toast(`Đang xử lý ${urls.length} ảnh... vui lòng đợi.`);
+
+            // Tải từng ảnh về và thêm vào zip
+            const promises = urls.map(async (url, i) => {
+                try {
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    // Đặt tên file là 1.jpg, 2.jpg...
+                    const ext = blob.type.split('/')[1] || "jpg";
+                    imgFolder.file(`${i + 1}.${ext}`, blob);
+                } catch (err) {
+                    console.warn("Lỗi tải ảnh:", url);
+                }
+            });
+
+            await Promise.all(promises);
+
+            // Tạo file zip và tải xuống
+            const content = await zip.generateAsync({ type: "blob" });
+            saveAs(content, `${folderName}.zip`);
+            toast("Đã tải xuống thành công!");
+
+        } catch (e) {
+            console.error(e);
+            toast("Lỗi khi tạo file nén.");
+        } finally {
+            btn.innerHTML = oldText;
+            btn.disabled = false;
+        }
+    }
+
+    // === TÍNH NĂNG MỚI: COPY THÔNG TIN CHI TIẾT ===
+    function copyPropertyInfo() {
+        if (!CURRENT_DETAIL) return;
+        const i = CURRENT_DETAIL;
+
+        // 1. Xử lý dữ liệu đẹp
+        const price = i.price ? new Intl.NumberFormat('vi-VN').format(i.price) : "Thương lượng";
+        const dt = i.width && i.length ? `${i.width}m x ${i.length}m` : (i.area ? `${i.area}m²` : "");
+        const ketcau = i.ket_cau || "Trống suốt";
+        const pn = i.pn ? `${i.pn} PN` : "";
+        const wc = i.wc ? `${i.wc} WC` : "";
+        const title = buildTitle(i);
+        
+        // 2. Tạo nội dung tin đăng mẫu
+        const textToCopy = `
+📢 CHO THUÊ ${title}
+📍 Địa chỉ: ${i.address}, Phường ${i.ward}, Quận ${i.district}
+--------------------------
+💰 Giá thuê: ${price} VNĐ/tháng
+📐 Diện tích: ${dt} ${i.area ? `(${i.area}m²)` : ""}
+🏠 Kết cấu: ${ketcau} ${pn ? `| ${pn}` : ""} ${wc ? `| ${wc}` : ""}
+${i.frontage ? "🚗 Vị trí: Mặt tiền" : `🚗 Hẻm: ${i.road_type || "Thông thoáng"}`}
+--------------------------
+📝 Mô tả: 
+${i.detail || i.description || ""}
+--------------------------
+📞 Liên hệ: 0798 905 082 (ID-Land)
+`.trim();
+
+        // 3. Copy vào clipboard
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            toast("Đã sao chép nội dung tin đăng! 📋");
+        }).catch(err => {
+            toast("Lỗi sao chép, vui lòng thử lại.");
+        });
     }
   </script>
   <dialog id="toolDlg" class="modal">
