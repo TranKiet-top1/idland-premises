@@ -2201,6 +2201,7 @@ MB0001/2.jpg"></textarea>
     }
     // ===== CHI TIẾT & SỬA =====
     // ===== CHI TIẾT & SỬA (ĐÃ NÂNG CẤP TỰ QUÉT ẢNH STORAGE) =====
+    // ===== CHI TIẾT & SỬA (ĐÃ SỬA LỖI THỨ TỰ KHAI BÁO) =====
     async function openDetail(id) {
       const dlg = document.getElementById("detailDlg");
       const wrap = document.getElementById("detail-content");
@@ -2221,12 +2222,8 @@ MB0001/2.jpg"></textarea>
       }
 
       const item = data;
-      CURRENT_DETAIL = item;
-      CURRENT_DETAIL.resolvedImages = imgUrls;
-      // 2. XỬ LÝ HÌNH ẢNH:
-      // Ưu tiên 1: Lấy từ cột 'images' trong Database (nếu có)
-      // Ưu tiên 2: Nếu Database trống, tự động quét Storage theo MÃ CĂN (item.code)
-      
+
+      // --- [SỬA LỖI] ĐƯA ĐOẠN TÍNH TOÁN ẢNH LÊN TRƯỚC ---
       let imgUrls = [];
       let rawImgs = item.images;
 
@@ -2235,7 +2232,6 @@ MB0001/2.jpg"></textarea>
         imgUrls = rawImgs.map(p => buildImageUrl(p)).filter(Boolean);
       } 
       else if (typeof rawImgs === "string" && rawImgs.trim()) {
-         // Xử lý trường hợp lưu dạng chuỗi JSON hoặc xuống dòng
          let paths = [];
          try {
             if (rawImgs.startsWith("[")) paths = JSON.parse(rawImgs);
@@ -2247,31 +2243,29 @@ MB0001/2.jpg"></textarea>
       // Bước 2b: Nếu vẫn chưa có ảnh nào -> QUÉT STORAGE
       if (imgUrls.length === 0 && item.code) {
           console.log("Database không có ảnh, đang quét Storage folder:", item.code);
-          
-          // Tìm folder có tên trùng với Mã căn
           const { data: files, error: listError } = await db.storage
             .from(STORAGE_BUCKET)
-            .list(item.code, { // Tên folder = item.code
+            .list(item.code, {
                 limit: 50,
                 offset: 0,
                 sortBy: { column: 'name', order: 'asc' },
             });
 
           if (!listError && files && files.length > 0) {
-              // Lọc bỏ file rác hệ thống (nếu có)
               const validFiles = files.filter(f => f.name !== '.emptyFolderPlaceholder');
-              
-              // Tạo đường dẫn public
               imgUrls = validFiles.map(f => {
                   const fullPath = `${item.code}/${f.name}`;
                   const { data } = db.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
                   return data.publicUrl;
               });
-              console.log("Đã tìm thấy ảnh trong Storage:", imgUrls);
           }
       }
 
-      // --- CÁC PHẦN DƯỚI GIỮ NGUYÊN ---
+      // --- SAU KHI CÓ ẢNH RỒI MỚI GÁN VÀO BIẾN TOÀN CỤC ---
+      CURRENT_DETAIL = item; 
+      CURRENT_DETAIL.resolvedImages = imgUrls; 
+      // -----------------------------------------------------
+
       const pnVal = pickField(item, ["pn", "so_pn", "bedrooms", "rooms"]);
       const wcVal = pickField(item, ["wc", "bathrooms"]);
       const floorsVal = pickField(item, ["floors"]);
@@ -2280,139 +2274,73 @@ MB0001/2.jpg"></textarea>
       
       const price = typeof item.price === "number" ? new Intl.NumberFormat("vi-VN").format(item.price) + " đ/tháng" : "";
       const area = typeof item.area === "number" ? item.area + " m²" : "";
-            // GHÉP ĐỊA CHỈ ĐẦY ĐỦ: SỐ NHÀ / ĐƯỜNG + PHƯỜNG + QUẬN + TP
+
       const addressParts = [];
-
-      if (item.address) {
-        // address thường là "591/8 Lê Quang Định"
-        addressParts.push(item.address);
-      } else if (item.street) {
-        addressParts.push(item.street);
-      }
-
+      if (item.address) addressParts.push(item.address);
+      else if (item.street) addressParts.push(item.street);
       if (item.ward) addressParts.push(item.ward);
       if (item.district) addressParts.push(item.district);
       if (item.city) addressParts.push(item.city);
-
       const address = addressParts.join(", ");
 
-
-      // Embed Map
       const mapsQuery = encodeURIComponent([item.address, item.ward, item.district, item.city].filter(Boolean).join(", "));
       const mapEmbed = `<iframe class="w-full h-64 border-0 rounded-xl" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${mapsQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed"></iframe>`;
 
-      // Nút hành động
       const isRented = item.status === "rented";
-      const isAvailableLike =
-        item.status === "available" || item.status === "deposited";
+      const isAvailableLike = item.status === "available" || item.status === "deposited";
 
       const actions = `
         <div class="join join-horizontal flex flex-wrap gap-2">
-          ${
-            item.contact_phone && !isStaff()
-              ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">
-                   Gọi
-                 </a>`
-              : ""
-          }
-          ${
-            item.contact_phone && !isStaff()
-              ? `<a class="btn btn-sm join-item" target="_blank"
-                   href="https://zalo.me/${(item.contact_phone || "")
-                     .replace(/[^0-9]/g, "")}">
-                   Zalo
-                 </a>`
-              : ""
-          }
-
-          <a class="btn btn-sm join-item" target="_blank"
-             href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">
-            Mở Map
-          </a>
-
-          <button class="btn btn-sm join-item"
-            onclick="navigator.clipboard.writeText(window.location.href);toast('Đã copy link')">
-            Copy link
+          <button class="btn btn-sm join-item btn-primary text-white" onclick="downloadAllImages()">
+             ⬇ Tải ảnh (.zip)
+          </button>
+          
+          <button class="btn btn-sm join-item btn-info text-white" onclick="copyPropertyInfo()">
+             📋 Copy tin
           </button>
 
           ${
-            // 🔴 BÁO HẾT – NHÂN SỰ: chỉ báo, chờ admin duyệt
-            isStaff() &&
-            isAvailableLike &&
-            !item.rented_reported_at &&
-            !item.rented_confirmed_at
-              ? `<button class="btn btn-sm btn-error btn-outline join-item"
-                         onclick="reportRentedStaff('${id}')">
-                   Báo hết
-                 </button>`
+            item.contact_phone && !isStaff()
+              ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>`
               : ""
           }
-
           ${
-            // 🔴 BÁO HẾT – ADMIN: chuyển thẳng sang "rented", không cần duyệt
-            isAdmin() && isAvailableLike
-              ? `<button class="btn btn-sm btn-error join-item"
-                         onclick="reportRentedDirect('${id}')">
-                   Báo hết
-                 </button>`
+            item.contact_phone && !isStaff()
+              ? `<a class="btn btn-sm join-item" target="_blank" href="https://zalo.me/${(item.contact_phone || "").replace(/[^0-9]/g, "")}">Zalo</a>`
               : ""
           }
 
+          <a class="btn btn-sm join-item" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${mapsQuery}">Mở Map</a>
 
-          ${
-            // 🟡 BÁO CHẠY LẠI – chỉ hiện khi đang ở trạng thái đã hết
-            isRented && !item.reactivate_reported_at
-              ? `<button class="btn btn-sm btn-outline join-item"
-                         onclick="requestReactivate('${id}')">
-                   Báo chạy lại
-                 </button>`
+          <button class="btn btn-sm join-item" onclick="navigator.clipboard.writeText(window.location.href);toast('Đã copy link')">Copy link</button>
+
+          ${isStaff() && isAvailableLike && !item.rented_reported_at && !item.rented_confirmed_at
+              ? `<button class="btn btn-sm btn-error btn-outline join-item" onclick="reportRentedStaff('${id}')">Báo hết</button>`
               : ""
           }
 
-          ${
-            // ✅ DUYỆT CHẠY LẠI – chỉ admin thấy khi có yêu cầu chạy lại
-            isAdmin() && item.reactivate_reported_at && !item.reactivate_confirmed_at
-              ? `<button class="btn btn-sm btn-success join-item"
-                         onclick="confirmReactivate('${id}')">
-                   Duyệt chạy lại
-                 </button>`
+          ${isAdmin() && isAvailableLike
+              ? `<button class="btn btn-sm btn-error join-item" onclick="reportRentedDirect('${id}')">Báo hết</button>`
               : ""
           }
 
-          ${
-            isAdmin()
-              ? `<button class="btn btn-outline btn-sm join-item"
-                         onclick="openEditPremise('${id}')">
-                   Sửa
-                 </button>`
+          ${isRented && !item.reactivate_reported_at
+              ? `<button class="btn btn-sm btn-outline join-item" onclick="requestReactivate('${id}')">Báo chạy lại</button>`
               : ""
           }
-          <div class="join join-horizontal flex flex-wrap gap-2">
-            <button class="btn btn-sm join-item btn-primary text-white" onclick="downloadAllImages()">
-               ⬇ Tải ảnh (.zip)
-            </button>
-            
-            <button class="btn btn-sm join-item btn-info text-white" onclick="copyPropertyInfo()">
-               📋 Copy tin
-            </button>
 
-            ${
-              item.contact_phone && !isStaff()
-                ? `<a class="btn btn-sm join-item" href="tel:${item.contact_phone}">Gọi</a>`
-                : ""
-            }
-            ${
-              isAdmin()
-                ? `<button class="btn btn-outline btn-sm join-item" onclick="openEditPremise('${id}')">Sửa</button>`
-                : ""
-            }
-          </div>
+          ${isAdmin() && item.reactivate_reported_at && !item.reactivate_confirmed_at
+              ? `<button class="btn btn-sm btn-success join-item" onclick="confirmReactivate('${id}')">Duyệt chạy lại</button>`
+              : ""
+          }
+
+          ${isAdmin()
+              ? `<button class="btn btn-outline btn-sm join-item" onclick="openEditPremise('${id}')">Sửa</button>`
+              : ""
+          }
         </div>
       `;
 
-
-
-      // Render HTML
       const html = `
         <div class="relative">
           <button type="button" onclick="document.getElementById('detailDlg').close()" class="absolute top-3 right-3 z-50 w-9 h-9 flex items-center justify-center bg-white rounded-full shadow hover:bg-gray-200 transition">✕</button>
@@ -2468,8 +2396,7 @@ MB0001/2.jpg"></textarea>
                 <div>Hướng: <b>${item.frontage ? 'Mặt tiền' : (item.direction || '-')}</b></div>
               </div>
 
-              ${
-                item.status === "rented" && item.rented_confirmed_at
+              ${item.status === "rented" && item.rented_confirmed_at
                   ? `<div class="mt-2 text-xs text-error">
                        Ngày báo hết: <b>${formatDateVN(item.rented_confirmed_at)}</b>
                        ${item.rented_reporter_email ? `<br/>👤 Người báo: <b>${item.rented_reporter_email}</b>` : ""}
@@ -2477,8 +2404,7 @@ MB0001/2.jpg"></textarea>
                   : ""
               }
 
-              ${
-                item.rented_reported_at && !item.rented_confirmed_at
+              ${item.rented_reported_at && !item.rented_confirmed_at
                   ? `<div class="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-error">
                        ⚠️ <b>${item.rented_reporter_email || 'Nhân sự'}</b> đã báo hết ngày ${formatDateVN(item.rented_reported_at)}.
                        <br/>Chờ Admin xác nhận.
@@ -2486,8 +2412,7 @@ MB0001/2.jpg"></textarea>
                   : ""
               }
 
-              ${
-                item.reactivate_reported_at && !item.reactivate_confirmed_at
+              ${item.reactivate_reported_at && !item.reactivate_confirmed_at
                   ? `<div class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-info">
                        🔄 <b>${item.reactivate_reporter_email || 'Nhân sự'}</b> đã báo chạy lại ngày ${formatDateVN(item.reactivate_reported_at)}.
                        <br/>Chờ Admin duyệt.
@@ -2495,17 +2420,14 @@ MB0001/2.jpg"></textarea>
                   : ""
               }
               
-              ${
-                item.is_approved === false
+              ${item.is_approved === false
                   ? `<div class="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-warning">
                        a⏳ Tin này do <b>${item.creator_email || 'Nhân sự'}</b> đăng, đang chờ duyệt.
                      </div>`
                   : ""
               }
 
-
               ${item.contact_phone && !isStaff() ? `
-
                 <div class="mt-3 p-3 bg-base-200 rounded-lg text-sm border border-base-300">
                   Liên hệ chủ nhà: <br/>
                   <b class="text-lg">${item.contact_phone}</b> ${item.contact_name ? `(${item.contact_name})` : ""}
@@ -2525,99 +2447,6 @@ MB0001/2.jpg"></textarea>
         </div>
       `;
       wrap.innerHTML = html;
-    }
-
-    async function openEditPremise(id) {
-      if (!isAdmin()) {
-        toast("Chỉ admin mới được sửa mặt bằng");
-        return;
-      }
-
-      EDITING_ID = id;
-      const dlg = document.getElementById("editDlg");
-
-      const { data, error } = await db
-        .from("premises")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error || !data) {
-        console.error(error);
-        toast("Không tải được dữ liệu để sửa");
-        return;
-      }
-
-      const item = data;
-      const setVal = (elId, val) => {
-        const el = document.getElementById(elId);
-        if (el) el.value = val == null ? "" : String(val);
-      };
-      setVal("edit-road-type", item.road_type || (item.frontage ? "Mặt tiền" : "Hẻm"));
-      setVal("edit-commission-text", item.commission || "");
-
-      // điền dữ liệu vào form edit
-      setVal("edit-code", item.code || "");
-      setVal("edit-address", item.address || "");
-      setVal("edit-city", item.city || "TP.HCM");
-      setVal("edit-district", item.district || "");
-      setVal("edit-ward", item.ward || "");
-      setVal("edit-street", item.street || "");
-
-      setVal("edit-price", item.price ?? "");
-      setVal("edit-area", item.area ?? "");
-      setVal("edit-width", item.width ?? "");
-      setVal("edit-length", item.length ?? "");
-      setVal("edit-floors", item.floors ?? "");
-      setVal("edit-bedrooms", item.pn ?? item.bedrooms ?? "");
-      setVal("edit-wc", item.wc ?? "");
-      setVal("edit-ket-cau", item.ket_cau || "");
-      setVal("edit-contact-phone", item.contact_phone || "");
-      setVal("edit-commission", item.commission_note || "");
-      setVal("edit-detail", item.detail || "");
-      setVal("edit-lat", item.lat || "");
-      setVal("edit-lng", item.lng || "");
-      const statusSelect = document.getElementById("edit-status");
-      if (statusSelect) {
-        statusSelect.value = item.status || "available";
-      }
-
-      const frontageCheckbox = document.getElementById("edit-frontage");
-      if (frontageCheckbox) {
-        frontageCheckbox.checked = !!item.frontage;
-      }
-
-      // xử lý field images: array / json / string
-      let rawImgs = item.images;
-      let imgPaths = [];
-
-      if (Array.isArray(rawImgs)) {
-        imgPaths = rawImgs;
-      } else if (typeof rawImgs === "string" && rawImgs.trim()) {
-        const s = rawImgs.trim();
-        try {
-          if (s.startsWith("[") && s.endsWith("]")) {
-            const parsed = JSON.parse(s);
-            if (Array.isArray(parsed)) imgPaths = parsed;
-          } else {
-            imgPaths = s.split(/[\n;,]+/);
-          }
-        } catch (e) {
-          console.warn("parse images error in edit", e);
-          imgPaths = s.split(/[\n;,]+/);
-        }
-      }
-
-      const imagesTextarea = document.getElementById("edit-images");
-      if (imagesTextarea) {
-        imagesTextarea.value = (imgPaths || [])
-          .map((p) => (p || "").trim())
-          .filter(Boolean)
-          .join("\n");
-      }
-
-      dlg.showModal();
-      initPickerMap('edit-map-picker', 'edit-lat', 'edit-lng', item.lat, item.lng);
     }
     
     async function saveEditPremise() {
