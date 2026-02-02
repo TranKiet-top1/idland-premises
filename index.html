@@ -1747,6 +1747,7 @@ MB0001/2.jpg"></textarea>
       }
     }
 
+    // ===== HÀM VẼ LƯỚI SẢN PHẨM (ĐÃ CẬP NHẬT HIỂN THỊ TRẠNG THÁI) =====
     function renderCards(rows, replace) {
       const grid = document.getElementById("grid");
       if (replace) grid.innerHTML = "";
@@ -1761,10 +1762,8 @@ MB0001/2.jpg"></textarea>
         return;
       }
 
-      // Lấy danh sách ghim
+      // Sắp xếp: Tin đã ghim lên đầu
       const favSet = new Set(getFavoriteIds());
-
-      // Sắp xếp
       const sortedRows = [...rows].sort((a, b) => {
         const af = favSet.has(a.id);
         const bf = favSet.has(b.id);
@@ -1773,9 +1772,7 @@ MB0001/2.jpg"></textarea>
       });
 
       const html = sortedRows.map((row) => {
-        // --- 1. TÍNH TOÁN DỮ LIỆU ---
-        
-        // Ảnh (Ưu tiên lấy từ DB)
+        // --- 1. XỬ LÝ ẢNH ---
         let firstPath = null;
         if (Array.isArray(row.images) && row.images.length > 0) firstPath = row.images[0];
         else if (typeof row.images === "string" && row.images.trim()) {
@@ -1786,22 +1783,33 @@ MB0001/2.jpg"></textarea>
         }
         const imgUrl = firstPath ? buildImageUrl(firstPath) : null;
 
-        // Tiêu đề
+        // --- 2. XỬ LÝ TIÊU ĐỀ & THÔNG SỐ ---
         let title = "Đang cập nhật";
         try { title = buildTitle(row); } catch(e) {}
         if (!title || title === "") title = row.address || "Mặt bằng chưa có tên";
 
-        // Thông số
         const pnVal = row.pn || row.so_pn || row.bedrooms || row.rooms || "";
+        const areaDisplay = row.area ? Number(row.area).toFixed(2).replace(/\.00$/, '') : "";
         const updatedLabel = formatDateVN(row.updated_at || row.created_at);
 
-        // Badge Admin
+        // --- 3. [MỚI] XỬ LÝ TRẠNG THÁI (HIỂN THỊ CÒN/HẾT) ---
+        let statusBadgeHtml = "";
+        if (row.status === 'rented') {
+            statusBadgeHtml = `<span class="badge badge-xs bg-gray-100 text-gray-400 border-gray-200">Đã thuê</span>`;
+        } else if (row.status === 'deposited') {
+             statusBadgeHtml = `<span class="badge badge-xs badge-warning text-white border-none">Đã cọc</span>`;
+        } else {
+             // Mặc định là available
+             statusBadgeHtml = `<span class="badge badge-xs badge-success text-white border-none">Còn trống</span>`;
+        }
+        // ---------------------------------------------
+
+        // --- 4. CÁC NÚT BẤM & BADGE KHÁC ---
         const staffReportBadge =
           row.rented_reported_at && row.status !== "rented"
             ? `<span class="badge badge-xs badge-warning border-none ml-1">NS báo hết</span>`
             : "";
 
-        // Nút Duyệt
         let approveBtn = "";
         if (typeof SHOW_PENDING !== 'undefined' && SHOW_PENDING && isAdmin()) {
           approveBtn = `
@@ -1811,7 +1819,6 @@ MB0001/2.jpg"></textarea>
             </button>`;
         }
 
-        // --- XỬ LÝ NÚT GHIM ---
         const isFav = favSet.has(row.id);
         const favBtnHtml = `
             <button 
@@ -1825,49 +1832,29 @@ MB0001/2.jpg"></textarea>
             </button>
         `;
 
-
-        // --- ĐOẠN CODE MỚI: XÁC ĐỊNH NGƯỜI BÁO ---
         let reporterInfo = "";
-        
-        // ... (Giữ nguyên các dòng trên) ...
-        
-        // --- LOGIC MỚI: HIỂN THỊ NÚT XÁC NHẬN / HUỶ (CHO ADMIN) ---
         let adminActions = "";
         
-        // Chỉ hiện nút nếu là Admin VÀ Tin đang ở trạng thái chờ duyệt báo hết
         if (isAdmin() && row.rented_reported_at && !row.rented_confirmed_at) {
              reporterInfo = `<div class="mt-1 text-[10px] font-bold text-error bg-red-50 p-1 rounded border border-red-100 truncate">
                                 👤 Báo hết: ${row.rented_reporter_email || 'Ẩn danh'}
                              </div>`;
-             
-             // Thêm 2 nút bấm
              adminActions = `
                 <div class="flex gap-2 mt-2 z-30 relative">
-                    <button onclick="confirmRented('${row.id}', event)" 
-                        class="btn btn-xs btn-error text-white flex-1 shadow-sm hover:scale-105 transition-transform">
-                        ✔ Xác nhận
-                    </button>
-                    <button onclick="cancelRented('${row.id}', event)" 
-                        class="btn btn-xs btn-outline border-gray-300 text-gray-500 flex-1 hover:bg-gray-100">
-                        ✕ Huỷ
-                    </button>
-                </div>
-             `;
-        } 
-        // ... (Giữ nguyên các trường hợp khác như Báo chạy lại / Tin mới) ...
-        // Trường hợp 2: Đang chờ duyệt chạy lại
-        else if (row.reactivate_reported_at && !row.reactivate_confirmed_at) {
+                    <button onclick="confirmRented('${row.id}', event)" class="btn btn-xs btn-error text-white flex-1 shadow-sm hover:scale-105 transition-transform">✔ Xác nhận</button>
+                    <button onclick="cancelRented('${row.id}', event)" class="btn btn-xs btn-outline border-gray-300 text-gray-500 flex-1 hover:bg-gray-100">✕ Huỷ</button>
+                </div>`;
+        } else if (row.reactivate_reported_at && !row.reactivate_confirmed_at) {
              reporterInfo = `<div class="mt-1 text-[10px] font-bold text-info bg-blue-50 p-1 rounded border border-blue-100 truncate">
                                 👤 Báo chạy lại: ${row.reactivate_reporter_email || 'Ẩn danh'}
                              </div>`;
-        }
-        // Trường hợp 3: Tin mới chờ duyệt (Pending)
-        else if (row.is_approved === false) {
+        } else if (row.is_approved === false) {
              reporterInfo = `<div class="mt-1 text-[10px] font-bold text-warning bg-yellow-50 p-1 rounded border border-yellow-100 truncate">
                                 👤 Người đăng: ${row.creator_email || 'Ẩn danh'}
                              </div>`;
         }
-        // --- 2. GIAO DIỆN HTML ---
+
+        // --- 5. TRẢ VỀ HTML ---
         return `
           <article 
             class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer premise-card overflow-hidden flex flex-row md:flex-col h-[125px] md:h-auto group relative mb-2"
@@ -1882,7 +1869,6 @@ MB0001/2.jpg"></textarea>
                     : `<div class="text-[10px] text-gray-400 flex flex-col items-center gap-1"><span>📷 No IMG</span></div>`
                 }
               </div>
-              
               <div class="absolute top-1.5 right-1.5 z-20 flex flex-col gap-1 items-end pointer-events-auto">
                  ${staffReportBadge}
                  ${favBtnHtml}
@@ -1894,14 +1880,13 @@ MB0001/2.jpg"></textarea>
                 <h3 class="font-bold text-xs md:text-sm line-clamp-2 leading-tight text-gray-800 mb-1">
                     ${title}
                 </h3>
-                
                 <div class="flex items-center gap-1 text-[10px] md:text-xs text-gray-500 truncate mb-1">
                    <span class="opacity-70">📍</span>
                    <span class="truncate">${[row.ward, row.district].filter(Boolean).join(", ")}</span>
                 </div>
                 
                 <div class="flex flex-wrap items-center gap-1 text-[10px] text-gray-600 font-medium">
-                  ${row.area ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${row.area}m²</span>` : ""}
+                  ${statusBadgeHtml} ${areaDisplay ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${areaDisplay}m²</span>` : ""}
                   ${row.width ? `<span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">${row.width}x${row.length}</span>` : ""}
                   ${pnVal ? `<span class="text-gray-400 ml-1">• ${pnVal}PN</span>` : ""}
                 </div>
@@ -1916,33 +1901,27 @@ MB0001/2.jpg"></textarea>
                      ${updatedLabel}
                    </div>
                 </div>
-                
                 ${approveBtn}
-
               </div>
               ${adminActions}
+              ${reporterInfo}
             </div>
           </article>
         `;
       });
 
-      // Chèn HTML vào lưới
       grid.insertAdjacentHTML("beforeend", html.join(""));
       
-      // Gắn sự kiện click
+      // Gắn sự kiện click xem chi tiết
       grid.querySelectorAll(".premise-card").forEach((el) => {
         el.onclick = (e) => {
-          if(e.target.closest('button')) {
-              e.stopPropagation(); 
-              return;
-          }
+          if(e.target.closest('button')) { e.stopPropagation(); return; }
           const id = el.getAttribute("data-id");
           if (id) openDetail(id);
         };
       });
 
-      // === CẬP NHẬT QUAN TRỌNG: Thêm setTimeout ===
-      // Chờ 300ms để đảm bảo các thẻ div đã được vẽ xong rồi mới quét ảnh
+      // Quét ảnh tự động sau khi vẽ xong
       if (typeof scanGridImages === "function") {
         setTimeout(() => {
             scanGridImages(sortedRows).catch(err => console.warn("Lỗi quét ảnh:", err));
